@@ -4,7 +4,16 @@ from collections.abc import Awaitable, Callable
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import admin, auth, categorias, ciclos, health, lancamentos, me
+from app.api.routes import (
+    admin,
+    auth,
+    categorias,
+    ciclos,
+    health,
+    lancamentos,
+    me,
+    recorrencias,
+)
 from app.config import Settings, get_settings
 from app.erros import registrar_tratadores, resposta_erro
 
@@ -50,6 +59,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(categorias.router)
     app.include_router(lancamentos.router)
     app.include_router(ciclos.router)
+    app.include_router(recorrencias.router)
     app.include_router(admin.router)
     return app
 

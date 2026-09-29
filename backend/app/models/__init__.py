@@ -17,6 +17,7 @@ class Base(DeclarativeBase):
 from app.models.acao_admin import AcaoAdmin  # noqa: E402
 from app.models.categoria import Categoria  # noqa: E402
 from app.models.lancamento import Lancamento  # noqa: E402
+from app.models.recorrencia import Recorrencia  # noqa: E402
 from app.models.sessao import Sessao  # noqa: E402
 from app.models.tentativa_login import TentativaLogin  # noqa: E402
 from app.models.usuario import Usuario  # noqa: E402
@@ -26,6 +27,7 @@ __all__ = [
     "Base",
     "Categoria",
     "Lancamento",
+    "Recorrencia",
     "Sessao",
     "TentativaLogin",
     "Usuario",

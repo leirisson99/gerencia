@@ -74,4 +74,5 @@ class LancamentoOut(BaseModel):
     status: str
     conta_no_saldo: bool
     abre_ciclo: bool
+    recorrencia_id: int | None
     criado_em: datetime

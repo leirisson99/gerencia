@@ -36,7 +36,7 @@ usuário garantida por índice único em `(usuario_id, lower(nome))` (migração
 ```text
 backend/
 ├── alembic/versions/0005_categoria_nome_unico.py
-├── app/domain/categoria.py        # + verificar_edicao
+├── app/domain/categoria.py        # + edicao_permitida
 ├── app/schemas/categoria.py       # + CategoriaIn, CategoriaPatch; CategoriaOut.ativa
 ├── app/services/categoria.py      # + criar_categoria, editar_categoria
 ├── app/api/routes/categorias.py   # + POST, PATCH, incluir_inativas

@@ -6,8 +6,13 @@ from sqlalchemy.orm import Session
 from app.domain.categoria import NOME_SALARIO
 from app.domain.ciclo import Ciclo, ciclo_atual, ciclo_da_data
 from app.erros import ErroApi
-from app.models import Categoria, Lancamento
+from app.models import Categoria, Lancamento, Usuario
 from app.models.lancamento import STATUS_REALIZADO
+
+
+def travar_escritas(db: Session, usuario_id: int) -> None:
+    """Serializa as escritas que mexem nos ciclos do usuário (lançamentos e previstos)."""
+    db.execute(select(Usuario.id).where(Usuario.id == usuario_id).with_for_update())
 
 
 def condicao_salario() -> ColumnElement[bool]:

@@ -28,6 +28,7 @@ class Lancamento(Base):
         CheckConstraint("status IN ('previsto', 'realizado')", name="status"),
         Index("ix_lancamento_usuario_data", "usuario_id", "data"),
         Index("ix_lancamento_usuario_categoria_data", "usuario_id", "categoria_id", "data"),
+        Index("ix_lancamento_recorrencia_data", "recorrencia_id", "data"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
@@ -45,6 +46,9 @@ class Lancamento(Base):
         String(9), default=STATUS_REALIZADO, server_default=STATUS_REALIZADO
     )
     conta_no_saldo: Mapped[bool] = mapped_column(default=True, server_default=true())
+    recorrencia_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("recorrencia.id", ondelete="RESTRICT")
+    )
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     atualizado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

@@ -1,0 +1,128 @@
+from collections.abc import Iterable
+from datetime import datetime
+
+from sqlalchemy import exists, select
+from sqlalchemy.orm import Session
+
+from app.domain.ciclo import Ciclo, ciclo_atual
+from app.domain.recorrencia import data_prevista
+from app.erros import MENSAGEM_VALIDACAO, ErroApi
+from app.models import Categoria, Lancamento, Recorrencia
+from app.models.lancamento import STATUS_PREVISTO
+from app.schemas.recorrencia import RecorrenciaIn, RecorrenciaPatch
+from app.services.categoria import obter_categoria_ativa
+from app.services.ciclo import datas_de_salario, travar_escritas
+
+
+def _categoria_de_recorrencia(db: Session, usuario_id: int, categoria_id: int) -> Categoria:
+    categoria = obter_categoria_ativa(db, usuario_id, categoria_id)
+    if categoria.e_salario:
+        raise ErroApi(
+            422,
+            "validacao",
+            MENSAGEM_VALIDACAO,
+            campos={"categoria_id": "O salário é lançado à mão, não como recorrência."},
+        )
+    return categoria
+
+
+def listar_recorrencias(db: Session, usuario_id: int) -> list[Recorrencia]:
+    return list(
+        db.scalars(
+            select(Recorrencia)
+            .where(Recorrencia.usuario_id == usuario_id)
+            .order_by(Recorrencia.dia, Recorrencia.descricao, Recorrencia.id)
+        )
+    )
+
+
+def obter_recorrencia(db: Session, usuario_id: int, recorrencia_id: int) -> Recorrencia:
+    recorrencia = db.scalar(
+        select(Recorrencia).where(
+            Recorrencia.id == recorrencia_id, Recorrencia.usuario_id == usuario_id
+        )
+    )
+    if recorrencia is None:
+        raise ErroApi(404, "nao_encontrado", "Recorrência não encontrada.")
+    return recorrencia
+
+
+def gerar_previstos(
+    db: Session,
+    usuario_id: int,
+    ciclo: Ciclo,
+    agora: datetime,
+    recorrencias: Iterable[Recorrencia] | None = None,
+) -> None:
+    """Um previsto por recorrência ativa no ciclo; não repete o que já foi gerado."""
+    if recorrencias is None:
+        recorrencias = db.scalars(
+            select(Recorrencia).where(Recorrencia.usuario_id == usuario_id, Recorrencia.ativa)
+        ).all()
+    for recorrencia in recorrencias:
+        if not recorrencia.ativa:
+            continue
+        no_ciclo = [Lancamento.recorrencia_id == recorrencia.id, Lancamento.data >= ciclo.inicio]
+        if ciclo.fim is not None:
+            no_ciclo.append(Lancamento.data <= ciclo.fim)
+        if db.scalar(select(exists().where(*no_ciclo))):
+            continue
+        db.add(
+            Lancamento(
+                usuario_id=usuario_id,
+                categoria_id=recorrencia.categoria_id,
+                data=data_prevista(recorrencia.dia, ciclo.inicio),
+                valor=recorrencia.valor,
+                tipo=recorrencia.tipo,
+                descricao=recorrencia.descricao,
+                status=STATUS_PREVISTO,
+                recorrencia_id=recorrencia.id,
+                criado_em=agora,
+                atualizado_em=agora,
+            )
+        )
+
+
+def criar_recorrencia(
+    db: Session, usuario_id: int, dados: RecorrenciaIn, agora: datetime
+) -> Recorrencia:
+    travar_escritas(db, usuario_id)
+    categoria = _categoria_de_recorrencia(db, usuario_id, dados.categoria_id)
+    recorrencia = Recorrencia(
+        usuario_id=usuario_id,
+        categoria_id=categoria.id,
+        descricao=dados.descricao,
+        valor=dados.valor,
+        tipo=categoria.tipo,
+        dia=dados.dia,
+        criado_em=agora,
+    )
+    db.add(recorrencia)
+    db.flush()
+    # Com ciclo aberto, o previsto deste ciclo já aparece.
+    ciclo = ciclo_atual(datas_de_salario(db, usuario_id))
+    if ciclo is not None:
+        gerar_previstos(db, usuario_id, ciclo, agora, [recorrencia])
+    db.commit()
+    return recorrencia
+
+
+def editar_recorrencia(
+    db: Session, usuario_id: int, recorrencia_id: int, dados: RecorrenciaPatch
+) -> Recorrencia:
+    """Muda só a recorrência; lançamentos já gerados ficam como estão."""
+    recorrencia = obter_recorrencia(db, usuario_id, recorrencia_id)
+    if dados.categoria_id is not None:
+        categoria = _categoria_de_recorrencia(db, usuario_id, dados.categoria_id)
+        recorrencia.categoria_id = categoria.id
+        recorrencia.tipo = categoria.tipo
+    if dados.descricao is not None:
+        recorrencia.descricao = dados.descricao
+    if dados.valor is not None:
+        recorrencia.valor = dados.valor
+    if dados.dia is not None:
+        recorrencia.dia = dados.dia
+    if dados.ativa is not None:
+        recorrencia.ativa = dados.ativa
+    db.commit()
+    return recorrencia

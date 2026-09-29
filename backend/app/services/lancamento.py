@@ -3,18 +3,14 @@ from datetime import date, datetime
 from sqlalchemy import func, not_, select
 from sqlalchemy.orm import Session
 
-from app.domain.ciclo import ProblemaCobertura, verificar_cobertura
+from app.domain.ciclo import ProblemaCobertura, ciclo_atual, verificar_cobertura
 from app.erros import MENSAGEM_VALIDACAO, ErroApi
-from app.models import Categoria, Lancamento, Usuario
+from app.models import Categoria, Lancamento
 from app.models.lancamento import STATUS_REALIZADO
 from app.schemas.lancamento import LancamentoIn, LancamentoPatch
 from app.services.categoria import obter_categoria_ativa
-from app.services.ciclo import condicao_salario, datas_de_salario
-
-
-def _travar_usuario(db: Session, usuario_id: int) -> None:
-    """Serializa as escritas de lançamento do usuário (research R7)."""
-    db.execute(select(Usuario.id).where(Usuario.id == usuario_id).with_for_update())
+from app.services.ciclo import condicao_salario, datas_de_salario, travar_escritas
+from app.services.recorrencia import gerar_previstos
 
 
 def obter_lancamento(db: Session, usuario_id: int, lancamento_id: int) -> Lancamento:
@@ -97,7 +93,7 @@ def _erro_sem_ciclo() -> ErroApi:
 def criar_lancamento(
     db: Session, usuario_id: int, dados: LancamentoIn, agora: datetime, hoje: date
 ) -> Lancamento:
-    _travar_usuario(db, usuario_id)
+    travar_escritas(db, usuario_id)
     categoria = obter_categoria_ativa(db, usuario_id, dados.categoria_id)
     _validar_salario(categoria, dados.status, dados.data, hoje)
 
@@ -105,6 +101,10 @@ def criar_lancamento(
     resultado = _problema_depois_da_mudanca(db, usuario_id, None, (abre_ciclo, dados.data))
     if resultado:
         raise _erro_de_cobertura(*resultado)
+
+    salarios = datas_de_salario(db, usuario_id) if abre_ciclo else []
+    # Só um salário posterior a todos os outros abre um ciclo novo (e gera os previstos).
+    abre_ciclo_novo = abre_ciclo and (not salarios or dados.data > max(salarios))
 
     lancamento = Lancamento(
         usuario_id=usuario_id,
@@ -118,6 +118,10 @@ def criar_lancamento(
         atualizado_em=agora,
     )
     db.add(lancamento)
+    if abre_ciclo_novo:
+        ciclo = ciclo_atual([*salarios, dados.data])
+        assert ciclo is not None
+        gerar_previstos(db, usuario_id, ciclo, agora)
     db.commit()
     return lancamento
 
@@ -130,7 +134,7 @@ def editar_lancamento(
     agora: datetime,
     hoje: date,
 ) -> Lancamento:
-    _travar_usuario(db, usuario_id)
+    travar_escritas(db, usuario_id)
     lancamento = obter_lancamento(db, usuario_id, lancamento_id)
     enviados = dados.model_fields_set
     if not enviados:
@@ -167,7 +171,7 @@ def editar_lancamento(
 
 
 def excluir_lancamento(db: Session, usuario_id: int, lancamento_id: int) -> None:
-    _travar_usuario(db, usuario_id)
+    travar_escritas(db, usuario_id)
     lancamento = obter_lancamento(db, usuario_id, lancamento_id)
     if _problema_depois_da_mudanca(db, usuario_id, lancamento.id, None):
         raise _erro_sem_ciclo()
