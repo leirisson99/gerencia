@@ -22,6 +22,7 @@ class Categoria(Base):
     __tablename__ = "categoria"
     __table_args__ = (
         CheckConstraint("tipo IN ('entrada', 'saida')", name="tipo"),
+        CheckConstraint("limite > 0", name="limite_positivo"),
         Index(
             "uq_categoria_salario_sistema",
             "usuario_id",
@@ -40,6 +41,8 @@ class Categoria(Base):
     tipo: Mapped[str] = mapped_column(String(7))
     ativa: Mapped[bool] = mapped_column(default=True, server_default=true())
     sistema: Mapped[bool] = mapped_column(default=False, server_default=false())
+    # Gasto máximo por ciclo, em centavos; só em categoria de saída (domain/limite.py).
+    limite: Mapped[int | None] = mapped_column(BigInteger)
 
     @property
     def e_salario(self) -> bool:

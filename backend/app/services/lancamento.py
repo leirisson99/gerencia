@@ -7,9 +7,10 @@ from app.domain.ciclo import ProblemaCobertura, ciclo_atual, verificar_cobertura
 from app.erros import MENSAGEM_VALIDACAO, ErroApi
 from app.models import Casa, Categoria, Lancamento
 from app.models.lancamento import STATUS_REALIZADO
-from app.schemas.lancamento import LancamentoIn, LancamentoPatch
+from app.schemas.lancamento import AvisoLimiteOut, LancamentoIn, LancamentoPatch
 from app.services.categoria import obter_categoria_ativa
 from app.services.ciclo import condicao_salario, datas_de_salario, travar_escritas
+from app.services.limite import avaliar_aviso, usado_no_ciclo
 from app.services.recorrencia import gerar_previstos
 
 
@@ -103,7 +104,8 @@ def verificar_novos_lancamentos(db: Session, usuario_id: int, menor_data: date) 
 
 def criar_lancamento(
     db: Session, usuario_id: int, dados: LancamentoIn, agora: datetime, hoje: date
-) -> Lancamento:
+) -> tuple[Lancamento, AvisoLimiteOut | None]:
+    """Cria o lançamento; devolve também o aviso se a categoria piorar de situação no ciclo."""
     travar_escritas(db, usuario_id)
     categoria = obter_categoria_ativa(db, usuario_id, dados.categoria_id)
     _validar_salario(categoria, dados.status, dados.data, hoje)
@@ -116,6 +118,7 @@ def criar_lancamento(
     salarios = datas_de_salario(db, usuario_id) if abre_ciclo else []
     # Só um salário posterior a todos os outros abre um ciclo novo (e gera os previstos).
     abre_ciclo_novo = abre_ciclo and (not salarios or dados.data > max(salarios))
+    usado_antes = usado_no_ciclo(db, usuario_id, categoria, dados.data)
 
     lancamento = Lancamento(
         usuario_id=usuario_id,
@@ -133,8 +136,12 @@ def criar_lancamento(
         ciclo = ciclo_atual([*salarios, dados.data])
         assert ciclo is not None
         gerar_previstos(db, usuario_id, ciclo, agora)
+    db.flush()
+    aviso = avaliar_aviso(
+        categoria, usado_antes, usado_no_ciclo(db, usuario_id, categoria, dados.data)
+    )
     db.commit()
-    return lancamento
+    return lancamento, aviso
 
 
 def editar_lancamento(
@@ -144,12 +151,13 @@ def editar_lancamento(
     dados: LancamentoPatch,
     agora: datetime,
     hoje: date,
-) -> Lancamento:
+) -> tuple[Lancamento, AvisoLimiteOut | None]:
+    """Edita o lançamento; devolve também o aviso se a categoria de destino piorar de situação."""
     travar_escritas(db, usuario_id)
     lancamento = obter_lancamento(db, usuario_id, lancamento_id)
     enviados = dados.model_fields_set
     if not enviados:
-        return lancamento
+        return lancamento, None
     muda_categoria = (
         dados.categoria_id is not None and dados.categoria_id != lancamento.categoria_id
     )
@@ -192,6 +200,8 @@ def editar_lancamento(
             raise _erro_sem_ciclo()
         raise _erro_de_cobertura(*resultado)
 
+    # Uso da categoria de destino no ciclo da nova data, antes da mudança.
+    usado_antes = usado_no_ciclo(db, usuario_id, categoria, data)
     lancamento.categoria = categoria
     lancamento.tipo = categoria.tipo
     lancamento.data = data
@@ -201,8 +211,10 @@ def editar_lancamento(
     if "descricao" in enviados:
         lancamento.descricao = dados.descricao
     lancamento.atualizado_em = agora
+    db.flush()
+    aviso = avaliar_aviso(categoria, usado_antes, usado_no_ciclo(db, usuario_id, categoria, data))
     db.commit()
-    return lancamento
+    return lancamento, aviso
 
 
 def excluir_lancamento(db: Session, usuario_id: int, lancamento_id: int) -> None:

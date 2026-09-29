@@ -117,7 +117,13 @@ def test_deposito_gera_saida_em_poupanca(client: TestClient, conta: Conta, salar
     assert lancamento["categoria_id"] == conta.categorias["Poupança"]
     resumo = client.get("/api/v1/ciclos/2027-01-05/resumo").json()
     assert resumo["saidas_por_categoria"] == [
-        {"categoria_id": conta.categorias["Poupança"], "nome": "Poupança", "total": 3_000}
+        {
+            "categoria_id": conta.categorias["Poupança"],
+            "nome": "Poupança",
+            "total": 3_000,
+            "limite": None,
+            "situacao": None,
+        }
     ]
 
 
@@ -198,6 +204,35 @@ def test_lancamento_do_deposito_e_protegido(
     ):
         assert client.patch(caminho, json=mudanca).status_code == 422
     assert client.patch(caminho, json={"descricao": "Guardei"}).status_code == 200
+
+
+def test_lancamento_informa_a_cartela_do_deposito(
+    client: TestClient, conta: Conta, salario: None
+) -> None:
+    """O frontend trava o depósito sem esperar a recusa da API."""
+    cartela = criar(client).json()
+    casa = casa_de(depositar(client, cartela, casa_de(cartela, 500)).json(), 500)
+
+    lancamentos = client.get("/api/v1/ciclos/2027-01-15/lancamentos").json()
+    por_id = {lanc["id"]: lanc for lanc in lancamentos}
+    assert por_id[casa["lancamento_id"]]["cartela_id"] == cartela["id"]
+    assert all(
+        lanc["cartela_id"] is None for lanc in lancamentos if lanc["id"] != casa["lancamento_id"]
+    )
+
+    caminho = f"/api/v1/lancamentos/{casa['lancamento_id']}"
+    assert client.get(caminho).json()["cartela_id"] == cartela["id"]
+    assert (
+        client.patch(caminho, json={"descricao": "Guardei"}).json()["cartela_id"] == cartela["id"]
+    )
+
+
+def test_lancamento_comum_nao_tem_cartela(client: TestClient, conta: Conta, salario: None) -> None:
+    resposta = client.post(
+        "/api/v1/lancamentos",
+        json={"valor": 1_000, "categoria_id": conta.categorias["Lazer"], "data": "2027-01-10"},
+    )
+    assert resposta.json()["cartela_id"] is None
 
 
 def test_poupanca_e_categoria_do_sistema(client: TestClient, conta: Conta) -> None:

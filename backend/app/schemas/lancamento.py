@@ -3,6 +3,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator
 
+from app.domain.limite import Situacao
+
 VALOR_MAXIMO = 99_999_999_999  # R$ 999.999.999,99
 MAX_DESCRICAO = 200
 
@@ -77,4 +79,21 @@ class LancamentoOut(BaseModel):
     recorrencia_id: int | None
     divida_id: int | None
     parcela_num: int | None
+    cartela_id: int | None
     criado_em: datetime
+
+
+class AvisoLimiteOut(BaseModel):
+    """A categoria piorou de situação no ciclo da data do lançamento."""
+
+    categoria_id: int
+    nome: str
+    usado: int  # centavos
+    limite: int  # centavos
+    situacao: Situacao
+
+
+class LancamentoComAvisoOut(LancamentoOut):
+    """Resposta de criar e editar: o aviso de limite só existe aqui."""
+
+    aviso_limite: AvisoLimiteOut | None

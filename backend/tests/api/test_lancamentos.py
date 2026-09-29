@@ -260,6 +260,8 @@ def test_consulta_um_lancamento(client: TestClient, conta: Conta) -> None:
     resposta = client.get(f"{URL}/{criado['id']}")
 
     assert resposta.status_code == 200
+    # O aviso de limite só existe na resposta da escrita.
+    criado.pop("aviso_limite")
     assert resposta.json() == criado
 
 

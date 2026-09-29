@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.domain.categoria import CATEGORIAS_INICIAIS, edicao_permitida
+from app.domain.limite import limite_permitido
 from app.erros import MENSAGEM_VALIDACAO, ErroApi
 from app.models import Categoria
 from app.schemas.categoria import CategoriaIn, CategoriaPatch
@@ -61,8 +62,21 @@ def _gravar(db: Session) -> None:
         ) from None
 
 
+def _validar_limite(tipo: str, limite: int | None) -> None:
+    if limite is not None and not limite_permitido(tipo):
+        raise ErroApi(
+            422,
+            "validacao",
+            MENSAGEM_VALIDACAO,
+            campos={"limite": "Limite só vale para categorias de saída."},
+        )
+
+
 def criar_categoria(db: Session, usuario_id: int, dados: CategoriaIn) -> Categoria:
-    categoria = Categoria(usuario_id=usuario_id, nome=dados.nome, tipo=dados.tipo)
+    _validar_limite(dados.tipo, dados.limite)
+    categoria = Categoria(
+        usuario_id=usuario_id, nome=dados.nome, tipo=dados.tipo, limite=dados.limite
+    )
     db.add(categoria)
     _gravar(db)
     return categoria
@@ -80,5 +94,9 @@ def editar_categoria(
         categoria.nome = dados.nome
     if dados.ativa is not None:
         categoria.ativa = dados.ativa
+    # Ausente não muda; `null` enviado remove o limite.
+    if "limite" in dados.model_fields_set:
+        _validar_limite(categoria.tipo, dados.limite)
+        categoria.limite = dados.limite
     _gravar(db)
     return categoria

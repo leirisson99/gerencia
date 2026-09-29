@@ -11,11 +11,13 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     func,
+    select,
     true,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.models import Base
+from app.models.cartela import Casa
 from app.models.categoria import Categoria
 
 STATUS_PREVISTO = "previsto"
@@ -63,6 +65,14 @@ class Lancamento(Base):
     )
 
     categoria: Mapped[Categoria] = relationship()
+
+    # Depósito de cartela: vem na mesma consulta, para o frontend travar o que a API recusa.
+    cartela_id: Mapped[int | None] = column_property(
+        select(Casa.cartela_id)
+        .where(Casa.lancamento_id == id)
+        .correlate_except(Casa)
+        .scalar_subquery()
+    )
 
     @property
     def abre_ciclo(self) -> bool:

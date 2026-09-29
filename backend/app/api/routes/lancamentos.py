@@ -1,8 +1,15 @@
 from fastapi import APIRouter
 
 from app.api.deps import AutenticadoDep, Db, RelogioDep
+from app.models import Lancamento
 from app.schemas.erro import ErroOut
-from app.schemas.lancamento import LancamentoIn, LancamentoOut, LancamentoPatch
+from app.schemas.lancamento import (
+    AvisoLimiteOut,
+    LancamentoComAvisoOut,
+    LancamentoIn,
+    LancamentoOut,
+    LancamentoPatch,
+)
 from app.services.lancamento import (
     criar_lancamento,
     editar_lancamento,
@@ -19,12 +26,20 @@ ERROS_ESCRITA: dict[int | str, dict[str, object]] = {
 }
 
 
+def _com_aviso(lancamento: Lancamento, aviso: AvisoLimiteOut | None) -> LancamentoComAvisoOut:
+    return LancamentoComAvisoOut(
+        **LancamentoOut.model_validate(lancamento).model_dump(), aviso_limite=aviso
+    )
+
+
 @router.post("", status_code=201, responses=ERROS_ESCRITA)
-def criar(dados: LancamentoIn, auth: AutenticadoDep, db: Db, relogio: RelogioDep) -> LancamentoOut:
-    lancamento = criar_lancamento(
+def criar(
+    dados: LancamentoIn, auth: AutenticadoDep, db: Db, relogio: RelogioDep
+) -> LancamentoComAvisoOut:
+    lancamento, aviso = criar_lancamento(
         db, auth.usuario.id, dados, relogio.agora_utc(), relogio.hoje_sp()
     )
-    return LancamentoOut.model_validate(lancamento)
+    return _com_aviso(lancamento, aviso)
 
 
 @router.get("/{lancamento_id}", responses={404: {"model": ErroOut}})
@@ -39,11 +54,11 @@ def editar(
     auth: AutenticadoDep,
     db: Db,
     relogio: RelogioDep,
-) -> LancamentoOut:
-    lancamento = editar_lancamento(
+) -> LancamentoComAvisoOut:
+    lancamento, aviso = editar_lancamento(
         db, auth.usuario.id, lancamento_id, dados, relogio.agora_utc(), relogio.hoje_sp()
     )
-    return LancamentoOut.model_validate(lancamento)
+    return _com_aviso(lancamento, aviso)
 
 
 @router.delete(

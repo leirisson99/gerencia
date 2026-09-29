@@ -31,6 +31,9 @@ Desmarca e remove o lançamento. Erros: 409 `casa_livre`; 404.
 `DELETE /lancamentos/{id}` → 409 `deposito_de_cartela`; `PATCH` com `valor`, `status` ou
 `categoria_id` → 422.
 
+`LancamentoOut` ganha `cartela_id` (id da cartela do depósito; `null` nos demais), para o cliente
+travar esses campos sem esperar a recusa (emenda de 2026-09-29).
+
 ## Categorias
 
 "Poupança" aparece em `GET /categorias` como `sistema: true`; renomear ou desativar →

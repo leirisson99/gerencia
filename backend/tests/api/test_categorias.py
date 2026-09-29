@@ -33,7 +33,7 @@ def test_lista_as_categorias_iniciais_em_ordem(
 
     assert resposta.status_code == 200
     assert [(c["nome"], c["tipo"], c["sistema"]) for c in resposta.json()] == ORDEM_ESPERADA
-    assert set(resposta.json()[0]) == {"id", "nome", "tipo", "sistema", "ativa"}
+    assert set(resposta.json()[0]) == {"id", "nome", "tipo", "sistema", "ativa", "limite"}
 
 
 def test_nao_lista_categorias_inativas(

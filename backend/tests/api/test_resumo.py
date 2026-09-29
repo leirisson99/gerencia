@@ -113,12 +113,36 @@ def test_gasto_por_categoria_do_maior_para_o_menor(
     corpo = resumo(client)
 
     assert corpo["saidas_por_categoria"] == [
-        {"categoria_id": conta.categorias["Moradia"], "nome": "Moradia", "total": 150_000},
-        {"categoria_id": conta.categorias["Alimentação"], "nome": "Alimentação", "total": 100_000},
+        {
+            "categoria_id": conta.categorias["Moradia"],
+            "nome": "Moradia",
+            "total": 150_000,
+            "limite": None,
+            "situacao": None,
+        },
+        {
+            "categoria_id": conta.categorias["Alimentação"],
+            "nome": "Alimentação",
+            "total": 100_000,
+            "limite": None,
+            "situacao": None,
+        },
     ]
     assert corpo["entradas_por_categoria"] == [
-        {"categoria_id": conta.categorias["Salário"], "nome": "Salário", "total": 500_000},
-        {"categoria_id": conta.categorias["Renda extra"], "nome": "Renda extra", "total": 30_000},
+        {
+            "categoria_id": conta.categorias["Salário"],
+            "nome": "Salário",
+            "total": 500_000,
+            "limite": None,
+            "situacao": None,
+        },
+        {
+            "categoria_id": conta.categorias["Renda extra"],
+            "nome": "Renda extra",
+            "total": 30_000,
+            "limite": None,
+            "situacao": None,
+        },
     ]
 
 

@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.domain.usuario import limpar_texto
+from app.schemas.lancamento import Valor
 
 MAX_NOME_CATEGORIA = 60
 
@@ -12,6 +13,8 @@ class CategoriaIn(BaseModel):
 
     nome: str
     tipo: Literal["entrada", "saida"]
+    # Só em categoria de saída (domain/limite.py); o serviço recusa em entrada.
+    limite: Valor | None = None
 
     @field_validator("nome")
     @classmethod
@@ -20,12 +23,16 @@ class CategoriaIn(BaseModel):
 
 
 class CategoriaPatch(BaseModel):
-    """Renomear e/ou ativar/desativar. O tipo não muda."""
+    """Renomear, ativar/desativar e definir o limite. O tipo não muda.
+
+    `limite: null` remove o limite; é o único campo que aceita null.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     nome: str | None = None
     ativa: bool | None = None
+    limite: Valor | None = None
 
     @field_validator("nome")
     @classmethod
@@ -51,3 +58,4 @@ class CategoriaOut(BaseModel):
     tipo: str
     sistema: bool
     ativa: bool
+    limite: int | None
