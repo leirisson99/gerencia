@@ -9,6 +9,7 @@ from app.config import Settings, get_settings
 from app.db import get_db
 from app.erros import ErroApi
 from app.models import Sessao, Usuario
+from app.models.usuario import PAPEL_ADMIN
 from app.relogio import Relogio, get_relogio
 from app.services.sessao import resolver_sessao
 
@@ -52,3 +53,12 @@ def autenticacao(
 
 AutenticadoDep = Annotated[Autenticado, Depends(autenticacao)]
 AutenticadoPermitindoTrocaDep = Annotated[Autenticado, Depends(autenticacao_permitindo_troca)]
+
+
+def administrador(auth: AutenticadoDep) -> Usuario:
+    if auth.usuario.papel != PAPEL_ADMIN:
+        raise ErroApi(403, "acesso_negado", "Acesso restrito ao administrador.")
+    return auth.usuario
+
+
+AdministradorDep = Annotated[Usuario, Depends(administrador)]

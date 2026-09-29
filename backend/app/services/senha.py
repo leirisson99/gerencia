@@ -1,7 +1,21 @@
+import secrets
+import string
+
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 
 _hasher = PasswordHasher()
+
+TAMANHO_SENHA_TEMPORARIA = 12
+_ALFABETO = string.ascii_letters + string.digits
+
+
+def gerar_senha_temporaria() -> str:
+    """12 letras e dígitos aleatórios, com pelo menos uma letra e um dígito."""
+    while True:
+        senha = "".join(secrets.choice(_ALFABETO) for _ in range(TAMANHO_SENHA_TEMPORARIA))
+        if any(c.isalpha() for c in senha) and any(c.isdigit() for c in senha):
+            return senha
 
 
 def hash_senha(senha: str) -> str:

@@ -8,7 +8,7 @@ Decisões técnicas da feature 002. Não há itens NEEDS CLARIFICATION pendentes
   `secrets.token_urlsafe(32)`, só o SHA-256 dele é guardado, e ele trafega num cookie
   `HttpOnly`, `Secure` (fora de dev), `SameSite=Lax`, `Path=/`.
 - **Rationale**: a spec exige encerrar as outras sessões na troca de senha (FR-014), expirar
-  por inatividade (FR-011) e, na feature 003, derrubar as sessões no reset. Com sessão no
+  por inatividade (FR-011) e, na feature 004, derrubar as sessões no reset. Com sessão no
   servidor isso é um `DELETE`/`UPDATE`. Cookie `HttpOnly` protege o token contra XSS no
   frontend. SHA-256 basta porque o token tem 256 bits de entropia (não precisa de hash lento).
 - **Alternatives considered**:

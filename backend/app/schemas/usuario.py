@@ -14,15 +14,15 @@ from app.domain.usuario import (
 # A data de nascimento depende de "hoje"; ela é validada no serviço, com o relógio injetado.
 
 
-class CadastroIn(BaseModel):
+class DadosPessoaisIn(BaseModel):
+    """Campos obrigatórios de toda conta, com as regras do cadastro."""
+
     model_config = ConfigDict(extra="forbid")
 
     nome: str
     email: str
     telefone: str
     cargo: str
-    senha: str
-    data_nascimento: date | None = None
 
     @field_validator("nome")
     @classmethod
@@ -43,6 +43,11 @@ class CadastroIn(BaseModel):
     @classmethod
     def _telefone(cls, valor: str) -> str:
         return normalizar_telefone(valor)
+
+
+class CadastroIn(DadosPessoaisIn):
+    senha: str
+    data_nascimento: date | None = None
 
     @field_validator("senha")
     @classmethod

@@ -237,7 +237,7 @@ Task: "Modelo TentativaLogin em app/models/tentativa_login.py"
 1. Setup + Foundational → base pronta
 2. US1 → cadastro
 3. US2 → login, bloqueio, logout
-4. US3 → troca de senha (pré-requisito da feature 003)
+4. US3 → troca de senha (pré-requisito da feature 004)
 5. US4 → perfil e isolamento
 6. Polish → logging, migração reversível, lint, quickstart
 

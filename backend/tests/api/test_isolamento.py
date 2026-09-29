@@ -60,6 +60,8 @@ def test_troca_de_senha_de_ana_nao_toca_em_bia(
 
 
 def test_nao_ha_rota_que_receba_id_de_usuario(client: TestClient) -> None:
-    # O usuário vem sempre da sessão; nenhuma rota aceita id de usuário no caminho.
+    # O usuário vem sempre da sessão; só as rotas de administrador apontam para outra conta.
     rotas = client.get("/openapi.json").json()["paths"]
-    assert all("usuario" not in caminho for caminho in rotas)
+    assert all(
+        "usuario" not in caminho for caminho in rotas if not caminho.startswith("/api/v1/admin")
+    )

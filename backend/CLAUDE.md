@@ -101,6 +101,7 @@ uv run pytest
 uv run ruff check . && uv run ruff format .
 uv run alembic revision --autogenerate -m "mensagem"
 uv run alembic upgrade head
+uv run python -m app.cli criar-admin --nome ... --email ... --telefone ... --cargo ...   # único admin
 ```
 
 ## Convenções

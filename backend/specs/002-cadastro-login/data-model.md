@@ -20,7 +20,7 @@ schema vem numa migração Alembic reversível.
 | atualizado_em | timestamptz | atualizado em toda alteração de perfil ou senha |
 
 **Transições**:
-- `troca_senha_obrigatoria`: `false → true` só pela feature 003 (reset); `true → false` ao
+- `troca_senha_obrigatoria`: `false → true` só pela feature 004 (reset); `true → false` ao
   concluir a troca de senha.
 - `papel`: não muda nesta feature.
 

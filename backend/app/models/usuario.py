@@ -1,17 +1,32 @@
 from datetime import date, datetime
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, Identity, String, false, func
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    DateTime,
+    Identity,
+    Index,
+    String,
+    false,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
 
 PAPEL_USUARIO = "usuario"
 PAPEL_ADMIN = "admin"
+INDICE_ADMIN_UNICO = "uq_usuario_admin_unico"
 
 
 class Usuario(Base):
     __tablename__ = "usuario"
-    __table_args__ = (CheckConstraint("papel IN ('usuario', 'admin')", name="papel"),)
+    __table_args__ = (
+        CheckConstraint("papel IN ('usuario', 'admin')", name="papel"),
+        # Um único administrador por enquanto; remover o índice libera vários.
+        Index(INDICE_ADMIN_UNICO, "papel", unique=True, postgresql_where=text("papel = 'admin'")),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     nome: Mapped[str] = mapped_column(String(120))

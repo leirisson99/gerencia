@@ -73,7 +73,7 @@ acesso foi encerrado; tentar entrar com senha errada e ver a recusa.
 Logado, troco minha senha informando a senha atual e a nova.
 
 **Why this priority**: sem recuperação por e-mail, trocar a senha é a única forma de o usuário
-manter a conta segura; e é obrigatória depois de um reset pelo administrador (feature 003).
+manter a conta segura; e é obrigatória depois de um reset pelo administrador (feature 004).
 
 **Independent Test**: trocar a senha, sair e entrar com a nova; tentar com a senha atual errada
 e ver a recusa.
@@ -128,7 +128,7 @@ alterar o telefone e ver o novo valor; tentar alterar o e-mail e ver a recusa.
 - Data de nascimento no futuro ou anterior a 1900 é recusada.
 - Duas pessoas tentando cadastrar o mesmo e-mail ao mesmo tempo: só uma conta é criada.
 - Esquecer a senha: não há recuperação por e-mail; a pessoa precisa pedir ao administrador
-  (feature 003).
+  (feature 004).
 - Sessão parada por muito tempo expira e exige novo login.
 
 ## Requirements *(mandatory)*
@@ -191,11 +191,11 @@ alterar o telefone e ver o novo valor; tentar alterar o e-mail e ver a recusa.
 ## Assumptions
 
 - Sem recuperação de senha por e-mail e sem verificação de e-mail; quem esquecer a senha
-  depende do administrador (feature 003). Qualquer e-mail com formato válido é aceito, mesmo
+  depende do administrador (feature 004). Qualquer e-mail com formato válido é aceito, mesmo
   que não pertença à pessoa.
 - O cadastro público informa quando um e-mail já está cadastrado; sem verificação de e-mail,
   não há como evitar isso sem prejudicar o cadastro.
-- O administrador não é criado por esta feature; a criação e o painel ficam na feature 003.
+- O administrador não é criado por esta feature; a criação e o painel ficam na feature 004.
 - Telefones são brasileiros; números internacionais ficam fora de escopo.
 - Não há idade mínima para o cadastro.
 - Fora de escopo: excluir a conta, trocar o e-mail, login social, autenticação em dois fatores.
