@@ -1,0 +1,121 @@
+# CLAUDE.md
+
+Guia para o Claude trabalhar neste repositório. Leia inteiro antes de qualquer tarefa.
+
+## O projeto
+
+Sistema web de controle financeiro pessoal organizado em torno do **ciclo do salário**. Ele responde a três perguntas: quanto entrou, para onde foi (por categoria) e quanto sobrou. O que sobra alimenta **cartelas de poupança** por meta, sem prazo.
+
+- **Escopo atual: só o backend** (API FastAPI). O frontend não faz parte do trabalho; critérios e tarefas precisam ser verificáveis pela API.
+- Multiusuário na web: qualquer pessoa pode se cadastrar; cada usuário só vê os próprios dados.
+- Login com e-mail e senha. Um único administrador, que só pode resetar senhas.
+- Problema central: não saber para onde o dinheiro vai.
+- Tudo é lançado manualmente no MVP, inclusive o salário, que abre o ciclo.
+
+**Fonte da verdade:** `.specify/memory/constitution.md`. Se uma instrução aqui ou num pedido contrariar a constituição, pare e aponte o conflito antes de implementar.
+
+## Regras que você nunca quebra
+
+1. **Dinheiro em centavos, como `int`.** Nunca `float`, nem em testes, schemas ou JSON da API.
+2. **O ciclo é derivado, não armazenado.** Ele começa na data de cada salário lançado. Não crie tabela nem coluna de ciclo.
+3. **Nada conta duas vezes no saldo.** Cartão entra só como fatura total. Parcela paga no cartão usa `conta_no_saldo = False`.
+4. **Regra de domínio nasce com teste.** Escreva o teste antes (ciclo, cartela, parcelas, recorrências, saldo).
+5. **Todo dado financeiro pertence a um usuário.** Toda consulta filtra pelo usuário autenticado; dado de outro usuário retorna 404, com teste.
+6. **Só P0.** Não implemente P1/P2 nem "prepare para o futuro" sem pedido explícito.
+7. **Lançamento tem só valor, categoria e data como obrigatórios.** Não adicione campos obrigatórios.
+8. **Sem IA no MVP.**
+
+## Glossário do domínio
+
+| Termo | Significado |
+| --- | --- |
+| Ciclo | Da data de um salário lançado até a véspera do próximo. O mais recente fica aberto, sem fim |
+| Salário | Lançamento de entrada na categoria de sistema "Salário". É o único que abre ciclo |
+| Lançamento | Movimento de dinheiro: `entrada` ou `saida`, `previsto` ou `realizado` |
+| Recorrência | Gasto ou renda fixa que gera um previsto por ciclo (aluguel, internet). O salário não é recorrência |
+| Entrada inesperada | Lançamento manual de entrada (freela, 13º, reembolso, venda, presente) em categoria que não abre ciclo |
+| Dívida | `devo` ou `me_devem`, com N parcelas geradas como lançamentos previstos |
+| Fatura | Pagamento total do cartão, lançado como uma saída na categoria "Cartão de crédito" |
+| Cartela | Meta de poupança dividida em casas sequenciais (base × 1…N) + casa de ajuste |
+| Casa | Um depósito da cartela. Livre ou depositada |
+| Administrador | Papel criado só no servidor; vê nome, e-mail e data de criação das contas e só reseta senha |
+
+## Modelo de dados
+
+| Tabela | Campos principais |
+| --- | --- |
+| `usuario` | nome, email (único), senha_hash, telefone, cargo, data_nascimento (opcional), papel (`usuario` / `admin`), troca_senha_obrigatoria, criado_em |
+| `categoria` | usuario_id, nome, tipo (`entrada` / `saida`), ativa. "Salário" é de sistema e protegida |
+| `recorrencia` | usuario_id, descricao, valor, tipo, categoria_id, dia, ativa |
+| `divida` | usuario_id, descricao, pessoa, direcao, valor_total, parcelas, forma_pagamento, dia_vencimento, data_inicio |
+| `lancamento` | usuario_id, data, valor, tipo, categoria_id, descricao, status, forma_pagamento, recorrencia_id, divida_id, parcela_num, conta_no_saldo |
+| `cartela` | usuario_id, nome, meta, valor_base, criada_em |
+| `casa` | cartela_id, valor, ordem, is_ajuste, depositado_em |
+
+Todos os campos de valor são `int` em centavos. Não existe tabela de configuração de pagamento. O detalhe das tabelas de sessão e de auditoria do administrador fica nos planos das features 002 e 003.
+
+## Regras de cálculo
+
+- **Ciclo:** começa em cada data distinta de salário e termina na véspera da próxima. Antes do primeiro salário, nenhum outro lançamento é aceito.
+- **Saldo do ciclo** = soma das entradas − soma das saídas, considerando só `status = realizado` e `conta_no_saldo = True`.
+- **Gasto por categoria** usa o mesmo filtro, agrupado por `categoria_id`.
+- **Recorrências:** um previsto por recorrência em cada ciclo, na próxima ocorrência do dia a partir do início do ciclo, gerado quando o ciclo abre.
+- **Cartela:** N = maior inteiro com `base × N(N+1)/2 ≤ meta`. O resto vira uma casa com `is_ajuste = True`. A soma das casas é sempre igual à meta.
+- **Parcelas:** `valor_total // parcelas` em cada uma. O resto de centavos vai para a última.
+- **Depósito na cartela** gera um lançamento `saida` na categoria "Poupança".
+
+## Estrutura
+
+```text
+backend/
+  .specify/
+    memory/constitution.md
+  app/
+    main.py            # FastAPI app
+    config.py          # settings (pydantic-settings)
+    db.py              # engine e sessão
+    models/            # SQLAlchemy
+    schemas/           # Pydantic (entrada/saída da API)
+    domain/            # regras puras, sem banco: ciclo.py, cartela.py, parcelas.py, saldo.py
+    services/          # orquestra domain + banco
+    api/routes/        # endpoints finos, sem regra de negócio
+  alembic/
+  tests/
+    domain/            # testes das regras puras (a maioria dos testes vive aqui)
+    api/
+  specs/               # specs das features (Spec Kit)
+frontend/              # fora do escopo atual
+```
+
+**Onde colocar código:** regra de negócio vai em `domain/` (funções puras). `services/` busca e grava dados e chama `domain/`. Rotas só validam entrada e chamam `services/`.
+
+## Comandos
+
+```bash
+# rodar dentro de backend/, com Docker Desktop aberto
+cp .env.example .env
+docker compose up -d db          # PostgreSQL 17 com os bancos gerencia e gerencia_test
+uv sync
+uv run uvicorn app.main:app --reload
+uv run pytest
+uv run ruff check . && uv run ruff format .
+uv run alembic revision --autogenerate -m "mensagem"
+uv run alembic upgrade head
+```
+
+## Convenções
+
+- Python 3.12+, tipagem em tudo, `ruff` para lint e formatação.
+- Banco PostgreSQL, inclusive nos testes de integração.
+- Nomes de domínio em português; infraestrutura pode ser em inglês.
+- Datas de lançamento são `date`, sem hora. Fuso: `America/Sao_Paulo`.
+- Mudança de schema só por migração Alembic.
+- Segredos só em variáveis de ambiente. Logs sem senhas, tokens, dados pessoais ou valores.
+- Commits pequenos, no padrão Conventional Commits (`feat:`, `fix:`, `test:`, `refactor:`).
+
+## Como trabalhar comigo
+
+- Antes de implementar algo grande, apresente um plano curto e espere confirmação.
+- Se o pedido for ambíguo ou contrariar a constituição, pergunte em vez de supor.
+- Ao terminar, rode os testes e o lint e diga o resultado.
+- Não crie arquivos de documentação extras sem pedido.
