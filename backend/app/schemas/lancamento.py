@@ -75,4 +75,6 @@ class LancamentoOut(BaseModel):
     conta_no_saldo: bool
     abre_ciclo: bool
     recorrencia_id: int | None
+    divida_id: int | None
+    parcela_num: int | None
     criado_em: datetime

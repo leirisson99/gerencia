@@ -90,6 +90,13 @@ def _erro_sem_ciclo() -> ErroApi:
     )
 
 
+def verificar_novos_lancamentos(db: Session, usuario_id: int, menor_data: date) -> None:
+    """Recusa lançamentos (que não são salário) a partir de `menor_data` fora de ciclo."""
+    resultado = _problema_depois_da_mudanca(db, usuario_id, None, (False, menor_data))
+    if resultado:
+        raise _erro_de_cobertura(*resultado)
+
+
 def criar_lancamento(
     db: Session, usuario_id: int, dados: LancamentoIn, agora: datetime, hoje: date
 ) -> Lancamento:
@@ -139,6 +146,16 @@ def editar_lancamento(
     enviados = dados.model_fields_set
     if not enviados:
         return lancamento
+    muda_categoria = (
+        dados.categoria_id is not None and dados.categoria_id != lancamento.categoria_id
+    )
+    if lancamento.divida_id is not None and muda_categoria:
+        raise ErroApi(
+            422,
+            "validacao",
+            MENSAGEM_VALIDACAO,
+            campos={"categoria_id": "A parcela fica na categoria da dívida."},
+        )
 
     categoria = (
         obter_categoria_ativa(db, usuario_id, dados.categoria_id)
@@ -173,6 +190,8 @@ def editar_lancamento(
 def excluir_lancamento(db: Session, usuario_id: int, lancamento_id: int) -> None:
     travar_escritas(db, usuario_id)
     lancamento = obter_lancamento(db, usuario_id, lancamento_id)
+    if lancamento.divida_id is not None:
+        raise ErroApi(409, "parcela_de_divida", "Parcelas de dívida não podem ser excluídas.")
     if _problema_depois_da_mudanca(db, usuario_id, lancamento.id, None):
         raise _erro_sem_ciclo()
     db.delete(lancamento)

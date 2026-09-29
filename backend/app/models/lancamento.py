@@ -7,7 +7,9 @@ from sqlalchemy import (
     ForeignKey,
     Identity,
     Index,
+    SmallInteger,
     String,
+    UniqueConstraint,
     func,
     true,
 )
@@ -29,6 +31,8 @@ class Lancamento(Base):
         Index("ix_lancamento_usuario_data", "usuario_id", "data"),
         Index("ix_lancamento_usuario_categoria_data", "usuario_id", "categoria_id", "data"),
         Index("ix_lancamento_recorrencia_data", "recorrencia_id", "data"),
+        CheckConstraint("(divida_id IS NULL) = (parcela_num IS NULL)", name="parcela"),
+        UniqueConstraint("divida_id", "parcela_num", name="uq_lancamento_divida_parcela"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
@@ -49,6 +53,10 @@ class Lancamento(Base):
     recorrencia_id: Mapped[int | None] = mapped_column(
         BigInteger, ForeignKey("recorrencia.id", ondelete="RESTRICT")
     )
+    divida_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("divida.id", ondelete="RESTRICT")
+    )
+    parcela_num: Mapped[int | None] = mapped_column(SmallInteger)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     atualizado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
