@@ -41,11 +41,13 @@ O OpenAPI gerado pelo FastAPI é o contrato final; este documento é a referênc
   "cargo": "Desenvolvedora",
   "data_nascimento": "1995-03-15",
   "troca_senha_obrigatoria": false,
+  "papel": "usuario",
   "criado_em": "2026-09-28T22:00:00Z"
 }
 ```
 
-`senha_hash` e `papel` nunca aparecem.
+`senha_hash` nunca aparece. `papel` (`usuario` ou `admin`) mostra só o do próprio usuário, para
+o frontend separar a área do administrador; nunca é aceito na entrada (emenda de 2026-09-29).
 
 ## Rotas
 

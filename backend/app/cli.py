@@ -1,4 +1,9 @@
-"""Comandos de servidor. Uso: uv run python -m app.cli criar-admin --nome ... --email ..."""
+"""Comandos de servidor.
+
+Uso:
+  uv run python -m app.cli criar-admin --nome ... --email ... --telefone ... --cargo ...
+  uv run python -m app.cli resetar-senha-admin
+"""
 
 import argparse
 import sys
@@ -9,7 +14,7 @@ from app.db import SessionLocal
 from app.erros import ErroApi
 from app.relogio import Relogio
 from app.schemas.admin import DadosAdmin
-from app.services.admin import criar_administrador
+from app.services.admin import criar_administrador, resetar_senha_do_administrador
 
 
 def _criar_admin(args: argparse.Namespace) -> int:
@@ -35,6 +40,18 @@ def _criar_admin(args: argparse.Namespace) -> int:
     return 0
 
 
+def _resetar_senha_admin(_: argparse.Namespace) -> int:
+    with SessionLocal() as db:
+        try:
+            senha = resetar_senha_do_administrador(db, Relogio().agora_utc())
+        except ErroApi as erro:
+            print(erro.mensagem, file=sys.stderr)
+            return 1
+
+    print(f"Senha temporária do administrador (troque no próximo login): {senha}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m app.cli")
     comandos = parser.add_subparsers(dest="comando", required=True)
@@ -43,6 +60,11 @@ def main(argv: list[str] | None = None) -> int:
     for campo in ("nome", "email", "telefone", "cargo"):
         criar.add_argument(f"--{campo}", required=True)
     criar.set_defaults(executar=_criar_admin)
+
+    resetar = comandos.add_parser(
+        "resetar-senha-admin", help="gera nova senha temporária para o administrador"
+    )
+    resetar.set_defaults(executar=_resetar_senha_admin)
 
     args = parser.parse_args(argv)
     return args.executar(args)

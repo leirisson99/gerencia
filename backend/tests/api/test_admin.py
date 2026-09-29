@@ -49,6 +49,10 @@ def reset(cliente: TestClient, usuario_id: int):
     return cliente.post(f"{USUARIOS}/{usuario_id}/reset-senha")
 
 
+def test_admin_ve_o_proprio_papel(cliente_admin: TestClient) -> None:
+    assert cliente_admin.get("/api/v1/me").json()["papel"] == "admin"
+
+
 # --- Acesso --------------------------------------------------------------------------------
 
 

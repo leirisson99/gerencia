@@ -10,6 +10,17 @@ uv run python -m app.cli criar-admin --nome "Admin" --email admin@exemplo.com \
 Saída: `Administrador criado. Senha temporária (troque no primeiro login): <senha>`.
 Erros (código de saída 1): administrador já existe; e-mail já cadastrado; dado inválido.
 
+### Recuperar o acesso do administrador (emenda de 2026-09-29)
+
+```bash
+uv run python -m app.cli resetar-senha-admin
+```
+
+Gera nova senha temporária, encerra as sessões do administrador e exige troca no próximo login.
+Saída: `Senha temporária do administrador (troque no próximo login): <senha>`.
+Erro (código de saída 1): nenhum administrador cadastrado. Não entra no registro de ações
+administrativas: é operação de quem opera o servidor, não do painel.
+
 ## Rotas (cookie `sessao` do administrador; formato único de erro)
 
 Novo código: `acesso_negado` (403) para quem não é administrador.

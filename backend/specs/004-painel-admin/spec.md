@@ -133,3 +133,6 @@ temporária e ser obrigada a trocá-la.
 - O usuário pede ajuda ao administrador por fora do sistema.
 - Desativar ou reativar contas fica fora (decisão do usuário).
 - Escopo só do backend; o "painel" é o conjunto de rotas administrativas.
+- Emenda de 2026-09-29: quem opera o servidor pode recuperar o acesso do administrador com o
+  comando `resetar-senha-admin` (nova senha temporária, sessões encerradas, troca obrigatória),
+  já que não há recuperação por e-mail e só existe um administrador.

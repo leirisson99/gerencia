@@ -63,6 +63,16 @@ def listar_usuarios(db: Session, busca: str | None) -> list[Usuario]:
     return list(db.scalars(consulta.order_by(Usuario.nome, Usuario.id)))
 
 
+def _aplicar_senha_temporaria(db: Session, usuario: Usuario, agora: datetime) -> str:
+    """Troca a senha por uma temporária, derruba as sessões e exige troca no próximo login."""
+    senha = gerar_senha_temporaria()
+    usuario.senha_hash = hash_senha(senha)
+    usuario.troca_senha_obrigatoria = True
+    usuario.atualizado_em = agora
+    db.execute(delete(Sessao).where(Sessao.usuario_id == usuario.id))
+    return senha
+
+
 def resetar_senha(db: Session, admin: Usuario, usuario_id: int, agora: datetime) -> str:
     """Gera senha temporária, derruba as sessões, exige troca e registra a ação."""
     usuario = db.scalar(
@@ -71,11 +81,7 @@ def resetar_senha(db: Session, admin: Usuario, usuario_id: int, agora: datetime)
     if usuario is None:
         raise ErroApi(404, "nao_encontrado", "Conta não encontrada.")
 
-    senha = gerar_senha_temporaria()
-    usuario.senha_hash = hash_senha(senha)
-    usuario.troca_senha_obrigatoria = True
-    usuario.atualizado_em = agora
-    db.execute(delete(Sessao).where(Sessao.usuario_id == usuario.id))
+    senha = _aplicar_senha_temporaria(db, usuario, agora)
     db.add(
         AcaoAdmin(
             admin_id=admin.id,
@@ -84,5 +90,19 @@ def resetar_senha(db: Session, admin: Usuario, usuario_id: int, agora: datetime)
             ocorrida_em=agora,
         )
     )
+    db.commit()
+    return senha
+
+
+def resetar_senha_do_administrador(db: Session, agora: datetime) -> str:
+    """Recupera o acesso do administrador pelo servidor (comando `resetar-senha-admin`).
+
+    Não entra no registro de ações: é operação de quem opera o servidor, não do painel.
+    """
+    admin = db.scalar(select(Usuario).where(Usuario.papel == PAPEL_ADMIN))
+    if admin is None:
+        raise ErroApi(404, "nao_encontrado", "Nenhum administrador cadastrado.")
+
+    senha = _aplicar_senha_temporaria(db, admin, agora)
     db.commit()
     return senha

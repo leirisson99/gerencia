@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -122,4 +123,6 @@ class UsuarioOut(BaseModel):
     cargo: str
     data_nascimento: date | None
     troca_senha_obrigatoria: bool
+    # Só o papel do próprio usuário; serve para o frontend separar a área do administrador.
+    papel: Literal["usuario", "admin"]
     criado_em: datetime

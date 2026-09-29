@@ -155,7 +155,7 @@ def test_senha_guardada_so_como_hash(client: TestClient, db: Session) -> None:
     assert senha_hash.startswith("$argon2id$")
 
 
-def test_respostas_nunca_expoem_senha_nem_papel(client: TestClient) -> None:
+def test_respostas_nunca_expoem_senha(client: TestClient) -> None:
     respostas = [
         client.post(URL, json=dados_validos()),
         client.get("/api/v1/me"),
@@ -167,4 +167,9 @@ def test_respostas_nunca_expoem_senha_nem_papel(client: TestClient) -> None:
         assert "senha_hash" not in texto
         assert "segredo123" not in texto
         assert "argon2" not in texto
-        assert "papel" not in texto
+
+
+def test_respostas_mostram_so_o_proprio_papel(client: TestClient) -> None:
+    """O papel aparece para o frontend separar a área do admin; nunca é aceito na entrada."""
+    assert client.post(URL, json=dados_validos()).json()["papel"] == "usuario"
+    assert client.get("/api/v1/me").json()["papel"] == "usuario"

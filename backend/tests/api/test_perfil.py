@@ -31,6 +31,7 @@ def test_ve_os_proprios_dados_sem_senha(client: TestClient, logado: Usuario) -> 
         "cargo": "Desenvolvedora",
         "data_nascimento": "1995-03-15",
         "troca_senha_obrigatoria": False,
+        "papel": "usuario",
         "criado_em": corpo["criado_em"],
     }
 
