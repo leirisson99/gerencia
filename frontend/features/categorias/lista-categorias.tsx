@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button"
 import { editarCategoria } from "@/lib/api/categorias"
 import { ApiError } from "@/lib/api/client"
 import type { Categoria, TipoLancamento } from "@/lib/api/types"
+import { formatarCentavos } from "@/lib/format"
 import { MENSAGEM_GENERICA } from "@/lib/forms"
 import { DialogCategoria } from "./dialog-categoria"
 
@@ -41,7 +42,7 @@ export function ListaCategorias({ categorias }: { categorias: Categoria[] }) {
       toast.success(`"${categoria.nome}" ${ativa ? "reativada" : "desativada"}.`)
       router.refresh()
     } catch (e) {
-      // `categoria_do_sistema` já explica que "Salário" não pode mudar.
+      // `categoria_do_sistema` já explica que categorias do sistema não podem ser desativadas.
       toast.error(e instanceof ApiError ? e.message : MENSAGEM_GENERICA)
     }
   }
@@ -66,32 +67,41 @@ export function ListaCategorias({ categorias }: { categorias: Categoria[] }) {
               <ul className="border-t">
                 {ativas.map((c) => (
                   <li key={c.id} className="flex min-h-14 items-center gap-2 border-b py-2">
-                    <span className="min-w-0 flex-1 truncate">{c.nome}</span>
-                    {c.sistema ? (
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{c.nome}</span>
+                      {c.limite !== null && (
+                        <span className="valor block text-sm text-muted-foreground">
+                          limite {formatarCentavos(c.limite)} por ciclo
+                        </span>
+                      )}
+                    </span>
+                    {c.sistema && (
                       <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                         <LockIcon className="size-3.5" aria-hidden />
                         Do sistema
                       </span>
-                    ) : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDialog({ aberto: true, categoria: c })}
-                          aria-label={`Renomear ${c.nome}`}
-                        >
-                          <PencilIcon aria-hidden />
-                          <span className="hidden sm:inline">Renomear</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDesativando(c)}
-                          aria-label={`Desativar ${c.nome}`}
-                        >
-                          Desativar
-                        </Button>
-                      </>
+                    )}
+                    {/* Do sistema só edita o limite, e só quando é de saída. */}
+                    {(!c.sistema || c.tipo === "saida") && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDialog({ aberto: true, categoria: c })}
+                        aria-label={`Editar ${c.nome}`}
+                      >
+                        <PencilIcon aria-hidden />
+                        <span className="hidden sm:inline">Editar</span>
+                      </Button>
+                    )}
+                    {!c.sistema && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDesativando(c)}
+                        aria-label={`Desativar ${c.nome}`}
+                      >
+                        Desativar
+                      </Button>
                     )}
                   </li>
                 ))}

@@ -11,8 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import type { Categoria, Lancamento } from "@/lib/api/types"
+import type { Categoria, Lancamento, LancamentoComAviso } from "@/lib/api/types"
 import { formatarData } from "@/lib/format"
+import { mostrarAvisoLimite } from "./aviso-limite"
 import { FormLancamento } from "./form-lancamento"
 
 type Props = {
@@ -39,11 +40,12 @@ export function DialogLancamento({
 }: Props) {
   const router = useRouter()
 
-  function aoConcluir(salvo: Lancamento) {
+  function aoConcluir(salvo: LancamentoComAviso) {
     aoMudar(false)
     if (lancamento) toast.success("Lançamento salvo.")
     else if (salvo.abre_ciclo) toast.success(`Salário lançado. Ciclo aberto em ${formatarData(salvo.data)}.`)
     else toast.success(`Lançado em ${formatarData(salvo.data)}.`)
+    mostrarAvisoLimite(salvo.aviso_limite)
     router.refresh()
   }
 

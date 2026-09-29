@@ -55,12 +55,14 @@ export type Categoria = {
   /** "Salário" é a única categoria de sistema e a única que abre ciclo. */
   sistema: boolean
   ativa: boolean
+  /** Gasto máximo por ciclo em centavos; só em saída. `null` sem limite. */
+  limite: number | null
 }
 
-export type CategoriaIn = { nome: string; tipo: TipoLancamento }
+export type CategoriaIn = { nome: string; tipo: TipoLancamento; limite?: number | null }
 
-/** Renomear e/ou ativar/desativar. O tipo não muda. */
-export type CategoriaPatch = { nome?: string; ativa?: boolean }
+/** Renomear, ativar/desativar e definir o limite. `limite: null` remove. O tipo não muda. */
+export type CategoriaPatch = { nome?: string; ativa?: boolean; limite?: number | null }
 
 export type Lancamento = {
   id: number
@@ -79,6 +81,8 @@ export type Lancamento = {
   /** Parcela de dívida: categoria fixa e sem exclusão avulsa. */
   divida_id: number | null
   parcela_num: number | null
+  /** Depósito de cartela: só data e descrição mudam; desmarcar a casa remove o lançamento. */
+  cartela_id: number | null
   criado_em: string
 }
 
@@ -111,12 +115,28 @@ export type SugestaoSalario = {
 
 // Espelham app/schemas/resumo.py, recorrencia.py, divida.py e admin.py.
 
+export type SituacaoLimite = "ok" | "atencao" | "estourado"
+
 export type TotalCategoria = {
   categoria_id: number
   nome: string
   /** Centavos */
   total: number
+  /** Só em saídas com limite. */
+  limite: number | null
+  situacao: SituacaoLimite | null
 }
+
+/** Vem só na resposta de criar ou editar lançamento, quando a categoria piora de situação. */
+export type AvisoLimite = {
+  categoria_id: number
+  nome: string
+  usado: number
+  limite: number
+  situacao: SituacaoLimite
+}
+
+export type LancamentoComAviso = Lancamento & { aviso_limite: AvisoLimite | null }
 
 /** Só lançamentos realizados que contam no saldo. Listas por total decrescente. */
 export type ResumoCiclo = {
@@ -181,3 +201,33 @@ export type UsuarioAdmin = {
 }
 
 export type SenhaTemporaria = { senha_temporaria: string }
+
+// Espelham app/schemas/cartela.py.
+
+export type Casa = {
+  id: number
+  ordem: number
+  /** Centavos */
+  valor: number
+  /** Casa que fecha a meta com o resto. */
+  is_ajuste: boolean
+  /** ISO `YYYY-MM-DD`; `null` enquanto a casa está livre. */
+  depositado_em: string | null
+  lancamento_id: number | null
+}
+
+export type Cartela = {
+  id: number
+  nome: string
+  meta: number
+  valor_base: number
+  guardado: number
+  falta: number
+  /** Inteiro, calculado pela API. */
+  percentual: number
+  maior_casa_livre: number | null
+  casas: Casa[]
+}
+
+/** `valor_base` é opcional; a API usa R$ 1,00. */
+export type CartelaIn = { nome: string; meta: number; valor_base?: number }

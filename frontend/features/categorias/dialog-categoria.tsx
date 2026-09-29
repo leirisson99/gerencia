@@ -2,13 +2,14 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Controller, useForm } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import { z } from "zod"
 
 import { BotaoEnviar } from "@/components/forms/botao-enviar"
 import { Campo } from "@/components/forms/campo"
+import { CampoValor } from "@/components/forms/campo-valor"
 import { ErroForm } from "@/components/forms/erro-form"
 import {
   Dialog,
@@ -20,7 +21,8 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { criarCategoria, editarCategoria } from "@/lib/api/categorias"
-import type { Categoria, TipoLancamento } from "@/lib/api/types"
+import type { Categoria, CategoriaPatch, TipoLancamento } from "@/lib/api/types"
+import { VALOR_MAXIMO } from "@/lib/format"
 import { aplicarErroApi, regras } from "@/lib/forms"
 
 // Espelha MAX_NOME_CATEGORIA de backend/app/schemas/categoria.py.
@@ -29,6 +31,8 @@ const MAX_NOME = 60
 const esquema = z.object({
   nome: regras.obrigatorio(MAX_NOME),
   tipo: z.enum(["entrada", "saida"]),
+  /** 0 = sem limite (vira `null` ao enviar). */
+  limite: z.number().int().min(0).max(VALOR_MAXIMO, "Valor acima do limite."),
 })
 
 type Valores = z.infer<typeof esquema>
@@ -36,7 +40,7 @@ type Valores = z.infer<typeof esquema>
 type Props = {
   aberto: boolean
   aoMudar: (aberto: boolean) => void
-  /** Presente ao renomear; o tipo não muda depois de criada. */
+  /** Presente ao editar; o tipo não muda depois de criada. */
   categoria?: Categoria
   tipoInicial?: TipoLancamento
 }
@@ -46,7 +50,7 @@ export function DialogCategoria({ aberto, aoMudar, categoria, tipoInicial = "sai
     <Dialog open={aberto} onOpenChange={aoMudar}>
       <DialogContent className="p-6 sm:max-w-md">
         <DialogHeader className="mb-2">
-          <DialogTitle className="text-xl">{categoria ? "Renomear categoria" : "Nova categoria"}</DialogTitle>
+          <DialogTitle className="text-xl">{categoria ? "Editar categoria" : "Nova categoria"}</DialogTitle>
           <DialogDescription>
             {categoria
               ? "Os lançamentos já feitos passam a aparecer com o novo nome."
@@ -75,16 +79,30 @@ function FormCategoria({
   const [erroGeral, setErroGeral] = useState<string | null>(null)
   const form = useForm<Valores>({
     resolver: zodResolver(esquema),
-    defaultValues: { nome: categoria?.nome ?? "", tipo: categoria?.tipo ?? tipoInicial },
+    defaultValues: {
+      nome: categoria?.nome ?? "",
+      tipo: categoria?.tipo ?? tipoInicial,
+      limite: categoria?.limite ?? 0,
+    },
   })
   const { errors, isSubmitting, isDirty } = form.formState
+  const tipo = useWatch({ control: form.control, name: "tipo" })
+  // Categorias do sistema não mudam de nome, mas as de saída aceitam limite.
+  const nomeTravado = categoria?.sistema ?? false
 
-  async function enviar({ nome, tipo }: Valores) {
+  async function enviar(valores: Valores) {
     setErroGeral(null)
+    const limite = valores.tipo === "saida" && valores.limite > 0 ? valores.limite : null
     try {
-      if (categoria) await editarCategoria(categoria.id, { nome })
-      else await criarCategoria({ nome, tipo })
-      toast.success(categoria ? "Categoria renomeada." : "Categoria criada.")
+      if (categoria) {
+        const mudancas: CategoriaPatch = {}
+        if (!nomeTravado && valores.nome !== categoria.nome) mudancas.nome = valores.nome
+        if (limite !== categoria.limite) mudancas.limite = limite
+        await editarCategoria(categoria.id, mudancas)
+      } else {
+        await criarCategoria({ nome: valores.nome, tipo: valores.tipo, limite })
+      }
+      toast.success(categoria ? "Categoria salva." : "Categoria criada.")
       aoConcluir()
       router.refresh()
     } catch (erro) {
@@ -97,9 +115,11 @@ function FormCategoria({
       <FieldGroup>
         <Campo
           label="Nome"
-          autoFocus
+          autoFocus={!nomeTravado}
           autoComplete="off"
           maxLength={MAX_NOME}
+          disabled={nomeTravado}
+          descricao={nomeTravado ? "Categoria do sistema: o nome não muda." : undefined}
           erro={errors.nome?.message}
           {...form.register("nome")}
         />
@@ -127,10 +147,28 @@ function FormCategoria({
             )}
           />
         )}
+        {tipo === "saida" && (
+          <Controller
+            control={form.control}
+            name="limite"
+            render={({ field }) => (
+              <CampoValor
+                label="Limite por ciclo"
+                descricao="Opcional. Você é avisado aos 80% e ao passar do limite; nada é bloqueado. Deixe em 0,00 para não ter limite."
+                erro={errors.limite?.message}
+                name={field.name}
+                ref={field.ref}
+                onBlur={field.onBlur}
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
+          />
+        )}
         <ErroForm mensagem={erroGeral} />
         <div>
           <BotaoEnviar enviando={isSubmitting} disabled={Boolean(categoria) && !isDirty}>
-            {categoria ? "Salvar nome" : "Criar categoria"}
+            {categoria ? "Salvar" : "Criar categoria"}
           </BotaoEnviar>
         </div>
       </FieldGroup>

@@ -1,12 +1,12 @@
 import { requisitar } from "./client"
-import type { Lancamento, LancamentoIn, LancamentoPatch } from "./types"
+import type { LancamentoComAviso, LancamentoIn, LancamentoPatch } from "./types"
 
 export function criarLancamento(dados: LancamentoIn) {
-  return requisitar<Lancamento>("/lancamentos", { metodo: "POST", corpo: dados })
+  return requisitar<LancamentoComAviso>("/lancamentos", { metodo: "POST", corpo: dados })
 }
 
 export function editarLancamento(id: number, dados: LancamentoPatch) {
-  return requisitar<Lancamento>(`/lancamentos/${id}`, { metodo: "PATCH", corpo: dados })
+  return requisitar<LancamentoComAviso>(`/lancamentos/${id}`, { metodo: "PATCH", corpo: dados })
 }
 
 export function excluirLancamento(id: number) {

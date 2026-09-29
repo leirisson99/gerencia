@@ -3,9 +3,9 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeftIcon } from "lucide-react"
 
+import { BarraProgresso } from "@/components/dados/barra-progresso"
 import { Button } from "@/components/ui/button"
 import { Bloco, Indicador } from "@/features/dashboard/bloco"
-import { BarraProgresso } from "@/features/dividas/cartao-divida"
 import { DIRECOES, FORMAS, rotuloConfirmarParcela } from "@/features/dividas/rotulos"
 import { ListaLancamentos } from "@/features/lancamentos/lista-lancamentos"
 import { listarCategorias, obterDivida, obterSugestaoSalario } from "@/lib/api/server"
@@ -55,7 +55,7 @@ export default async function DividaPage({ params }: PageProps<"/dividas/[id]">)
             legenda={`${divida.parcelas_pagas} de ${divida.parcelas}`}
           />
           <div className="mt-3">
-            <BarraProgresso divida={divida} />
+            <BarraProgresso valor={divida.valor_pago} total={divida.valor_total} />
           </div>
         </Bloco>
         <Bloco titulo="Falta">

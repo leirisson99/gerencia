@@ -4,6 +4,7 @@ import { cookies } from "next/headers"
 
 import { ApiError, requisitar } from "./client"
 import type {
+  Cartela,
   Categoria,
   Ciclo,
   Divida,
@@ -104,4 +105,18 @@ export async function obterDivida(id: number): Promise<Divida | null> {
 export function listarUsuariosAdmin(busca?: string) {
   const query = busca ? `?busca=${encodeURIComponent(busca)}` : ""
   return buscar<UsuarioAdmin[]>(`/admin/usuarios${query}`)
+}
+
+export function listarCartelas() {
+  return buscar<Cartela[]>("/cartelas")
+}
+
+/** Devolve `null` se a cartela não existe ou é de outro usuário. */
+export async function obterCartela(id: number): Promise<Cartela | null> {
+  try {
+    return await buscar<Cartela>(`/cartelas/${id}`)
+  } catch (erro) {
+    if (erro instanceof ApiError && erro.status === 404) return null
+    throw erro
+  }
 }

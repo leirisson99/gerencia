@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { cn } from "cn"
 
+import { BarraProgresso } from "@/components/dados/barra-progresso"
 import { Button } from "@/components/ui/button"
 import { periodoCiclo } from "@/features/ciclo/navegacao-ciclo"
 import { Bloco, Indicador } from "@/features/dashboard/bloco"
@@ -9,6 +10,7 @@ import { ListaLancamentos } from "@/features/lancamentos/lista-lancamentos"
 import { NovoLancamento } from "@/features/lancamentos/novo-lancamento"
 import { TotaisPorCategoria } from "@/features/resumo/totais-por-categoria"
 import {
+  listarCartelas,
   listarCategorias,
   listarLancamentosDoCiclo,
   obterCiclo,
@@ -51,9 +53,10 @@ export default async function DashboardPage() {
     )
   }
 
-  const [lancamentos, resumo] = await Promise.all([
+  const [lancamentos, resumo, cartelas] = await Promise.all([
     listarLancamentosDoCiclo(ciclo.inicio),
     obterResumo(ciclo.inicio),
+    listarCartelas(),
   ])
   const realizados = lancamentos.filter((l) => l.status === "realizado")
   const previstos = lancamentos.filter((l) => l.status === "previsto")
@@ -94,7 +97,7 @@ export default async function DashboardPage() {
         </Bloco>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         <Bloco titulo="Para onde foi">
           <TotaisPorCategoria
             totais={resumo.saidas_por_categoria}
@@ -110,6 +113,38 @@ export default async function DashboardPage() {
             tipo="entrada"
             vazio="Nenhuma entrada realizada neste ciclo."
           />
+        </Bloco>
+        <Bloco
+          titulo="Poupança"
+          className="lg:col-span-2 2xl:col-span-1"
+          acao={
+            <Button variant="link" size="sm" className="h-auto p-0" asChild>
+              <Link href="/cartelas">Cartelas</Link>
+            </Button>
+          }
+        >
+          {cartelas.length === 0 ? (
+            <p className="py-6 text-muted-foreground">
+              Nenhuma cartela. O que sobrar do ciclo pode virar depósito numa meta.
+            </p>
+          ) : (
+            <ul className="grid gap-4">
+              {cartelas.map((c) => (
+                <li key={c.id}>
+                  <Link href={`/cartelas/${c.id}`} className="block hover:opacity-80">
+                    <div className="flex items-baseline justify-between gap-3 text-sm">
+                      <span className="truncate">{c.nome}</span>
+                      <span className="valor shrink-0">
+                        {formatarCentavos(c.guardado)}
+                        <span className="text-muted-foreground"> de {formatarCentavos(c.meta)}</span>
+                      </span>
+                    </div>
+                    <BarraProgresso valor={c.guardado} total={c.meta} className="mt-1.5" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </Bloco>
       </div>
 

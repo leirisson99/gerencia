@@ -1,20 +1,10 @@
 import Link from "next/link"
 import { CheckCircle2Icon } from "lucide-react"
 
+import { BarraProgresso } from "@/components/dados/barra-progresso"
 import type { Divida } from "@/lib/api/types"
 import { formatarCentavos } from "@/lib/format"
 import { DIRECOES } from "./rotulos"
-
-/** Progresso de uma dívida: pago sobre o total. O trilho é um tom mais claro da mesma cor. */
-export function BarraProgresso({ divida }: { divida: Pick<Divida, "valor_pago" | "valor_total"> }) {
-  // Proporção só para desenhar; os valores em centavos vêm prontos da API.
-  const largura = divida.valor_total > 0 ? (divida.valor_pago / divida.valor_total) * 100 : 0
-  return (
-    <div className="h-2 rounded-full bg-foreground/10" aria-hidden>
-      <div className="h-full rounded-full bg-foreground" style={{ width: `${largura}%` }} />
-    </div>
-  )
-}
 
 /** Resumo de uma dívida na lista; leva ao detalhe com as parcelas. */
 export function CartaoDivida({ divida }: { divida: Divida }) {
@@ -39,7 +29,7 @@ export function CartaoDivida({ divida }: { divida: Divida }) {
       </div>
       <p className="valor mt-4 text-xl font-semibold">{formatarCentavos(divida.valor_total)}</p>
       <div className="mt-3">
-        <BarraProgresso divida={divida} />
+        <BarraProgresso valor={divida.valor_pago} total={divida.valor_total} />
       </div>
       <div className="valor mt-2 flex justify-between gap-3 text-sm text-muted-foreground">
         <span>

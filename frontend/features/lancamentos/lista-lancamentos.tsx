@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { cn } from "cn"
 
 import type { Categoria, Lancamento } from "@/lib/api/types"
@@ -48,6 +49,7 @@ export function ListaLancamentos({
             l.abre_ciclo && "abre o ciclo",
             l.recorrencia_id != null && "fixo",
             l.parcela_num != null && `parcela ${l.parcela_num}`,
+            l.cartela_id != null && "cartela",
             previsto && "previsto",
           ].filter(Boolean)
           return (
@@ -102,6 +104,14 @@ export function ListaLancamentos({
           (editando.divida_id != null ? (
             <p className="text-sm text-muted-foreground">
               Parcelas são geradas pela dívida e não podem ser excluídas uma a uma.
+            </p>
+          ) : editando.cartela_id != null ? (
+            <p className="text-sm text-muted-foreground">
+              Para remover este depósito,{" "}
+              <Link href={`/cartelas/${editando.cartela_id}`} className="underline underline-offset-4">
+                desmarque a casa na cartela
+              </Link>
+              .
             </p>
           ) : (
             <ExcluirLancamento

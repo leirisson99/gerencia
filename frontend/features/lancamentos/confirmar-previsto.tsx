@@ -10,6 +10,7 @@ import { ApiError } from "@/lib/api/client"
 import { editarLancamento } from "@/lib/api/lancamentos"
 import type { Lancamento } from "@/lib/api/types"
 import { MENSAGEM_GENERICA } from "@/lib/forms"
+import { mostrarAvisoLimite } from "./aviso-limite"
 
 /**
  * Marca um previsto como realizado, com o valor e a data que já tem.
@@ -22,8 +23,9 @@ export function ConfirmarPrevisto({ lancamento, rotulo }: { lancamento: Lancamen
   async function confirmar() {
     setEnviando(true)
     try {
-      await editarLancamento(lancamento.id, { status: "realizado" })
+      const confirmado = await editarLancamento(lancamento.id, { status: "realizado" })
       toast.success(lancamento.tipo === "saida" ? "Pagamento confirmado." : "Recebimento confirmado.")
+      mostrarAvisoLimite(confirmado.aviso_limite)
       router.refresh()
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : MENSAGEM_GENERICA)

@@ -8,6 +8,7 @@ import {
   LayoutDashboardIcon,
   ListIcon,
   LogOutIcon,
+  PiggyBankIcon,
   RepeatIcon,
   TagsIcon,
   UserIcon,
@@ -58,6 +59,7 @@ const GRUPOS: Grupo[] = [
       { titulo: "Categorias", href: "/categorias", icone: TagsIcon },
       { titulo: "Recorrências", href: "/recorrencias", icone: RepeatIcon },
       { titulo: "Dívidas", href: "/dividas", icone: HandCoinsIcon },
+      { titulo: "Cartelas", href: "/cartelas", icone: PiggyBankIcon },
     ],
   },
   {

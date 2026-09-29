@@ -13,7 +13,7 @@ import { ErroForm } from "@/components/forms/erro-form"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { criarLancamento, editarLancamento } from "@/lib/api/lancamentos"
-import type { Categoria, Lancamento, LancamentoIn } from "@/lib/api/types"
+import type { Categoria, Lancamento, LancamentoComAviso, LancamentoIn } from "@/lib/api/types"
 import { acharSalario, eSalario } from "@/lib/categorias"
 import { VALOR_MAXIMO, hojeSaoPaulo } from "@/lib/format"
 import { aplicarErroApi } from "@/lib/forms"
@@ -43,7 +43,7 @@ type Props = {
   lancamento?: Lancamento
   /** Categoria já escolhida ao abrir um lançamento novo. */
   categoriaInicial?: Categoria
-  aoConcluir: (lancamento: Lancamento) => void
+  aoConcluir: (lancamento: LancamentoComAviso) => void
 }
 
 export function FormLancamento({
@@ -58,6 +58,8 @@ export function FormLancamento({
   const salario = acharSalario(categorias)
   // A categoria da parcela vem da dívida e não muda (a API recusa com 422).
   const eParcela = lancamento?.divida_id != null
+  // No depósito de cartela só data e descrição mudam; o resto sai da casa (a API recusa com 422).
+  const eDeposito = lancamento?.cartela_id != null
 
   const form = useForm<Valores>({
     resolver: zodResolver(esquema),
@@ -108,7 +110,12 @@ export function FormLancamento({
     try {
       if (!lancamento) return aoConcluir(await criarLancamento(dados))
       const { categoria_id, ...semCategoria } = dados
-      aoConcluir(await editarLancamento(lancamento.id, eParcela ? semCategoria : { ...semCategoria, categoria_id }))
+      const mudancas = eDeposito
+        ? { data: dados.data, descricao: dados.descricao }
+        : eParcela
+          ? semCategoria
+          : { ...semCategoria, categoria_id }
+      aoConcluir(await editarLancamento(lancamento.id, mudancas))
     } catch (erro) {
       setErroGeral(
         aplicarErroApi(form, erro, {
@@ -128,7 +135,9 @@ export function FormLancamento({
           render={({ field }) => (
             <CampoValor
               label="Valor"
-              autoFocus
+              autoFocus={!eDeposito}
+              disabled={eDeposito}
+              descricao={eDeposito ? "Depósito da cartela. Para mudar o valor, desmarque a casa na cartela." : undefined}
               erro={errors.valor?.message}
               name={field.name}
               ref={field.ref}
@@ -153,8 +162,14 @@ export function FormLancamento({
                 field.onChange(valor)
                 aoEscolherCategoria(valor)
               }}
-              disabled={eParcela}
-              descricao={eParcela ? `Parcela ${lancamento?.parcela_num} de uma dívida: a categoria vem da dívida.` : undefined}
+              disabled={eParcela || eDeposito}
+              descricao={
+                eParcela
+                  ? `Parcela ${lancamento?.parcela_num} de uma dívida: a categoria vem da dívida.`
+                  : eDeposito
+                    ? "Depósitos de cartela ficam sempre em Poupança."
+                    : undefined
+              }
               erro={errors.categoria_id?.message}
             />
           )}
@@ -178,7 +193,7 @@ export function FormLancamento({
           {...form.register("descricao")}
         />
 
-        {!escolheuSalario && (
+        {!escolheuSalario && !eDeposito && (
           <Controller
             control={form.control}
             name="previsto"
