@@ -6,12 +6,14 @@ from app.api.deps import AutenticadoDep, Db
 from app.schemas.ciclo import CicloOut, SugestaoSalarioOut
 from app.schemas.erro import ErroOut
 from app.schemas.lancamento import LancamentoOut
+from app.schemas.resumo import ResumoCicloOut
 from app.services.ciclo import (
     lancamentos_do_ciclo,
     obter_ciclo_atual,
     obter_ciclo_da_data,
     sugestao_salario,
 )
+from app.services.resumo import resumo_do_ciclo
 
 router = APIRouter(prefix="/api/v1", tags=["ciclos"])
 
@@ -35,6 +37,11 @@ def lancamentos(data: date, auth: AutenticadoDep, db: Db) -> list[LancamentoOut]
         LancamentoOut.model_validate(lanc)
         for lanc in lancamentos_do_ciclo(db, auth.usuario.id, data)
     ]
+
+
+@router.get("/ciclos/{data}/resumo", responses=SEM_CICLO)
+def resumo(data: date, auth: AutenticadoDep, db: Db) -> ResumoCicloOut:
+    return resumo_do_ciclo(db, auth.usuario.id, data)
 
 
 @router.get("/salarios/sugestao")

@@ -48,7 +48,10 @@ def obter_ciclo_da_data(db: Session, usuario_id: int, data: date) -> Ciclo:
 
 
 def lancamentos_do_ciclo(db: Session, usuario_id: int, data: date) -> list[Lancamento]:
-    ciclo = obter_ciclo_da_data(db, usuario_id, data)
+    return lancamentos_no_ciclo(db, usuario_id, obter_ciclo_da_data(db, usuario_id, data))
+
+
+def lancamentos_no_ciclo(db: Session, usuario_id: int, ciclo: Ciclo) -> list[Lancamento]:
     consulta = select(Lancamento).where(
         Lancamento.usuario_id == usuario_id, Lancamento.data >= ciclo.inicio
     )
