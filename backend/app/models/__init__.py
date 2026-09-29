@@ -15,6 +15,7 @@ class Base(DeclarativeBase):
 
 
 from app.models.acao_admin import AcaoAdmin  # noqa: E402
+from app.models.cartela import Cartela, Casa  # noqa: E402
 from app.models.categoria import Categoria  # noqa: E402
 from app.models.divida import Divida  # noqa: E402
 from app.models.lancamento import Lancamento  # noqa: E402
@@ -26,6 +27,8 @@ from app.models.usuario import Usuario  # noqa: E402
 __all__ = [
     "AcaoAdmin",
     "Base",
+    "Cartela",
+    "Casa",
     "Categoria",
     "Divida",
     "Lancamento",

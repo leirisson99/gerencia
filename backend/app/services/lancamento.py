@@ -1,11 +1,11 @@
 from datetime import date, datetime
 
-from sqlalchemy import func, not_, select
+from sqlalchemy import exists, func, not_, select
 from sqlalchemy.orm import Session
 
 from app.domain.ciclo import ProblemaCobertura, ciclo_atual, verificar_cobertura
 from app.erros import MENSAGEM_VALIDACAO, ErroApi
-from app.models import Categoria, Lancamento
+from app.models import Casa, Categoria, Lancamento
 from app.models.lancamento import STATUS_REALIZADO
 from app.schemas.lancamento import LancamentoIn, LancamentoPatch
 from app.services.categoria import obter_categoria_ativa
@@ -90,6 +90,10 @@ def _erro_sem_ciclo() -> ErroApi:
     )
 
 
+def _e_deposito_de_cartela(db: Session, lancamento_id: int) -> bool:
+    return db.scalar(select(exists().where(Casa.lancamento_id == lancamento_id))) or False
+
+
 def verificar_novos_lancamentos(db: Session, usuario_id: int, menor_data: date) -> None:
     """Recusa lançamentos (que não são salário) a partir de `menor_data` fora de ciclo."""
     resultado = _problema_depois_da_mudanca(db, usuario_id, None, (False, menor_data))
@@ -156,6 +160,20 @@ def editar_lancamento(
             MENSAGEM_VALIDACAO,
             campos={"categoria_id": "A parcela fica na categoria da dívida."},
         )
+    if _e_deposito_de_cartela(db, lancamento.id):
+        mudancas = {
+            "valor": dados.valor is not None and dados.valor != lancamento.valor,
+            "status": dados.status is not None and dados.status != lancamento.status,
+            "categoria_id": muda_categoria,
+        }
+        for campo, muda in mudancas.items():
+            if muda:
+                raise ErroApi(
+                    422,
+                    "validacao",
+                    MENSAGEM_VALIDACAO,
+                    campos={campo: "Desmarque o depósito na cartela para mudar isto."},
+                )
 
     categoria = (
         obter_categoria_ativa(db, usuario_id, dados.categoria_id)
@@ -192,6 +210,8 @@ def excluir_lancamento(db: Session, usuario_id: int, lancamento_id: int) -> None
     lancamento = obter_lancamento(db, usuario_id, lancamento_id)
     if lancamento.divida_id is not None:
         raise ErroApi(409, "parcela_de_divida", "Parcelas de dívida não podem ser excluídas.")
+    if _e_deposito_de_cartela(db, lancamento.id):
+        raise ErroApi(409, "deposito_de_cartela", "Desmarque o depósito na cartela para removê-lo.")
     if _problema_depois_da_mudanca(db, usuario_id, lancamento.id, None):
         raise _erro_sem_ciclo()
     db.delete(lancamento)

@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import (
     admin,
     auth,
+    cartelas,
     categorias,
     ciclos,
     dividas,
@@ -62,6 +63,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(ciclos.router)
     app.include_router(recorrencias.router)
     app.include_router(dividas.router)
+    app.include_router(cartelas.router)
     app.include_router(admin.router)
     return app
 

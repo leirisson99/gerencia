@@ -143,6 +143,7 @@ def test_cria_as_categorias_iniciais(client: TestClient, db: Session) -> None:
             ("Saúde", "saida", False, True),
             ("Lazer", "saida", False, True),
             ("Outros", "saida", False, True),
+            ("Poupança", "saida", True, True),
         ]
     )
 

@@ -18,6 +18,7 @@ ORDEM_ESPERADA = [
     ("Lazer", "saida", False),
     ("Moradia", "saida", False),
     ("Outros", "saida", False),
+    ("Poupança", "saida", True),
     ("Saúde", "saida", False),
     ("Transporte", "saida", False),
 ]
@@ -170,9 +171,12 @@ def test_renomear_mudando_so_maiusculas(client: TestClient, conta: Conta) -> Non
     assert resposta.json()["nome"] == "LAZER"
 
 
+@pytest.mark.parametrize("categoria", ["Salário", "Poupança"])
 @pytest.mark.parametrize("corpo", [{"nome": "Remuneração"}, {"ativa": False}])
-def test_salario_e_protegida(client: TestClient, conta: Conta, corpo: dict) -> None:
-    resposta = client.patch(f"{URL}/{conta.categorias['Salário']}", json=corpo)
+def test_categorias_do_sistema_sao_protegidas(
+    client: TestClient, conta: Conta, corpo: dict, categoria: str
+) -> None:
+    resposta = client.patch(f"{URL}/{conta.categorias[categoria]}", json=corpo)
 
     assert resposta.status_code == 409
     assert resposta.json()["erro"]["codigo"] == "categoria_do_sistema"

@@ -45,14 +45,15 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo do sal
 | Tabela | Campos principais |
 | --- | --- |
 | `usuario` | nome, email (único), senha_hash, telefone, cargo, data_nascimento (opcional), papel (`usuario` / `admin`), troca_senha_obrigatoria, criado_em |
-| `categoria` | usuario_id, nome, tipo (`entrada` / `saida`), ativa. "Salário" é de sistema e protegida |
-| `recorrencia` | usuario_id, descricao, valor, tipo, categoria_id, dia, ativa |
-| `divida` | usuario_id, descricao, pessoa, direcao, valor_total, parcelas, forma_pagamento, dia_vencimento, data_inicio |
-| `lancamento` | usuario_id, data, valor, tipo, categoria_id, descricao, status, forma_pagamento, recorrencia_id, divida_id, parcela_num, conta_no_saldo |
+| `categoria` | usuario_id, nome (único por usuário, sem diferenciar maiúsculas), tipo (`entrada` / `saida`), ativa, sistema. "Salário" e "Poupança" são de sistema e protegidas |
+| `recorrencia` | usuario_id, categoria_id, descricao, valor, tipo, dia, ativa |
+| `divida` | usuario_id, categoria_id, descricao, pessoa, direcao, valor_total, parcelas, forma_pagamento, dia_vencimento, data_inicio |
+| `lancamento` | usuario_id, data, valor, tipo, categoria_id, descricao, status, conta_no_saldo, recorrencia_id, divida_id, parcela_num |
 | `cartela` | usuario_id, nome, meta, valor_base, criada_em |
-| `casa` | cartela_id, valor, ordem, is_ajuste, depositado_em |
+| `casa` | cartela_id, valor, ordem, is_ajuste, depositado_em, lancamento_id |
+| `sessao`, `tentativa_login`, `acao_admin` | sessão em cookie, bloqueio de login e auditoria do administrador |
 
-Todos os campos de valor são `int` em centavos. Não existe tabela de configuração de pagamento. O detalhe das tabelas de sessão e de auditoria do administrador fica nos planos das features 002 e 003.
+Todos os campos de valor são `int` em centavos. Não existe tabela de configuração de pagamento. A `forma_pagamento` fica na dívida, não no lançamento. Specs de cada feature em `specs/001` a `specs/008`.
 
 ## Regras de cálculo
 

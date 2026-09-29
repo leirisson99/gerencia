@@ -74,8 +74,8 @@ def editar_categoria(
     categoria = obter_categoria(db, usuario_id, categoria_id)
     muda_nome = dados.nome is not None and dados.nome != categoria.nome
     desativa = dados.ativa is False and categoria.ativa
-    if not edicao_permitida(categoria.e_salario, muda_nome, desativa):
-        raise ErroApi(409, "categoria_do_sistema", "A categoria Salário não pode ser alterada.")
+    if not edicao_permitida(categoria.sistema, muda_nome, desativa):
+        raise ErroApi(409, "categoria_do_sistema", "Categorias do sistema não podem ser alteradas.")
     if dados.nome is not None:
         categoria.nome = dados.nome
     if dados.ativa is not None:

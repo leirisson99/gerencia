@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 NOME_SALARIO = "Salário"
+NOME_POUPANCA = "Poupança"
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,8 @@ CATEGORIAS_INICIAIS: tuple[CategoriaInicial, ...] = (
     CategoriaInicial("Saúde", "saida"),
     CategoriaInicial("Lazer", "saida"),
     CategoriaInicial("Outros", "saida"),
+    # Recebe os depósitos das cartelas.
+    CategoriaInicial(NOME_POUPANCA, "saida", sistema=True),
 )
 
 
@@ -29,6 +32,6 @@ def e_categoria_salario(nome: str, sistema: bool) -> bool:
     return sistema and nome == NOME_SALARIO
 
 
-def edicao_permitida(e_salario: bool, muda_nome: bool, desativa: bool) -> bool:
-    """A categoria que abre ciclo não pode mudar de nome nem ser desativada."""
-    return not (e_salario and (muda_nome or desativa))
+def edicao_permitida(sistema: bool, muda_nome: bool, desativa: bool) -> bool:
+    """Categorias do sistema (Salário, Poupança) não mudam de nome nem são desativadas."""
+    return not (sistema and (muda_nome or desativa))
