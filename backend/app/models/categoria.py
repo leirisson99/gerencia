@@ -6,6 +6,7 @@ from sqlalchemy import (
     Index,
     String,
     false,
+    func,
     text,
     true,
 )
@@ -13,6 +14,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.categoria import e_categoria_salario
 from app.models import Base
+
+INDICE_NOME_UNICO = "uq_categoria_usuario_nome"
 
 
 class Categoria(Base):
@@ -25,6 +28,8 @@ class Categoria(Base):
             unique=True,
             postgresql_where=text("sistema AND nome = 'Salário'"),
         ),
+        # Nome único por usuário, sem diferenciar maiúsculas.
+        Index(INDICE_NOME_UNICO, "usuario_id", func.lower(text("nome")), unique=True),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)

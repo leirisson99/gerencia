@@ -27,3 +27,8 @@ CATEGORIAS_INICIAIS: tuple[CategoriaInicial, ...] = (
 def e_categoria_salario(nome: str, sistema: bool) -> bool:
     """Só a categoria de sistema "Salário" abre ciclo."""
     return sistema and nome == NOME_SALARIO
+
+
+def edicao_permitida(e_salario: bool, muda_nome: bool, desativa: bool) -> bool:
+    """A categoria que abre ciclo não pode mudar de nome nem ser desativada."""
+    return not (e_salario and (muda_nome or desativa))
