@@ -1,0 +1,9 @@
+# Contexto é a raiz do repositório: só entra o que o Dockerfile do backend usa.
+*
+!backend/pyproject.toml
+!backend/uv.lock
+!backend/alembic.ini
+!backend/alembic/
+!backend/app/
+**/__pycache__
+**/*.pyc

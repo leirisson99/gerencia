@@ -63,12 +63,13 @@ jobs:
       - run: npm ci
       - name: Lint
         run: npm run lint
-      - name: Tipos
-        run: npx tsc --noEmit
       - name: Build
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+      # Depois do build: é ele que gera os tipos PageProps/LayoutProps do Next.
+      - name: Tipos
+        run: npx tsc --noEmit
 
   docker:
     needs: [backend, frontend]
@@ -82,7 +83,8 @@ jobs:
       - name: Build da imagem
         uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.servico }}
+          context: .
+          file: ${{ matrix.servico }}/Dockerfile
           push: false
           tags: gerencia-${{ matrix.servico }}:ci
           cache-from: type=gha,scope=${{ matrix.servico }}

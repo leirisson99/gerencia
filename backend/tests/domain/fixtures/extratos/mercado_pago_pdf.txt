@@ -1,0 +1,22 @@
+1|32.5|329.1|EXTRATO DE CONTA
+1|100.8|178.3|Entradas: R$ 1.020,00
+1|107.4|44.2|Saldo inicial: R$ 100,00 Saldo final: R$ 1.051,05
+1|113.9|178.3|Saídas: R$ -68,95
+1|184.6|40.5|Data Descrição ID da operação Valor Saldo
+1|209.6|89.0|Pagamento com QR Pix D
+1|221.6|40.5|01-09-2026 DOS S COMERCIO B DE 111111111111 R$ -45,90 R$ 54,10
+1|233.6|89.0|Padaria Central
+1|256.8|89.0|Pix enviado Fulano
+1|263.6|40.5|02-09-2026 222222222222 R$ -20,00 R$ 34,10
+1|268.8|89.0|de Tal
+1|292.5|40.5|02-09-2026 Rendimentos 3333333333333 R$ 0,05 R$ 34,15
+1|319.1|89.0|Dinheiro recebido
+1|325.9|40.5|03-09-2026 444444444444 R$ 1.000,00 R$ 1.034,15
+1|331.1|89.0|de Empresa
+1|612.8|397.5|1/2
+2|42.9|40.5|Data Descrição ID da operação Valor Saldo
+2|71.3|40.5|04-09-2026 Pagamento Mp*Loja 555555555555 R$ -3,05 R$ 1.031,10
+2|97.9|89.0|Pix recebido
+2|104.7|40.5|05-09-2026 666666666666 R$ 19,95 R$ 1.051,05
+2|109.9|89.0|Beltrano
+2|555.9|31.5|Data de geração: 06-09-2026

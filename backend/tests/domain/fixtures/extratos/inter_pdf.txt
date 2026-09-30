@@ -1,0 +1,13 @@
+1|40.1|457.2|Solicitado em: 29/09/2026 - 10h00
+1|76.3|39.5|FULANO DE TAL
+1|107.6|39.5|Período: 31/08/2026 a 29/09/2026
+1|137.4|39.5|Saldo total Saldo disponível: Saldo bloqueado:
+1|147.2|39.5|R$ 0,00 R$ 0,00 R$ 0,00
+1|197.4|41.7|5 de Setembro de 2026 Saldo do dia: R$ 4.954,10 Valor Saldo por transação
+1|224.3|44.0|Pix recebido: "Cp :00000000-Empresa Exemplo Ltda" R$ 5.000,00 R$ 5.000,00
+1|243.8|44.0|Pix enviado: "Cp :00000000-Padaria Central" -R$ 45,90 R$ 4.954,10
+1|311.8|41.7|6 de Setembro de 2026 Saldo do dia: R$ 3.719,54
+1|337.3|44.0|Pagamento efetuado: "Aluguel" -R$ 1.234,56 R$ 3.719,54
+1|366.5|41.7|7 de Setembro de 2026 Saldo do dia: -R$ 10,00
+1|391.9|44.0|Pix enviado: "Cp :00000000-Loja" -R$ 3.729,54 -R$ 10,00
+1|795.2|38.0|SAC: 0800 000 0000 Ouvidoria: 0800 000 0000

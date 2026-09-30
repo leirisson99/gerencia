@@ -13,4 +13,4 @@ Thumbs.db
 *.swp
 
 # Extratos bancários reais (dados pessoais): nunca versionar
-extratos/
+/extratos/

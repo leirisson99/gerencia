@@ -1,0 +1,13 @@
+1|64.8|251.2|FULANO DE TAL 000.000.000-00 agência: 0001 conta: 12345-6
+1|111.0|30.6|saldo em conta limite da Conta usado limite da Conta disponível total *
+1|187.5|28.4|extrato conta / lançamentos
+1|235.7|30.6|data lançamentos valor (R$) saldo (R$)
+1|261.1|30.6|01/07/2026 SALDO ANTERIOR 10,00
+1|298.4|30.6|02/07/2026 FATURA PAGA ITAU GOLD -850,40
+1|317.1|30.6|02/07/2026 PIX TRANSF FULANO02/07 1.500,00
+1|335.8|30.6|02/07/2026 JUROS LIMITE DA CONTA -3,21
+1|354.5|30.6|02/07/2026 SALDO DO DIA 656,39
+2|30.2|30.6|03/07/2026 PIX QRS PADARIA CE03/07 -12,50
+2|48.9|30.6|03/07/2026 REND PAGO APLIC AUT MAIS 0,07
+2|67.6|30.6|03/07/2026 SALDO DO DIA 643,96
+3|400.0|30.6|Aviso: consulte as tarifas em www.exemplo.com.br

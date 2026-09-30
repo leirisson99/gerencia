@@ -1,0 +1,9 @@
+ Extrato Conta Corrente 
+Conta ;123456789
+Período ;31/08/2026 a 29/09/2026
+Saldo ;3.719,54
+
+Data Lançamento;Histórico;Descrição;Valor;Saldo
+05/09/2026;Pix recebido;"Cp :00000000-Empresa Exemplo Ltda";5.000,00;5.000,00
+06/09/2026;Pix enviado;"Cp :00000000-Padaria Central";-45,90;4.954,10
+06/09/2026;Pagamento efetuado;Aluguel;-1.234,56;3.719,54

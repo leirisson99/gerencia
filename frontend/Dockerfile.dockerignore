@@ -1,0 +1,12 @@
+# Contexto é a raiz do repositório: só entra a pasta do frontend.
+*
+!frontend/
+frontend/node_modules
+frontend/.next
+frontend/out
+frontend/coverage
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+frontend/.env*
+!frontend/.env.example
+frontend/Dockerfile*

@@ -1,0 +1,26 @@
+1|59.7|421.4|Fulano de Tal
+1|135.1|57.0|01 DE SETEMBRO DE 2026 a 28 DE SETEMBRO DE 2026 VALORES EM R$
+1|164.3|335.9|Saldo inicial 0,00
+1|204.2|57.0|R$ 1,00 Total de entradas +551,00
+1|224.2|335.9|Total de saídas -550,00
+1|244.3|335.9|Saldo final do período 1,00
+1|274.7|57.0|Movimentações
+1|296.7|58.0|02 SET 2026 Total de entradas + 300,00
+1|317.7|120.0|Transferência recebida pelo Pix FULANO DE TAL - •••.000.000-•• - 300,00
+1|337.6|262.4|BANCO EXEMPLO IP S.A. (0000) Agência: 1 Conta:
+1|357.6|262.4|1234567-8
+1|391.7|120.0|Total de saídas - 420,00
+1|412.6|120.0|Pagamento de fatura 420,00
+1|457.7|58.0|05 SET 2026 Total de entradas + 251,00
+1|478.7|120.0|Valor adicionado na conta por Valor adicionado Pix no Crédito 251,00
+1|498.7|120.0|cartão de crédito
+1|718.7|57.0|Tem alguma dúvida? Fale com a gente pelo app ou ligue 4000 0000
+1|773.8|110.0|Extrato gerado dia 28 de setembro de 2026 às 10:00 1 de 2
+2|53.7|421.4|Fulano de Tal
+2|129.1|57.0|01 DE SETEMBRO DE 2026 a 28 DE SETEMBRO DE 2026 VALORES EM R$
+2|174.7|120.0|Total de saídas - 130,00
+2|195.6|120.0|Transferência enviada pelo Pix LOJA EXEMPLO LTDA - 00.000.000 130,00
+2|215.6|262.2|/0001-00 - BANCO EXEMPLO IP S.A. Agência: 1
+2|235.6|262.2|Conta: 12345-6
+2|288.3|57.0|O saldo líquido corresponde ao total de entradas e rendimentos em conta.
+2|434.1|110.0|Extrato gerado dia 28 de setembro de 2026 às 10:00 2 de 2
