@@ -246,3 +246,22 @@ class TestTrocaTipoRenda:
         # US4.6
         resultado = verificar_troca_tipo_renda("prestador", "clt_prestador", [], OUT_05, True)
         assert resultado is ProblemaTroca.SALARIO_INVALIDO
+
+    @pytest.mark.parametrize("atual", ["prestador", "clt_prestador"])
+    def test_servicos_pendentes_impedem_virar_clt(self, atual: str) -> None:
+        # 013 US5.1, com precedência sobre os outros problemas
+        resultado = verificar_troca_tipo_renda(
+            atual, "clt", [], OUT_05, True, servicos_pendentes=True
+        )
+        assert resultado is ProblemaTroca.SERVICOS_PENDENTES
+
+    @pytest.mark.parametrize(
+        ("atual", "novo"), [("prestador", "clt_prestador"), ("clt_prestador", "prestador")]
+    )
+    def test_servicos_pendentes_nao_impedem_quem_continua_com_servicos(
+        self, atual: str, novo: str
+    ) -> None:
+        resultado = verificar_troca_tipo_renda(
+            atual, novo, [OUT_05], OUT_05, False, servicos_pendentes=True
+        )
+        assert resultado is None

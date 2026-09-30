@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.cookies import definir_cookie_sessao
 from app.config import Settings, get_settings
 from app.db import get_db
+from app.domain.usuario import tem_servicos
 from app.erros import ErroApi
 from app.models import Sessao, Usuario
 from app.models.usuario import PAPEL_ADMIN
@@ -62,3 +63,17 @@ def administrador(auth: AutenticadoDep) -> Usuario:
 
 
 AdministradorDep = Annotated[Usuario, Depends(administrador)]
+
+
+def com_servicos(auth: AutenticadoDep) -> Autenticado:
+    """Serviços a receber são só para prestador e clt_prestador."""
+    if not tem_servicos(auth.usuario.tipo_renda):
+        raise ErroApi(
+            403,
+            "perfil_sem_servicos",
+            "Serviços a receber são para quem presta serviço. Mude o tipo de renda no perfil.",
+        )
+    return auth
+
+
+ComServicosDep = Annotated[Autenticado, Depends(com_servicos)]

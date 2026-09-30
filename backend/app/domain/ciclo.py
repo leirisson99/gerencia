@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from enum import Enum
 
-from app.domain.usuario import ciclo_pelo_mes
+from app.domain.usuario import ciclo_pelo_mes, tem_servicos
 
 
 @dataclass(frozen=True)
@@ -119,6 +119,7 @@ def verificar_cobertura(
 
 
 class ProblemaTroca(Enum):
+    SERVICOS_PENDENTES = "servicos_pendentes"
     SALARIO_INVALIDO = "salario_invalido"
     LANCAMENTOS_SEM_CICLO = "lancamentos_sem_ciclo"
 
@@ -129,13 +130,17 @@ def verificar_troca_tipo_renda(
     datas_salario: Iterable[date],
     menor_data_outros: date | None,
     salario_irregular: bool,
+    servicos_pendentes: bool = False,
 ) -> ProblemaTroca | None:
     """Só a troca do ciclo pelo mês para o ciclo pelo salário pode deixar algo fora de ciclo.
 
     `datas_salario` são os salários realizados; `menor_data_outros` é a menor data entre os outros
     lançamentos; `salario_irregular` indica "Salário" previsto ou com data futura, que o ciclo pelo
-    salário não aceita.
+    salário não aceita; `servicos_pendentes` indica serviço a receber ainda não recebido, que
+    ficaria sem acesso num tipo sem serviços.
     """
+    if servicos_pendentes and tem_servicos(atual) and not tem_servicos(novo):
+        return ProblemaTroca.SERVICOS_PENDENTES
     if not ciclo_pelo_mes(atual) or ciclo_pelo_mes(novo):
         return None
     if salario_irregular:

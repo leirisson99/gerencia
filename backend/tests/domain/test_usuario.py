@@ -11,6 +11,7 @@ from app.domain.usuario import (
     limpar_texto,
     normalizar_email,
     normalizar_telefone,
+    tem_servicos,
     validar_data_nascimento,
     validar_senha,
 )
@@ -116,3 +117,10 @@ class TestTipoRenda:
     )
     def test_so_o_prestador_usa_o_mes(self, tipo: str, esperado: bool) -> None:
         assert ciclo_pelo_mes(tipo) is esperado
+
+    @pytest.mark.parametrize(
+        ("tipo", "esperado"),
+        [(TIPO_CLT, False), (TIPO_PRESTADOR, True), (TIPO_CLT_PRESTADOR, True)],
+    )
+    def test_so_quem_presta_servico_tem_servicos(self, tipo: str, esperado: bool) -> None:
+        assert tem_servicos(tipo) is esperado

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.domain.categoria import NOME_SALARIO
 from app.domain.ciclo import ProblemaTroca, verificar_troca_tipo_renda
 from app.erros import ErroApi
-from app.models import Categoria, Lancamento, Usuario
+from app.models import Categoria, Lancamento, Servico, Usuario
 from app.models.lancamento import STATUS_PREVISTO
 from app.schemas.usuario import PerfilIn
 from app.services.auth import checar_data_nascimento
@@ -32,6 +32,21 @@ def _tem_salario_irregular(db: Session, usuario_id: int, hoje: date) -> bool:
     )
 
 
+def _tem_servico_pendente(db: Session, usuario_id: int) -> bool:
+    return (
+        db.scalar(
+            select(
+                exists().where(
+                    Servico.usuario_id == usuario_id,
+                    Servico.lancamento_id == Lancamento.id,
+                    Lancamento.status == STATUS_PREVISTO,
+                )
+            )
+        )
+        or False
+    )
+
+
 def _checar_troca_tipo_renda(db: Session, usuario: Usuario, novo: str, hoje: date) -> None:
     atual = travar_escritas(db, usuario.id)
     problema = verificar_troca_tipo_renda(
@@ -40,7 +55,14 @@ def _checar_troca_tipo_renda(db: Session, usuario: Usuario, novo: str, hoje: dat
         datas_de_salario(db, usuario.id),
         menor_data_dos_outros(db, usuario.id, None),
         _tem_salario_irregular(db, usuario.id, hoje),
+        servicos_pendentes=_tem_servico_pendente(db, usuario.id),
     )
+    if problema is ProblemaTroca.SERVICOS_PENDENTES:
+        raise ErroApi(
+            409,
+            "servicos_pendentes",
+            "Há serviços a receber. Receba ou exclua esses serviços antes de trocar.",
+        )
     if problema is ProblemaTroca.SALARIO_INVALIDO:
         raise ErroApi(
             409,

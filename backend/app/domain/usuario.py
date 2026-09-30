@@ -23,6 +23,11 @@ def ciclo_pelo_mes(tipo_renda: str) -> bool:
     return tipo_renda == TIPO_PRESTADOR
 
 
+def tem_servicos(tipo_renda: str) -> bool:
+    """Serviços a receber são só para quem presta serviço."""
+    return tipo_renda in (TIPO_PRESTADOR, TIPO_CLT_PRESTADOR)
+
+
 def limpar_texto(valor: str, max_len: int) -> str:
     texto = valor.strip()
     if not texto:

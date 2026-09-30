@@ -4,7 +4,7 @@ from sqlalchemy import exists, func, not_, select
 from sqlalchemy.orm import Session
 
 from app.domain.ciclo import ProblemaCobertura, ciclo_atual, ciclo_mensal, verificar_cobertura
-from app.domain.usuario import ciclo_pelo_mes
+from app.domain.usuario import ciclo_pelo_mes, tem_servicos
 from app.erros import MENSAGEM_VALIDACAO, ErroApi
 from app.models import Casa, Categoria, Lancamento
 from app.models.lancamento import STATUS_REALIZADO
@@ -104,6 +104,11 @@ def _e_deposito_de_cartela(db: Session, lancamento_id: int) -> bool:
     return db.scalar(select(exists().where(Casa.lancamento_id == lancamento_id))) or False
 
 
+def _e_de_servico(lancamento: Lancamento, tipo_renda: str) -> bool:
+    """Entrada de serviço a receber: o serviço a controla, enquanto o dono tiver serviços."""
+    return lancamento.servico_id is not None and tem_servicos(tipo_renda)
+
+
 def verificar_novos_lancamentos(db: Session, usuario_id: int, menor_data: date) -> None:
     """Recusa lançamentos (que não são salário) a partir de `menor_data` fora de ciclo."""
     resultado = _problema_depois_da_mudanca(db, usuario_id, None, (False, menor_data))
@@ -167,7 +172,8 @@ def editar_lancamento(
     hoje: date,
 ) -> tuple[Lancamento, AvisoLimiteOut | None]:
     """Edita o lançamento; devolve também o aviso se a categoria de destino piorar de situação."""
-    pelo_mes = ciclo_pelo_mes(travar_escritas(db, usuario_id))
+    tipo_renda = travar_escritas(db, usuario_id)
+    pelo_mes = ciclo_pelo_mes(tipo_renda)
     lancamento = obter_lancamento(db, usuario_id, lancamento_id)
     enviados = dados.model_fields_set
     if not enviados:
@@ -182,6 +188,18 @@ def editar_lancamento(
             MENSAGEM_VALIDACAO,
             campos={"categoria_id": "A parcela fica na categoria da dívida."},
         )
+    if _e_de_servico(lancamento, tipo_renda):
+        mudancas = {
+            "valor": dados.valor is not None and dados.valor != lancamento.valor,
+            "status": dados.status is not None and dados.status != lancamento.status,
+            "categoria_id": muda_categoria,
+            "data": dados.data is not None and dados.data != lancamento.data,
+        }
+        for campo, muda in mudancas.items():
+            if muda:
+                raise ErroApi(
+                    422, "validacao", MENSAGEM_VALIDACAO, campos={campo: "Altere pelo serviço."}
+                )
     if _e_deposito_de_cartela(db, lancamento.id):
         mudancas = {
             "valor": dados.valor is not None and dados.valor != lancamento.valor,
@@ -235,8 +253,12 @@ def editar_lancamento(
 
 
 def excluir_lancamento(db: Session, usuario_id: int, lancamento_id: int) -> None:
-    travar_escritas(db, usuario_id)
+    tipo_renda = travar_escritas(db, usuario_id)
     lancamento = obter_lancamento(db, usuario_id, lancamento_id)
+    if _e_de_servico(lancamento, tipo_renda):
+        raise ErroApi(
+            409, "lancamento_de_servico", "Esta entrada é de um serviço: altere pelo serviço."
+        )
     if lancamento.divida_id is not None:
         raise ErroApi(409, "parcela_de_divida", "Parcelas de dívida não podem ser excluídas.")
     if _e_deposito_de_cartela(db, lancamento.id):

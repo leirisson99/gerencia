@@ -21,6 +21,7 @@ from app.domain.usuario import ciclo_pelo_mes
 from app.models import Base
 from app.models.cartela import Casa
 from app.models.categoria import Categoria
+from app.models.servico import Servico
 from app.models.usuario import Usuario
 
 STATUS_PREVISTO = "previsto"
@@ -83,6 +84,14 @@ class Lancamento(Base):
         select(Casa.cartela_id)
         .where(Casa.lancamento_id == id)
         .correlate_except(Casa)
+        .scalar_subquery()
+    )
+
+    # Serviço a receber que gerou esta entrada (feature 013), ou None.
+    servico_id: Mapped[int | None] = column_property(
+        select(Servico.id)
+        .where(Servico.lancamento_id == id)
+        .correlate_except(Servico)
         .scalar_subquery()
     )
 
