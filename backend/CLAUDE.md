@@ -23,7 +23,7 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo do sal
 5. **Todo dado financeiro pertence a um usuário.** Toda consulta filtra pelo usuário autenticado; dado de outro usuário retorna 404, com teste.
 6. **Só P0.** Não implemente P1/P2 nem "prepare para o futuro" sem pedido explícito.
 7. **Lançamento tem só valor, categoria e data como obrigatórios.** Não adicione campos obrigatórios.
-8. **Sem IA no MVP.**
+8. **Sem IA no MVP.** Lançamentos são manuais ou importados de extrato de conta (OFX, CSV ou PDF), sempre com prévia confirmada pelo usuário. Sugestão de categoria só por regra fixa. Extrato de fatura de cartão nunca é importado.
 
 ## Glossário do domínio
 
@@ -38,6 +38,7 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo do sal
 | Fatura | Pagamento total do cartão, lançado como uma saída na categoria "Cartão de crédito" |
 | Cartela | Meta de poupança dividida em casas sequenciais (base × 1…N) + casa de ajuste |
 | Casa | Um depósito da cartela. Livre ou depositada |
+| Importação | Extrato de conta (OFX, CSV ou PDF) lido numa prévia; só as linhas que o usuário confirma viram lançamentos, com as mesmas regras do lançamento manual |
 | Administrador | Papel criado só no servidor; vê nome, e-mail e data de criação das contas e só reseta senha |
 
 ## Modelo de dados

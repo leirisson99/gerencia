@@ -1,30 +1,27 @@
 <!--
 Sync Impact Report
-- Version change: 4.0.0 → 4.0.1 (PATCH: escopo atual é só o backend; redação sem
-  referência a um frontend específico)
+- Version change: 4.0.1 → 4.1.0 (MINOR: expansão material — importação de extrato,
+  pedida pelo usuário em 2026-09-29 para a feature 011)
 - Modified principles:
-  - IV. API com Contratos Tipados: "consumida pelo frontend Next.js" → "consumida por
-    clientes HTTP"; mudança incompatível registrada no plano da feature (sem exigir mudança
-    "nos dois lados"); lista de status HTTP passa a ser de exemplos e inclui 401/403/415/429
-  - I. Integridade Financeira: "frontend" → "clientes"
-  - Stack: frontend marcado como fora do escopo atual
-- Histórico:
-  - 3.1.0 → 4.0.0: ciclo aberto pelo salário lançado manualmente (sem dia fixo/dia útil)
-  - 3.0.0 → 3.1.0: papel de administrador restrito a reset de senha
-  - 2.0.0 → 3.0.0: multiusuário na web (cadastro aberto, login com e-mail e senha,
-    isolamento por usuário)
+  - VI. Escopo P0 e Simplicidade: "Todo lançamento é manual" → manual ou importado de
+    extrato de conta (OFX, CSV ou PDF), sempre com prévia confirmada linha a linha; sugestão de
+    categoria só por regra determinística, nunca IA
+  - I. Integridade Financeira: extrato de fatura de cartão MUST NOT ser importado
+  - II. Ciclo Aberto pelo Salário Lançado: salário importado e confirmado abre ciclo com as
+    mesmas regras do lançado à mão
 - Added sections: nenhuma
 - Removed sections: nenhuma
 - Templates: plan/spec/tasks leem a constituição em tempo de execução — nenhuma alteração
 - Follow-up TODOs:
-  - Feito: CLAUDE.md e Briefing.md atualizados (multiusuário, admin, ciclo pelo salário,
-    tabela `usuario` e `usuario_id` nas tabelas financeiras, PostgreSQL)
-  - Feito: spec reescrita em specs/001-ciclo-salario
-  - Decidido na spec 001: tabela `configuracao` removida; salário sai das recorrências; só a
-    categoria de sistema "Salário" abre ciclo; um previsto por recorrência por ciclo
-    (detalhar na spec de recorrências)
-  - Decidido: um único administrador por enquanto — registrar como escopo na spec 003, não
-    como princípio (a regra atual vale para um ou vários)
+  - Feito: CLAUDE.md, regra 8 e glossário (termo "Importação")
+  - Pendente (fora desta emenda): a seção Stack ainda diz "Frontend: fora do escopo atual",
+    mas o frontend Next.js já está no repositório (commit 01372a8); decidir em emenda própria
+- Histórico:
+  - 4.0.0 → 4.0.1: escopo só do backend; API "consumida por clientes HTTP"
+  - 3.1.0 → 4.0.0: ciclo aberto pelo salário lançado manualmente (sem dia fixo/dia útil)
+  - 3.0.0 → 3.1.0: papel de administrador restrito a reset de senha
+  - 2.0.0 → 3.0.0: multiusuário na web (cadastro aberto, login com e-mail e senha,
+    isolamento por usuário)
 -->
 
 # Gerencia Constitution
@@ -41,7 +38,8 @@ defeito crítico.
   para dinheiro.
 - Nada MUST contar duas vezes no saldo. Cartão de crédito entra no saldo só como a fatura
   total (saída na categoria "Cartão de crédito"); lançamentos pagos no cartão, inclusive
-  parcelas, MUST ter `conta_no_saldo = False`.
+  parcelas, MUST ter `conta_no_saldo = False`. Extrato de fatura de cartão MUST NOT ser
+  importado (cada compra já está na fatura); só extrato de conta é aceito.
 - Saldo do ciclo (sempre de um único usuário) = entradas − saídas, considerando só
   `status = realizado` e `conta_no_saldo = True`. Gasto por categoria usa o mesmo filtro. Saldos MUST ser
   derivados dos lançamentos, nunca armazenados.
@@ -58,9 +56,11 @@ que não fecham tornam o saldo inútil para decidir.
 
 ### II. Ciclo Aberto pelo Salário Lançado
 
-- O ciclo começa quando o usuário lança manualmente o salário. Cada lançamento de salário
-  que abre ciclo inicia um ciclo, que vai da data desse lançamento até a véspera do próximo
-  lançamento que abre ciclo. O ciclo mais recente fica aberto, sem data de fim.
+- O ciclo começa quando o usuário lança o salário, à mão ou numa linha de extrato que ele
+  confirma na categoria "Salário". Cada lançamento de salário que abre ciclo inicia um
+  ciclo, que vai da data desse lançamento até a véspera do próximo lançamento que abre
+  ciclo. O ciclo mais recente fica aberto, sem data de fim. Salário importado segue as
+  mesmas regras do lançado à mão (data não futura, nenhum lançamento fora de ciclo).
 - O sistema MUST NOT prever nem calcular o dia do pagamento (sem dia fixo, dia útil ou
   feriados).
 - O ciclo MUST ser derivado das datas dos lançamentos que abrem ciclo, de cada usuário.
@@ -147,7 +147,11 @@ vazamento entre usuários o pior modo de falha possível do sistema.
 
 - Só funcionalidades P0 MUST ser implementadas. P1/P2 e "preparar para o futuro" exigem
   pedido explícito.
-- Sem IA no MVP. Todo lançamento é manual.
+- Sem IA no MVP. Todo lançamento é manual ou importado de extrato de conta (OFX, CSV ou PDF).
+  Importação MUST passar por uma prévia em que o usuário revisa e confirma cada linha antes
+  de gravar; nada é gravado sem essa confirmação. A sugestão de categoria na prévia MUST
+  ser uma regra determinística (ex.: última categoria usada com a mesma descrição), nunca
+  IA. Linhas importadas seguem as mesmas regras de um lançamento manual.
 - Lançamento tem só valor, categoria e data como campos obrigatórios; novos campos
   obrigatórios MUST NOT ser adicionados.
 - Camadas: `api/routes/` só valida e chama `services/`; `services/` lê e grava no banco e
@@ -203,4 +207,4 @@ isso atrasa o MVP.
 - Toda revisão MUST verificar conformidade com os princípios. Violações só são aceitas com
   justificativa registrada na seção "Complexity Tracking" do plano da feature.
 
-**Version**: 4.0.1 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-28
+**Version**: 4.1.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-29

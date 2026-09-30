@@ -11,3 +11,6 @@ dist/
 Thumbs.db
 *.tmp
 *.swp
+
+# Extratos bancários reais (dados pessoais): nunca versionar
+extratos/
