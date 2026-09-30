@@ -1,18 +1,26 @@
 <!--
 Sync Impact Report
-- Version change: 4.1.0 → 4.2.0 (MINOR: depósito da cartela fora do saldo, pedido pelo
-  usuário em 2026-09-29)
+- Version change: 4.2.0 → 4.3.0 (MINOR: tipo de renda e serviços a receber, pedido pelo
+  usuário em 2026-09-30)
 - Modified principles:
-  - I. Integridade Financeira: o lançamento `saida` em "Poupança" gerado pelo depósito numa
-    casa MUST ter `conta_no_saldo = False` — o dinheiro guardado continua do usuário e não
-    sai do saldo nem conta como gasto
+  - II. Ciclo Aberto pelo Salário Lançado → II. Ciclo Derivado do Tipo de Renda: `clt` e
+    `clt_prestador` mantêm o ciclo pelo salário; `prestador` usa o mês do calendário e não
+    exige salário para lançar; troca de `prestador` para os outros só com todos os
+    lançamentos cobertos por ciclo de salário
+  - IV. API com Contratos Tipados: remove "o escopo atual é só o backend"
+  - V. Contas de Usuário e Isolamento de Dados: serviços entram na lista de dados
+    financeiros por usuário
+  - VI. Escopo P0 e Simplicidade: "Serviço a receber" com situação derivada, só para
+    `prestador` e `clt_prestador`
 - Added sections: nenhuma
 - Removed sections: nenhuma
+- Stack: frontend (Next.js + shadcn/ui) em escopo desde 2026-09-28 (TODO herdado resolvido)
 - Templates: nenhuma alteração
 - Follow-up TODOs:
-  - Feito: CLAUDE.md (regras de cálculo), spec 008, migração 0011 corrige depósitos antigos
-  - Pendente (herdado): seção Stack ainda diz "Frontend: fora do escopo atual"
+  - CLAUDE.md: glossário (Prestador, Serviço), modelo de dados, regras de cálculo e escopo
+  - Specs 012-prestador-ciclo-mensal e 013-servicos-a-receber
 - Histórico:
+  - 4.1.0 → 4.2.0: depósito da cartela fora do saldo (`conta_no_saldo = False`)
   - 4.0.1 → 4.1.0: importação de extrato de conta (OFX, CSV ou PDF) com prévia confirmada;
     fatura de cartão nunca importada; salário importado abre ciclo (feature 011)
   - 4.0.0 → 4.0.1: escopo só do backend; API "consumida por clientes HTTP"
@@ -53,26 +61,44 @@ defeito crítico.
 **Rationale**: centavos inteiros eliminam erro de arredondamento; contagem dupla e somas
 que não fecham tornam o saldo inútil para decidir.
 
-### II. Ciclo Aberto pelo Salário Lançado
+### II. Ciclo Derivado do Tipo de Renda
 
-- O ciclo começa quando o usuário lança o salário, à mão ou numa linha de extrato que ele
-  confirma na categoria "Salário". Cada lançamento de salário que abre ciclo inicia um
-  ciclo, que vai da data desse lançamento até a véspera do próximo lançamento que abre
-  ciclo. O ciclo mais recente fica aberto, sem data de fim. Salário importado segue as
-  mesmas regras do lançado à mão (data não futura, nenhum lançamento fora de ciclo).
+Todo usuário tem um tipo de renda (`tipo_renda`), escolhido no cadastro e editável no
+perfil: `clt` (só salário), `prestador` (só presta serviço) ou `clt_prestador` (os dois).
+O tipo de renda define como o ciclo é derivado.
+
+- **`clt` e `clt_prestador` — ciclo aberto pelo salário lançado:**
+  - O ciclo começa quando o usuário lança o salário, à mão ou numa linha de extrato que ele
+    confirma na categoria "Salário". Cada lançamento de salário que abre ciclo inicia um
+    ciclo, que vai da data desse lançamento até a véspera do próximo lançamento que abre
+    ciclo. O ciclo mais recente fica aberto, sem data de fim. Salário importado segue as
+    mesmas regras do lançado à mão (data não futura, nenhum lançamento fora de ciclo).
+  - Enquanto o usuário não tiver lançado o primeiro salário, o sistema MUST recusar outros
+    lançamentos e orientar a lançar o salário para abrir o primeiro ciclo.
+- **`prestador` — ciclo pelo mês do calendário:**
+  - Cada ciclo vai do dia 1 ao último dia de um mês, derivado da data de referência. O
+    ciclo atual é o mês que contém a data de hoje.
+  - Nenhum salário é exigido para lançar. "Salário" é uma entrada comum e MUST NOT abrir
+    ciclo.
+  - Recorrências geram o previsto do mês de forma idempotente, sem depender de um
+    lançamento que abra o ciclo.
+- A troca de `prestador` para `clt` ou `clt_prestador` MUST ser recusada se deixar algum
+  lançamento fora de um ciclo de salário. As demais trocas de tipo recalculam os ciclos
+  sem migrar dados.
 - O sistema MUST NOT prever nem calcular o dia do pagamento (sem dia fixo, dia útil ou
   feriados).
-- O ciclo MUST ser derivado das datas dos lançamentos que abrem ciclo, de cada usuário.
-  MUST NOT existir tabela, coluna ou cache persistido de ciclo; corrigir a data ou excluir
-  um desses lançamentos recalcula os ciclos.
-- Enquanto o usuário não tiver lançado o primeiro salário, o sistema MUST recusar outros
-  lançamentos e orientar a lançar o salário para abrir o primeiro ciclo.
+- O ciclo MUST ser derivado (das datas dos lançamentos que abrem ciclo ou do mês do
+  calendário), de cada usuário. MUST NOT existir tabela, coluna ou cache persistido de
+  ciclo; corrigir a data ou excluir um lançamento que abre ciclo, ou trocar o tipo de
+  renda, recalcula os ciclos.
 - Datas de lançamento MUST ser `date`, sem hora, no fuso `America/Sao_Paulo`.
-- Recorrências geram lançamentos previstos por ciclo; a regra de geração vive no domínio.
+- Recorrências geram lançamentos previstos por ciclo; a regra de geração e a regra de
+  ciclo de cada tipo de renda vivem no domínio.
 
-**Rationale**: o dinheiro só está disponível quando entra de fato; abrir o ciclo pelo
-lançamento real evita erro de configuração de data, e derivá-lo mantém uma única fonte da
-verdade.
+**Rationale**: para quem tem salário, o dinheiro só está disponível quando entra de fato,
+e abrir o ciclo pelo lançamento real evita erro de configuração de data. Quem presta
+serviço recebe vários pagamentos soltos; o mês do calendário dá um período estável sem
+depender de um pagamento específico. Derivar o ciclo mantém uma única fonte da verdade.
 
 ### III. Domínio Puro e Teste Primeiro
 
@@ -93,8 +119,8 @@ regra foi entendida antes de ser codificada.
 
 ### IV. API com Contratos Tipados
 
-O projeto é uma API HTTP (FastAPI) consumida por clientes HTTP; não renderiza HTML. O escopo
-atual é só o backend.
+O projeto é uma API HTTP (FastAPI) consumida por clientes HTTP; não renderiza HTML. O frontend
+é um cliente separado dessa API.
 
 - Todo endpoint MUST declarar schemas Pydantic de entrada e saída; `dict` cru e `Any` são
   proibidos nas respostas.
@@ -117,7 +143,7 @@ O sistema roda na web e é multiusuário: qualquer pessoa pode se cadastrar.
   devolvidas pela API.
 - Todo endpoint, exceto saúde (health), cadastro e login, MUST exigir usuário autenticado.
 - Todo dado financeiro (configuração, categorias, lançamentos, recorrências, dívidas,
-  cartelas, casas) MUST pertencer a um usuário, e toda consulta MUST ser filtrada pelo
+  cartelas, casas, serviços a receber) MUST pertencer a um usuário, e toda consulta MUST ser filtrada pelo
   usuário autenticado. Acessar dado de outro usuário MUST retornar 404, e isso MUST ter
   teste.
 - Dados pessoais do cadastro (nome, e-mail, telefone, etc.) MUST ser visíveis só ao próprio
@@ -153,6 +179,10 @@ vazamento entre usuários o pior modo de falha possível do sistema.
   IA. Linhas importadas seguem as mesmas regras de um lançamento manual.
 - Lançamento tem só valor, categoria e data como campos obrigatórios; novos campos
   obrigatórios MUST NOT ser adicionados.
+- Serviço a receber (cliente, valor, data prevista, categoria de entrada que não seja
+  "Salário") existe só para `prestador` e `clt_prestador`. Ele gera uma entrada prevista
+  que vira realizada quando o usuário marca o recebimento. Sua situação (a receber,
+  atrasado, recebido) MUST ser derivada do lançamento e da data, nunca armazenada.
 - Camadas: `api/routes/` só valida e chama `services/`; `services/` lê e grava no banco e
   chama `domain/`; regra de negócio MUST NOT ficar em rotas nem em services.
 - Um único serviço (monólito). Filas, caches ou serviços extras MUST ser justificados no
@@ -174,8 +204,8 @@ isso atrasa o MVP.
 - **Qualidade**: ruff para lint e formatação.
 - **Nomes**: domínio em português (`lancamento`, `cartela`, `casa`); infraestrutura pode
   ser em inglês.
-- **Frontend**: fora do escopo atual. Qualquer cliente da API segue o Princípio I (dinheiro
-  em centavos `int`).
+- **Frontend**: Next.js + shadcn/ui, em escopo desde 2026-09-28; consome só a API e segue
+  o Princípio I (dinheiro em centavos `int`, formatado em reais só na exibição).
 
 ## Fluxo de Desenvolvimento
 
@@ -206,4 +236,4 @@ isso atrasa o MVP.
 - Toda revisão MUST verificar conformidade com os princípios. Violações só são aceitas com
   justificativa registrada na seção "Complexity Tracking" do plano da feature.
 
-**Version**: 4.2.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-29
+**Version**: 4.3.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-30
