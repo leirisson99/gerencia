@@ -73,9 +73,9 @@ description: "Tarefas da feature 011 — Importação de Extrato"
 
 ## Phase 7: Frontend
 
-- [ ] T023 [P] Tipos e cliente da API em frontend/lib/api/types.ts e frontend/lib/api/importacao.ts
-- [ ] T024 Tela frontend/app/(app)/importar/page.tsx e componentes em frontend/features/importacao/ (banco e formato, upload → base64, mapeamento do CSV genérico, tabela de prévia com checkbox, categoria e selo de situação, confirmar com resultado e erros por linha); link no menu em frontend/components/layout/app-sidebar.tsx
-- [ ] T025 `npx tsc --noEmit` e `npm run lint` limpos
+- [X] T023 [P] Tipos e cliente da API em frontend/lib/api/types.ts e frontend/lib/api/importacao.ts
+- [X] T024 Tela frontend/app/(app)/importar/page.tsx e componentes em frontend/features/importacao/ (banco e formato, upload → base64, mapeamento do CSV genérico, tabela de prévia com checkbox, categoria e selo de situação, confirmar com resultado e erros por linha); link no menu em frontend/components/layout/app-sidebar.tsx
+- [X] T025 `npx tsc --noEmit` e `npm run lint` limpos
 
 ---
 

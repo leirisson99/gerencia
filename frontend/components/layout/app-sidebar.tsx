@@ -11,6 +11,7 @@ import {
   PiggyBankIcon,
   RepeatIcon,
   TagsIcon,
+  UploadIcon,
   UserIcon,
   type LucideIcon,
 } from "lucide-react"
@@ -51,6 +52,7 @@ const GRUPOS: Grupo[] = [
     itens: [
       { titulo: "Dashboard", href: "/", icone: LayoutDashboardIcon },
       { titulo: "Lançamentos", href: "/lancamentos", icone: ListIcon },
+      { titulo: "Importar extrato", href: "/importar", icone: UploadIcon },
     ],
   },
   {

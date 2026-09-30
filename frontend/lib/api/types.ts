@@ -83,6 +83,8 @@ export type Lancamento = {
   parcela_num: number | null
   /** Depósito de cartela: só data e descrição mudam; desmarcar a casa remove o lançamento. */
   cartela_id: number | null
+  /** Veio de extrato importado. */
+  importado: boolean
   criado_em: string
 }
 
@@ -231,3 +233,69 @@ export type Cartela = {
 
 /** `valor_base` é opcional; a API usa R$ 1,00. */
 export type CartelaIn = { nome: string; meta: number; valor_base?: number }
+
+// Espelham app/schemas/importacao.py. Valores em centavos inteiros e sempre positivos; o sinal
+// está em `tipo`.
+
+export type FormatoExtrato = "ofx" | "csv" | "pdf" | "csv_generico"
+
+export type Banco = {
+  codigo: string
+  nome: string
+  formatos: FormatoExtrato[]
+}
+
+/** Colunas a partir de 0. Use `coluna_valor` ou o par `coluna_credito` e `coluna_debito`. */
+export type MapeamentoCsv = {
+  separador: ";" | "," | "	"
+  pular_linhas: number
+  tem_cabecalho: boolean
+  coluna_data: number
+  formato_data: "dd/mm/aaaa" | "dd-mm-aaaa" | "aaaa-mm-dd" | "mm/dd/aaaa"
+  coluna_descricao: number
+  coluna_valor: number | null
+  coluna_credito: number | null
+  coluna_debito: number | null
+  separador_decimal: "," | "."
+}
+
+export type PreviaIn = {
+  banco: string
+  formato: FormatoExtrato
+  arquivo_base64: string
+  mapeamento: MapeamentoCsv | null
+}
+
+export type SituacaoLinha =
+  | "nova"
+  | "ja_importada"
+  | "possivel_duplicada"
+  | "antes_do_primeiro_ciclo"
+  | "invalida"
+
+export type LinhaPrevia = {
+  id_externo: string
+  /** ISO `YYYY-MM-DD` */
+  data: string
+  valor: number
+  tipo: TipoLancamento
+  descricao: string | null
+  categoria_sugerida_id: number | null
+  situacao: SituacaoLinha
+}
+
+export type Previa = {
+  linhas: LinhaPrevia[]
+  resumo: Record<SituacaoLinha, number>
+}
+
+export type LinhaImportacao = Omit<LinhaPrevia, "categoria_sugerida_id" | "situacao"> & {
+  categoria_id: number
+}
+
+export type ResultadoImportacao = {
+  criados: number
+  /** Já importadas antes ou repetidas no lote. */
+  ignoradas: number
+  lancamento_ids: number[]
+}
