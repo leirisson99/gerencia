@@ -12,6 +12,8 @@ const interTight = Inter_Tight({
 export const metadata: Metadata = {
   title: { default: "Gerencia", template: "%s | Gerencia" },
   description: "Controle financeiro pessoal pelo ciclo do salário.",
+  // No iOS, instalado pela tela inicial, abre em tela cheia com este nome.
+  appleWebApp: { capable: true, title: "Gerencia", statusBarStyle: "default" },
 };
 
 // viewport-fit=cover libera env(safe-area-inset-*) para a barra inferior no celular.
