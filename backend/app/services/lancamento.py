@@ -41,7 +41,7 @@ def _validar_salario(categoria: Categoria, status: str, data: date, hoje: date) 
         )
 
 
-def _menor_data_dos_outros(db: Session, usuario_id: int, ignorar_id: int | None) -> date | None:
+def menor_data_dos_outros(db: Session, usuario_id: int, ignorar_id: int | None) -> date | None:
     consulta = (
         select(func.min(Lancamento.data))
         .join(Categoria, Lancamento.categoria_id == Categoria.id)
@@ -63,7 +63,7 @@ def _problema_depois_da_mudanca(
     `novo` é (abre_ciclo, data) do lançamento como ficará, ou None numa exclusão.
     """
     salarios = datas_de_salario(db, usuario_id, ignorar_id)
-    menor_outros = _menor_data_dos_outros(db, usuario_id, ignorar_id)
+    menor_outros = menor_data_dos_outros(db, usuario_id, ignorar_id)
     if novo is not None:
         abre_ciclo, data = novo
         if abre_ciclo:
@@ -74,7 +74,7 @@ def _problema_depois_da_mudanca(
     return (problema, salarios) if problema else None
 
 
-def _erro_de_cobertura(problema: ProblemaCobertura, salarios: list[date]) -> ErroApi:
+def erro_de_cobertura(problema: ProblemaCobertura, salarios: list[date]) -> ErroApi:
     if problema is ProblemaCobertura.SEM_SALARIO:
         return ErroApi(409, "salario_necessario", "Lance seu salário para abrir o primeiro ciclo.")
     inicio = min(salarios).strftime("%d/%m/%Y")
@@ -99,7 +99,7 @@ def verificar_novos_lancamentos(db: Session, usuario_id: int, menor_data: date) 
     """Recusa lançamentos (que não são salário) a partir de `menor_data` fora de ciclo."""
     resultado = _problema_depois_da_mudanca(db, usuario_id, None, (False, menor_data))
     if resultado:
-        raise _erro_de_cobertura(*resultado)
+        raise erro_de_cobertura(*resultado)
 
 
 def criar_lancamento(
@@ -113,7 +113,7 @@ def criar_lancamento(
     abre_ciclo = categoria.e_salario and dados.status == STATUS_REALIZADO
     resultado = _problema_depois_da_mudanca(db, usuario_id, None, (abre_ciclo, dados.data))
     if resultado:
-        raise _erro_de_cobertura(*resultado)
+        raise erro_de_cobertura(*resultado)
 
     salarios = datas_de_salario(db, usuario_id) if abre_ciclo else []
     # Só um salário posterior a todos os outros abre um ciclo novo (e gera os previstos).
@@ -198,7 +198,7 @@ def editar_lancamento(
     if resultado:
         if era_salario or sera_salario:
             raise _erro_sem_ciclo()
-        raise _erro_de_cobertura(*resultado)
+        raise erro_de_cobertura(*resultado)
 
     # Uso da categoria de destino no ciclo da nova data, antes da mudança.
     usado_antes = usado_no_ciclo(db, usuario_id, categoria, data)

@@ -13,7 +13,7 @@ Valor = Annotated[StrictInt, Field(gt=0, le=VALOR_MAXIMO)]
 Status = Literal["previsto", "realizado"]
 
 
-def _limpar_descricao(valor: str | None) -> str | None:
+def limpar_descricao(valor: str | None) -> str | None:
     if valor is None:
         return None
     texto = valor.strip()
@@ -36,7 +36,7 @@ class LancamentoIn(BaseModel):
     @field_validator("descricao")
     @classmethod
     def _descricao(cls, valor: str | None) -> str | None:
-        return _limpar_descricao(valor)
+        return limpar_descricao(valor)
 
 
 class LancamentoPatch(BaseModel):
@@ -61,7 +61,7 @@ class LancamentoPatch(BaseModel):
     @field_validator("descricao")
     @classmethod
     def _descricao(cls, valor: str | None) -> str | None:
-        return _limpar_descricao(valor)
+        return limpar_descricao(valor)
 
 
 class LancamentoOut(BaseModel):
@@ -80,6 +80,7 @@ class LancamentoOut(BaseModel):
     divida_id: int | None
     parcela_num: int | None
     cartela_id: int | None
+    importado: bool  # veio de extrato (feature 011)
     criado_em: datetime
 
 

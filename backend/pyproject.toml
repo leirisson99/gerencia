@@ -13,6 +13,7 @@ dependencies = [
     "alembic",
     "argon2-cffi",
     "email-validator",
+    "pdfplumber>=0.11.10",
 ]
 
 [dependency-groups]

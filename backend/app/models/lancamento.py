@@ -12,6 +12,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
     select,
+    text,
     true,
 )
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
@@ -35,6 +36,14 @@ class Lancamento(Base):
         Index("ix_lancamento_recorrencia_data", "recorrencia_id", "data"),
         CheckConstraint("(divida_id IS NULL) = (parcela_num IS NULL)", name="parcela"),
         UniqueConstraint("divida_id", "parcela_num", name="uq_lancamento_divida_parcela"),
+        # A mesma movimentação de extrato não é importada duas vezes pelo mesmo usuário.
+        Index(
+            "uq_lancamento_usuario_id_externo",
+            "usuario_id",
+            "id_externo",
+            unique=True,
+            postgresql_where=text("id_externo IS NOT NULL"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
@@ -59,6 +68,7 @@ class Lancamento(Base):
         BigInteger, ForeignKey("divida.id", ondelete="RESTRICT")
     )
     parcela_num: Mapped[int | None] = mapped_column(SmallInteger)
+    id_externo: Mapped[str | None] = mapped_column(String(120))  # só em importados
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     atualizado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -73,6 +83,10 @@ class Lancamento(Base):
         .correlate_except(Casa)
         .scalar_subquery()
     )
+
+    @property
+    def importado(self) -> bool:
+        return self.id_externo is not None
 
     @property
     def abre_ciclo(self) -> bool:

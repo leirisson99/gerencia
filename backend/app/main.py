@@ -12,6 +12,7 @@ from app.api.routes import (
     ciclos,
     dividas,
     health,
+    importacoes,
     lancamentos,
     me,
     recorrencias,
@@ -64,6 +65,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(recorrencias.router)
     app.include_router(dividas.router)
     app.include_router(cartelas.router)
+    app.include_router(importacoes.router)
     app.include_router(admin.router)
     return app
 
