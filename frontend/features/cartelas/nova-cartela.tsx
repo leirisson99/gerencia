@@ -48,9 +48,13 @@ export function NovaCartela() {
   const [aberto, setAberto] = useState(false)
   return (
     <>
-      <Button onClick={() => setAberto(true)}>
+      {/* No celular vira botão redondo só com o ícone, ao lado do título. */}
+      <Button
+        onClick={() => setAberto(true)}
+        className="max-md:size-10 max-md:shrink-0 max-md:rounded-full max-md:p-0"
+      >
         <PlusIcon aria-hidden />
-        Nova cartela
+        <span className="max-md:sr-only">Nova cartela</span>
       </Button>
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="p-6 sm:max-w-md">

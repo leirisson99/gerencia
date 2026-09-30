@@ -77,3 +77,28 @@ const dataSaoPaulo = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_P
 export function formatarDataDeInstante(iso: string): string {
   return dataSaoPaulo.format(new Date(iso))
 }
+
+const nomeMes = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" })
+const diaLongo = new Intl.DateTimeFormat("pt-BR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  timeZone: "UTC",
+})
+
+/** `2026-10` → `outubro de 2026` */
+export function formatarMes(mes: string): string {
+  return nomeMes.format(new Date(`${mes}-01T00:00:00Z`))
+}
+
+/** `2026-10-15` → `quinta-feira, 15 de outubro` */
+export function formatarDiaLongo(iso: string): string {
+  return diaLongo.format(new Date(`${iso}T00:00:00Z`))
+}
+
+/** Valor sem centavos quando eles são zero: `1000` → `R$ 10`; `1050` → `R$ 10,50`. */
+export function formatarCentavosCurto(centavos: number): string {
+  if (!Number.isInteger(centavos)) throw new Error("Valor em centavos deve ser inteiro.")
+  if (centavos % 100 !== 0) return formatarCentavos(centavos)
+  return `R$ ${formatarCentavosCampo(centavos).slice(0, -3)}`
+}

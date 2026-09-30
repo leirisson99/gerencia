@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
+  CalendarDaysIcon,
   ChevronsUpDownIcon,
   HandCoinsIcon,
   LayoutDashboardIcon,
@@ -53,6 +54,7 @@ const GRUPOS: Grupo[] = [
       { titulo: "Dashboard", href: "/", icone: LayoutDashboardIcon },
       { titulo: "Lançamentos", href: "/lancamentos", icone: ListIcon },
       { titulo: "Importar extrato", href: "/importar", icone: UploadIcon },
+      { titulo: "Calendário", href: "/calendario", icone: CalendarDaysIcon },
     ],
   },
   {

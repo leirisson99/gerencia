@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { cn } from "cn"
+import { ArrowDownIcon, ArrowUpIcon } from "lucide-react"
 
 import type { Categoria, Lancamento } from "@/lib/api/types"
 import { formatarCentavos, formatarDiaMes } from "@/lib/format"
@@ -19,6 +20,8 @@ type Props = {
   vazio?: string
   /** Texto do botão que confirma um previsto (ex.: "Marcar paga" nas dívidas). Sem ele, "Paguei"/"Recebi". */
   rotuloConfirmar?: string
+  /** Esconde a coluna de data quando a lista já é de um único dia. */
+  semData?: boolean
 }
 
 /** Lançamentos na ordem recebida. Clicar num item abre a edição; previstos têm confirmação rápida. */
@@ -28,6 +31,7 @@ export function ListaLancamentos({
   sugestaoSalario,
   vazio = "Nenhum lançamento neste ciclo.",
   rotuloConfirmar,
+  semData = false,
 }: Props) {
   const [aberto, setAberto] = useState(false)
   // Continua preenchido enquanto o dialog fecha, para o conteúdo não trocar na animação.
@@ -60,13 +64,41 @@ export function ListaLancamentos({
                   setEditando(l)
                   setAberto(true)
                 }}
-                className="grid min-w-0 flex-1 grid-cols-[3.5rem_1fr_auto] items-baseline gap-x-3 px-1 py-4 text-left transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-2 focus-visible:outline-ring"
+                className={cn(
+                  "grid min-w-0 flex-1 grid-cols-[2.5rem_1fr_auto] items-center gap-x-3 px-1 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-2 focus-visible:outline-ring active:bg-muted/60 md:items-baseline md:py-4",
+                  semData ? "md:grid-cols-[1fr_auto]" : "md:grid-cols-[3.5rem_1fr_auto]"
+                )}
               >
-                <span className="valor text-sm text-muted-foreground">{formatarDiaMes(l.data)}</span>
+                {/* Celular: ícone redondo no lugar da coluna de data, que desce para a linha de detalhes. */}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "flex size-10 items-center justify-center rounded-full bg-muted md:hidden",
+                    l.tipo === "saida" ? "text-saida" : "text-entrada",
+                    previsto && "opacity-60"
+                  )}
+                >
+                  {l.tipo === "saida" ? (
+                    <ArrowUpIcon className="size-4" />
+                  ) : (
+                    <ArrowDownIcon className="size-4" />
+                  )}
+                </span>
+                {!semData && (
+                  <span className="valor hidden text-sm text-muted-foreground md:block">
+                    {formatarDiaMes(l.data)}
+                  </span>
+                )}
                 <span className="min-w-0">
-                  <span className="block truncate">{categoria}</span>
-                  {detalhes.length > 0 && (
+                  <span className="block truncate max-md:font-medium">{categoria}</span>
+                  {(detalhes.length > 0 || !semData) && (
                     <span className="block truncate text-sm text-muted-foreground">
+                      {!semData && (
+                        <span className="valor md:hidden">
+                          {formatarDiaMes(l.data)}
+                          {detalhes.length > 0 && " · "}
+                        </span>
+                      )}
                       {detalhes.join(" · ")}
                     </span>
                   )}

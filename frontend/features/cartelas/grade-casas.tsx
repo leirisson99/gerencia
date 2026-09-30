@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button"
 import { depositar, desfazerDeposito } from "@/lib/api/cartelas"
 import { ApiError } from "@/lib/api/client"
 import type { Cartela, Casa } from "@/lib/api/types"
-import { formatarCentavos, formatarData, formatarDiaMes } from "@/lib/format"
+import { formatarCentavos, formatarCentavosCurto, formatarData } from "@/lib/format"
 import { MENSAGEM_GENERICA } from "@/lib/forms"
 
 function rotuloCasa(casa: Casa) {
@@ -69,7 +69,7 @@ export function GradeCasas({ cartela }: { cartela: Cartela }) {
 
   return (
     <>
-      <ul className="grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] gap-2">
+      <ul className="grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] gap-1.5 sm:grid-cols-[repeat(auto-fill,minmax(5rem,1fr))]">
         {cartela.casas.map((casa) => {
           const depositada = casa.depositado_em !== null
           return (
@@ -80,31 +80,26 @@ export function GradeCasas({ cartela }: { cartela: Cartela }) {
                 disabled={bloqueada}
                 aria-pressed={depositada}
                 aria-label={rotuloCasa(casa)}
+                title={rotuloCasa(casa)}
                 className={cn(
-                  "flex h-16 w-full flex-col items-center justify-center rounded-lg border text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-wait",
+                  "relative flex h-14 w-full items-center justify-center rounded-md border text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-wait sm:h-16",
                   depositada
                     ? "border-foreground bg-foreground text-background hover:bg-foreground/85"
-                    : "hover:bg-muted",
-                  casa.is_ajuste && !depositada && "border-dashed"
+                    : "border-foreground/15 hover:border-foreground/60",
+                  casa.is_ajuste && !depositada && "border-dashed border-foreground/50"
                 )}
               >
                 {ocupada === casa.id ? (
                   <Loader2Icon className="size-4 animate-spin" aria-hidden />
                 ) : (
                   <>
-                    <span className="valor font-medium">{formatarCentavos(casa.valor)}</span>
-                    <span className={cn("text-xs", depositada ? "opacity-70" : "text-muted-foreground")}>
-                      {depositada ? (
-                        <span className="inline-flex items-center gap-0.5">
-                          <CheckIcon className="size-3" aria-hidden />
-                          {formatarDiaMes(casa.depositado_em!)}
-                        </span>
-                      ) : casa.is_ajuste ? (
-                        "ajuste"
-                      ) : (
-                        `#${casa.ordem}`
-                      )}
-                    </span>
+                    <span className="valor font-medium">{formatarCentavosCurto(casa.valor)}</span>
+                    {depositada && (
+                      <CheckIcon className="absolute top-1 right-1 size-3 opacity-70" aria-hidden />
+                    )}
+                    {casa.is_ajuste && (
+                      <span className="absolute bottom-0.5 text-[10px] leading-none opacity-70">ajuste</span>
+                    )}
                   </>
                 )}
               </button>

@@ -7,7 +7,11 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <TooltipProvider>
       {children}
-      <Toaster position="bottom-center" />
+      {/* No celular, acima da barra inferior da área logada. */}
+      <Toaster
+        position="bottom-center"
+        mobileOffset={{ bottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
+      />
     </TooltipProvider>
   )
 }

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter_Tight } from "next/font/google";
 
 import { Providers } from "@/components/providers/providers";
@@ -12,6 +12,15 @@ const interTight = Inter_Tight({
 export const metadata: Metadata = {
   title: { default: "Gerencia", template: "%s | Gerencia" },
   description: "Controle financeiro pessoal pelo ciclo do salário.",
+};
+
+// viewport-fit=cover libera env(safe-area-inset-*) para a barra inferior no celular.
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

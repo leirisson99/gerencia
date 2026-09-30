@@ -14,9 +14,10 @@ export function Bloco({
   children: ReactNode
 }) {
   return (
-    <section className={cn("rounded-lg border p-5", className)}>
+    <section className={cn("rounded-2xl border p-4 md:rounded-lg md:p-5", className)}>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">{titulo}</h2>
+        {/* No celular o título pesa mais, como seção de app; no desktop fica discreto. */}
+        <h2 className="font-semibold md:text-sm md:font-medium md:text-muted-foreground">{titulo}</h2>
         {acao}
       </div>
       {children}

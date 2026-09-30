@@ -5,6 +5,7 @@ import { cn } from "cn"
 import { BarraProgresso } from "@/components/dados/barra-progresso"
 import { Button } from "@/components/ui/button"
 import { periodoCiclo } from "@/features/ciclo/navegacao-ciclo"
+import { Atalhos, SaldoDestaque } from "@/features/dashboard/mobile"
 import { Bloco, Indicador } from "@/features/dashboard/bloco"
 import { ListaLancamentos } from "@/features/lancamentos/lista-lancamentos"
 import { NovoLancamento } from "@/features/lancamentos/novo-lancamento"
@@ -64,8 +65,8 @@ export default async function DashboardPage() {
   const diaDoCiclo = diasEntre(ciclo.inicio, hojeSaoPaulo()) + 1
 
   return (
-    <section aria-labelledby="dashboard-titulo">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <section aria-labelledby="dashboard-titulo" className="flex flex-col md:block">
+      <div className="flex flex-wrap items-start justify-between gap-4 max-md:sr-only">
         <div>
           <h1 id="dashboard-titulo" className="text-title">
             Dashboard
@@ -75,7 +76,19 @@ export default async function DashboardPage() {
         <NovoLancamento categorias={categorias} sugestaoSalario={sugestaoSalario} />
       </div>
 
-      <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* Celular: saldo em destaque e atalhos, no lugar da grade de blocos. */}
+      <div className="order-1 md:hidden">
+        <SaldoDestaque
+          saldo={resumo.saldo}
+          entradas={resumo.entradas}
+          saidas={resumo.saidas}
+          periodo={periodoCiclo(ciclo)}
+          diaDoCiclo={diaDoCiclo}
+        />
+        <Atalhos className="mt-6" />
+      </div>
+
+      <div className="mt-10 hidden gap-4 sm:grid-cols-2 md:grid xl:grid-cols-4">
         <Bloco titulo="Saldo do ciclo" className="sm:col-span-2 xl:col-span-1">
           <Indicador
             valor={formatarCentavos(resumo.saldo)}
@@ -97,7 +110,7 @@ export default async function DashboardPage() {
         </Bloco>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+      <div className="order-3 mt-4 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         <Bloco titulo="Para onde foi">
           <TotaisPorCategoria
             totais={resumo.saidas_por_categoria}
@@ -148,7 +161,7 @@ export default async function DashboardPage() {
         </Bloco>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="order-2 mt-8 grid gap-4 md:mt-4 lg:grid-cols-2">
         <Bloco
           titulo="Últimos lançamentos"
           acao={

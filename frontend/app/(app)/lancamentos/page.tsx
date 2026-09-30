@@ -1,9 +1,14 @@
 import type { Metadata } from "next"
+import type { ReactNode } from "react"
 import { redirect } from "next/navigation"
 import { cn } from "cn"
 
-import { NavegacaoCiclo, periodoCiclo } from "@/features/ciclo/navegacao-ciclo"
-import { ListaLancamentos } from "@/features/lancamentos/lista-lancamentos"
+import {
+  NavegacaoCiclo,
+  NavegacaoCicloCompacta,
+  periodoCiclo,
+} from "@/features/ciclo/navegacao-ciclo"
+import { FiltroLancamentos } from "@/features/lancamentos/filtro-lancamentos"
 import { NovoLancamento } from "@/features/lancamentos/novo-lancamento"
 import {
   listarCategorias,
@@ -66,7 +71,23 @@ export default async function LancamentosPage({ searchParams }: PageProps<"/lanc
 
   return (
     <section aria-labelledby="ciclo-titulo">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      {/* Celular: pílula de navegação do ciclo e três números em cartões. Lançar fica na barra inferior. */}
+      <div className="md:hidden">
+        <NavegacaoCicloCompacta ciclo={ciclo} />
+        <dl className="valor mt-4 grid grid-cols-3 gap-2">
+          <ResumoCartao titulo="Saldo" destaque>
+            <span className={cn(resumo.saldo < 0 && "text-saida")}>
+              {formatarCentavos(resumo.saldo)}
+            </span>
+          </ResumoCartao>
+          <ResumoCartao titulo="Entradas">{formatarCentavos(resumo.entradas)}</ResumoCartao>
+          <ResumoCartao titulo="Saídas">
+            <span className="text-saida">{formatarCentavos(resumo.saidas)}</span>
+          </ResumoCartao>
+        </dl>
+      </div>
+
+      <div className="hidden flex-wrap items-start justify-between gap-4 md:flex">
         <div>
           <h1 id="ciclo-titulo" className="text-title">
             {ciclo.aberto ? "Ciclo atual" : "Ciclo encerrado"}
@@ -95,12 +116,37 @@ export default async function LancamentosPage({ searchParams }: PageProps<"/lanc
         </div>
       </div>
 
-      <h2 className="mt-12 mb-3 text-sm font-medium text-muted-foreground">Lançamentos</h2>
-      <ListaLancamentos
+      <h2 className="mt-8 mb-3 font-semibold md:mt-12 md:text-sm md:font-medium md:text-muted-foreground">
+        Lançamentos
+      </h2>
+      <FiltroLancamentos
         lancamentos={lancamentos}
         categorias={categorias}
         sugestaoSalario={sugestaoSalario}
       />
     </section>
+  )
+}
+
+function ResumoCartao({
+  titulo,
+  destaque = false,
+  children,
+}: {
+  titulo: string
+  /** Fundo invertido para o saldo, o número que mais importa. */
+  destaque?: boolean
+  children: ReactNode
+}) {
+  return (
+    <div
+      className={cn(
+        "min-w-0 rounded-2xl p-3",
+        destaque ? "bg-primary text-primary-foreground" : "bg-muted"
+      )}
+    >
+      <dt className={cn("text-xs", destaque ? "opacity-70" : "text-muted-foreground")}>{titulo}</dt>
+      <dd className="mt-1 truncate text-sm font-semibold">{children}</dd>
+    </div>
   )
 }

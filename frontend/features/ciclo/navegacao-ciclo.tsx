@@ -24,16 +24,58 @@ export function NavegacaoCiclo({ ciclo }: { ciclo: Ciclo }) {
   )
 }
 
-function BotaoVizinho({ href, rotulo, icone }: { href: string | null; rotulo: string; icone: ReactNode }) {
+/**
+ * Versão de celular: uma pílula com o ciclo no meio e as setas nas pontas, na largura toda.
+ * O título da página fica aqui dentro, no lugar do cabeçalho grande.
+ */
+export function NavegacaoCicloCompacta({ ciclo, tituloId }: { ciclo: Ciclo; tituloId?: string }) {
+  return (
+    <nav aria-label="Ciclos" className="flex items-center gap-2 rounded-full border p-1">
+      <BotaoVizinho
+        href={ciclo.anterior && `/lancamentos?ciclo=${ciclo.anterior}`}
+        rotulo="Ciclo anterior"
+        icone={<ChevronLeftIcon aria-hidden />}
+        compacto
+      />
+      <div className="min-w-0 flex-1 text-center leading-tight">
+        <h1 id={tituloId} className="truncate text-sm font-semibold">
+          {ciclo.aberto ? "Ciclo atual" : "Ciclo encerrado"}
+        </h1>
+        <p className="valor truncate text-xs text-muted-foreground">{periodoCiclo(ciclo)}</p>
+      </div>
+      <BotaoVizinho
+        href={ciclo.proximo && `/lancamentos?ciclo=${ciclo.proximo}`}
+        rotulo="Próximo ciclo"
+        icone={<ChevronRightIcon aria-hidden />}
+        compacto
+      />
+    </nav>
+  )
+}
+
+function BotaoVizinho({
+  href,
+  rotulo,
+  icone,
+  compacto = false,
+}: {
+  href: string | null
+  rotulo: string
+  icone: ReactNode
+  /** Redondo e sem borda, para ficar dentro da pílula do celular. */
+  compacto?: boolean
+}) {
+  const variant = compacto ? "ghost" : "outline"
+  const className = compacto ? "rounded-full" : undefined
   if (!href) {
     return (
-      <Button variant="outline" size="icon" disabled aria-label={`${rotulo}: não existe`}>
+      <Button variant={variant} size="icon" className={className} disabled aria-label={`${rotulo}: não existe`}>
         {icone}
       </Button>
     )
   }
   return (
-    <Button variant="outline" size="icon" asChild>
+    <Button variant={variant} size="icon" className={className} asChild>
       <Link href={href} aria-label={rotulo} title={rotulo}>
         {icone}
       </Link>

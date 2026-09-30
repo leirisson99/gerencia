@@ -120,3 +120,17 @@ export async function obterCartela(id: number): Promise<Cartela | null> {
     throw erro
   }
 }
+
+/**
+ * Lançamentos com data entre `inicio` e `fim` (ISO, inclusive), juntando os ciclos que cobrem o
+ * período. Antes do primeiro salário não há ciclo nem lançamento.
+ */
+export async function listarLancamentosDoPeriodo(inicio: string, fim: string): Promise<Lancamento[]> {
+  let ciclo = (await obterCiclo(inicio)) ?? (await obterCiclo(fim))
+  const lancamentos: Lancamento[] = []
+  while (ciclo) {
+    lancamentos.push(...(await listarLancamentosDoCiclo(ciclo.inicio)))
+    ciclo = ciclo.proximo && ciclo.proximo <= fim ? await obterCiclo(ciclo.proximo) : null
+  }
+  return lancamentos.filter((l) => l.data >= inicio && l.data <= fim)
+}
