@@ -64,7 +64,7 @@ Todos os campos de valor são `int` em centavos. Não existe tabela de configura
 - **Recorrências:** um previsto por recorrência em cada ciclo, na próxima ocorrência do dia a partir do início do ciclo, gerado quando o ciclo abre.
 - **Cartela:** N = maior inteiro com `base × N(N+1)/2 ≤ meta`. O resto vira uma casa com `is_ajuste = True`. A soma das casas é sempre igual à meta.
 - **Parcelas:** `valor_total // parcelas` em cada uma. O resto de centavos vai para a última.
-- **Depósito na cartela** gera um lançamento `saida` na categoria "Poupança".
+- **Depósito na cartela** gera um lançamento `saida` na categoria "Poupança" com `conta_no_saldo = False`: não sai do saldo nem conta como gasto.
 
 ## Estrutura
 

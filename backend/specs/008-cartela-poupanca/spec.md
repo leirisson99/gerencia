@@ -40,7 +40,8 @@ ciclo atual. Posso desmarcar se errei.
 **Acceptance Scenarios**:
 
 1. **Given** a casa de R$ 30,00, **When** a marco, **Then** ela fica depositada hoje e existe
-   uma saída realizada de R$ 30,00 em "Poupança".
+   uma saída realizada de R$ 30,00 em "Poupança" que não entra no saldo nem no gasto por
+   categoria.
 2. **Given** a casa já depositada, **When** a marco de novo, **Then** o sistema recusa.
 3. **Given** uma casa depositada, **When** a desmarco, **Then** ela volta a ficar livre e a
    saída some.
@@ -79,7 +80,8 @@ Vejo o total guardado, quanto falta, o percentual e a maior casa ainda livre.
 - **FR-003**: Meta menor que a base MUST ser recusada; cartelas com mais de 1.000 casas MUST
   ser recusadas.
 - **FR-004**: Marcar uma casa MUST gerar um lançamento de saída realizado, com a data de hoje,
-  na categoria de sistema "Poupança", e registrar a data do depósito.
+  na categoria de sistema "Poupança", com `conta_no_saldo = False` (não sai do saldo nem conta
+  como gasto), e registrar a data do depósito.
 - **FR-005**: Desmarcar MUST remover o lançamento e liberar a casa.
 - **FR-006**: O lançamento de depósito MUST NOT ser excluído nem ter valor, status ou categoria
   alterados diretamente.
@@ -96,7 +98,7 @@ Vejo o total guardado, quanto falta, o percentual e a maior casa ainda livre.
 ## Success Criteria *(mandatory)*
 
 - **SC-001**: Em 100% das cartelas, a soma das casas é igual à meta.
-- **SC-002**: Cada depósito aparece uma única vez no saldo do ciclo.
+- **SC-002**: Nenhum depósito altera o saldo do ciclo nem o gasto por categoria.
 - **SC-003**: Criar uma cartela de 1.000 casas responde em menos de 1 segundo.
 
 ## Assumptions

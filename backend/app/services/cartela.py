@@ -100,7 +100,10 @@ def obter_cartela(db: Session, usuario_id: int, cartela_id: int) -> CartelaOut:
 def depositar(
     db: Session, usuario_id: int, cartela_id: int, casa_id: int, agora: datetime, hoje: date
 ) -> CartelaOut:
-    """Marca a casa e lança a saída na categoria de sistema Poupança, numa transação."""
+    """Marca a casa e lança a saída na categoria de sistema Poupança, numa transação.
+
+    O dinheiro guardado continua do usuário: a saída não conta no saldo nem como gasto.
+    """
     travar_escritas(db, usuario_id)
     cartela = _obter(db, usuario_id, cartela_id)
     casa = _obter_casa(db, cartela, casa_id)
@@ -124,6 +127,7 @@ def depositar(
         tipo=poupanca.tipo,
         descricao=f"Cartela {cartela.nome}",
         status=STATUS_REALIZADO,
+        conta_no_saldo=False,
         criado_em=agora,
         atualizado_em=agora,
     )

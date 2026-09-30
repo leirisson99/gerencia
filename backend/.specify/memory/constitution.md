@@ -1,22 +1,20 @@
 <!--
 Sync Impact Report
-- Version change: 4.0.1 → 4.1.0 (MINOR: expansão material — importação de extrato,
-  pedida pelo usuário em 2026-09-29 para a feature 011)
+- Version change: 4.1.0 → 4.2.0 (MINOR: depósito da cartela fora do saldo, pedido pelo
+  usuário em 2026-09-29)
 - Modified principles:
-  - VI. Escopo P0 e Simplicidade: "Todo lançamento é manual" → manual ou importado de
-    extrato de conta (OFX, CSV ou PDF), sempre com prévia confirmada linha a linha; sugestão de
-    categoria só por regra determinística, nunca IA
-  - I. Integridade Financeira: extrato de fatura de cartão MUST NOT ser importado
-  - II. Ciclo Aberto pelo Salário Lançado: salário importado e confirmado abre ciclo com as
-    mesmas regras do lançado à mão
+  - I. Integridade Financeira: o lançamento `saida` em "Poupança" gerado pelo depósito numa
+    casa MUST ter `conta_no_saldo = False` — o dinheiro guardado continua do usuário e não
+    sai do saldo nem conta como gasto
 - Added sections: nenhuma
 - Removed sections: nenhuma
-- Templates: plan/spec/tasks leem a constituição em tempo de execução — nenhuma alteração
+- Templates: nenhuma alteração
 - Follow-up TODOs:
-  - Feito: CLAUDE.md, regra 8 e glossário (termo "Importação")
-  - Pendente (fora desta emenda): a seção Stack ainda diz "Frontend: fora do escopo atual",
-    mas o frontend Next.js já está no repositório (commit 01372a8); decidir em emenda própria
+  - Feito: CLAUDE.md (regras de cálculo), spec 008, migração 0011 corrige depósitos antigos
+  - Pendente (herdado): seção Stack ainda diz "Frontend: fora do escopo atual"
 - Histórico:
+  - 4.0.1 → 4.1.0: importação de extrato de conta (OFX, CSV ou PDF) com prévia confirmada;
+    fatura de cartão nunca importada; salário importado abre ciclo (feature 011)
   - 4.0.0 → 4.0.1: escopo só do backend; API "consumida por clientes HTTP"
   - 3.1.0 → 4.0.0: ciclo aberto pelo salário lançado manualmente (sem dia fixo/dia útil)
   - 3.0.0 → 3.1.0: papel de administrador restrito a reset de senha
@@ -47,7 +45,8 @@ defeito crítico.
   última. A soma das parcelas MUST ser igual a `valor_total`.
 - Cartela: N é o maior inteiro com `base × N(N+1)/2 ≤ meta`; o resto vira uma casa com
   `is_ajuste = True`. A soma das casas MUST ser igual à meta. Depósito numa casa MUST
-  gerar um lançamento `saida` na categoria "Poupança".
+  gerar um lançamento `saida` na categoria "Poupança" com `conta_no_saldo = False`: o
+  dinheiro guardado continua do usuário, então não sai do saldo nem conta como gasto.
 - Operações que gravam mais de um registro financeiro (ex.: gerar parcelas, depositar em
   casa) MUST ocorrer numa única transação.
 
@@ -207,4 +206,4 @@ isso atrasa o MVP.
 - Toda revisão MUST verificar conformidade com os princípios. Violações só são aceitas com
   justificativa registrada na seção "Complexity Tracking" do plano da feature.
 
-**Version**: 4.1.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-29
+**Version**: 4.2.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-29

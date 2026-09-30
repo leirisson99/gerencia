@@ -115,16 +115,19 @@ def test_deposito_gera_saida_em_poupanca(client: TestClient, conta: Conta, salar
         "2027-01-15",
     )
     assert lancamento["categoria_id"] == conta.categorias["Poupança"]
+    assert lancamento["conta_no_saldo"] is False
+
+
+def test_deposito_nao_sai_do_saldo_nem_conta_como_gasto(
+    client: TestClient, conta: Conta, salario: None
+) -> None:
+    cartela = criar(client).json()
+
+    depositar(client, cartela, casa_de(cartela, 3_000))
+
     resumo = client.get("/api/v1/ciclos/2027-01-05/resumo").json()
-    assert resumo["saidas_por_categoria"] == [
-        {
-            "categoria_id": conta.categorias["Poupança"],
-            "nome": "Poupança",
-            "total": 3_000,
-            "limite": None,
-            "situacao": None,
-        }
-    ]
+    assert (resumo["entradas"], resumo["saidas"], resumo["saldo"]) == (500_000, 0, 500_000)
+    assert resumo["saidas_por_categoria"] == []
 
 
 def test_depositos_em_qualquer_ordem_e_progresso(
