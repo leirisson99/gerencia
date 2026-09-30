@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Gerencia</title>
+  <desc id="desc">Logo do aplicativo financeiro Gerencia, com símbolo G, barras de crescimento e seta ascendente.</desc>
+  <defs>
+    <linearGradient id="green" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#08B98F"/>
+      <stop offset="100%" stop-color="#39E58F"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Símbolo -->
+  <g transform="translate(235 90)">
+    <!-- G estilizado -->
+    <path d="M520 70
+             C430 18 302 24 215 78
+             C112 142 62 252 78 365
+             C94 478 170 564 274 594
+             C384 626 506 594 574 510
+             C604 473 618 428 618 377
+             L618 312
+             L500 312
+             L500 378
+             C500 411 486 438 460 458
+             C420 490 363 502 313 486
+             C252 467 210 417 199 352
+             C188 286 211 222 261 181
+             C311 139 383 128 445 151
+             C479 163 507 184 529 210
+             L607 132
+             C583 107 554 89 520 70 Z"
+          fill="url(#green)"/>
+
+    <!-- Barras -->
+    <rect x="275" y="310" width="52" height="130" rx="10" fill="url(#green)"/>
+    <rect x="354" y="252" width="52" height="188" rx="10" fill="url(#green)"/>
+    <rect x="433" y="185" width="52" height="255" rx="10" fill="url(#green)"/>
+
+    <!-- Seta ascendente -->
+    <path d="M505 260 L575 190 L545 160
+             C538 153 543 140 553 140
+             L671 140
+             C678 140 684 146 684 153
+             L684 271
+             C684 281 671 286 664 279
+             L633 248
+             L551 330
+             Z"
+          fill="url(#green)"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="600" y="790"
+        text-anchor="middle"
+        font-family="Inter, Arial, Helvetica, sans-serif"
+        font-size="150"
+        font-weight="700"
+        letter-spacing="-6"
+        fill="#FFFFFF">Gerencia</text>
+
+  <!-- Accent on i -->
+  <circle cx="775" cy="668" r="12" fill="#39E58F"/>
+</svg>

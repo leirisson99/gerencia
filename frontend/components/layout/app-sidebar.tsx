@@ -17,7 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-import { Logo } from "@/components/brand/logo"
+import { Logo, Marca } from "@/components/brand/logo"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,9 +88,9 @@ export function AppSidebar({ usuario }: { usuario: Pick<Usuario, "nome" | "email
         <Link
           href="/"
           aria-label="Dashboard"
-          className="hidden size-8 items-center justify-center text-lg font-semibold group-data-[collapsible=icon]:flex"
+          className="hidden size-8 items-center justify-center group-data-[collapsible=icon]:flex"
         >
-          g
+          <Marca className="size-7" />
         </Link>
       </SidebarHeader>
 
