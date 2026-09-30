@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 from app.domain.usuario import (
     MAX_CARGO,
     MAX_NOME,
+    TIPO_CLT,
     limpar_texto,
     normalizar_email,
     normalizar_telefone,
@@ -13,6 +14,8 @@ from app.domain.usuario import (
 )
 
 # A data de nascimento depende de "hoje"; ela é validada no serviço, com o relógio injetado.
+
+TipoRenda = Literal["clt", "prestador", "clt_prestador"]
 
 
 class DadosPessoaisIn(BaseModel):
@@ -49,6 +52,7 @@ class DadosPessoaisIn(BaseModel):
 class CadastroIn(DadosPessoaisIn):
     senha: str
     data_nascimento: date | None = None
+    tipo_renda: TipoRenda = TIPO_CLT
 
     @field_validator("senha")
     @classmethod
@@ -89,11 +93,20 @@ class PerfilIn(BaseModel):
     telefone: str | None = None
     cargo: str | None = None
     data_nascimento: date | None = None
+    # A troca é validada no serviço: não pode deixar lançamentos fora de ciclo.
+    tipo_renda: TipoRenda | None = None
 
     @field_validator("nome")
     @classmethod
     def _nome(cls, valor: str | None) -> str:
         return limpar_texto(_obrigatorio(valor), MAX_NOME)
+
+    @field_validator("tipo_renda")
+    @classmethod
+    def _tipo_renda(cls, valor: TipoRenda | None) -> TipoRenda:
+        if valor is None:
+            raise ValueError("Campo obrigatório.")
+        return valor
 
     @field_validator("cargo")
     @classmethod
@@ -125,4 +138,5 @@ class UsuarioOut(BaseModel):
     troca_senha_obrigatoria: bool
     # Só o papel do próprio usuário; serve para o frontend separar a área do administrador.
     papel: Literal["usuario", "admin"]
+    tipo_renda: TipoRenda
     criado_em: datetime

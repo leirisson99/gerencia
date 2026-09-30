@@ -3,6 +3,11 @@ from datetime import date
 import pytest
 
 from app.domain.usuario import (
+    TIPO_CLT,
+    TIPO_CLT_PRESTADOR,
+    TIPO_PRESTADOR,
+    TIPOS_RENDA,
+    ciclo_pelo_mes,
     limpar_texto,
     normalizar_email,
     normalizar_telefone,
@@ -98,3 +103,16 @@ class TestLimparTexto:
     def test_acima_do_limite(self) -> None:
         with pytest.raises(ValueError, match="80"):
             limpar_texto("x" * 81, 80)
+
+
+class TestTipoRenda:
+    def test_tres_tipos(self) -> None:
+        assert TIPOS_RENDA == (TIPO_CLT, TIPO_PRESTADOR, TIPO_CLT_PRESTADOR)
+        assert TIPOS_RENDA == ("clt", "prestador", "clt_prestador")
+
+    @pytest.mark.parametrize(
+        ("tipo", "esperado"),
+        [(TIPO_CLT, False), (TIPO_PRESTADOR, True), (TIPO_CLT_PRESTADOR, False)],
+    )
+    def test_so_o_prestador_usa_o_mes(self, tipo: str, esperado: bool) -> None:
+        assert ciclo_pelo_mes(tipo) is esperado

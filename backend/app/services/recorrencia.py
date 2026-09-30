@@ -1,17 +1,18 @@
 from collections.abc import Iterable
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
-from app.domain.ciclo import Ciclo, ciclo_atual
+from app.domain.ciclo import Ciclo, ciclo_mensal
 from app.domain.recorrencia import data_prevista
+from app.domain.usuario import ciclo_pelo_mes
 from app.erros import MENSAGEM_VALIDACAO, ErroApi
 from app.models import Categoria, Lancamento, Recorrencia
 from app.models.lancamento import STATUS_PREVISTO
 from app.schemas.recorrencia import RecorrenciaIn, RecorrenciaPatch
 from app.services.categoria import obter_categoria_ativa
-from app.services.ciclo import datas_de_salario, travar_escritas
+from app.services.ciclo import ciclo_atual_do_usuario, tipo_renda_do_usuario, travar_escritas
 
 
 def _categoria_de_recorrencia(db: Session, usuario_id: int, categoria_id: int) -> Categoria:
@@ -83,8 +84,18 @@ def gerar_previstos(
         )
 
 
+def garantir_previstos_do_mes(db: Session, usuario_id: int, hoje: date, agora: datetime) -> None:
+    """No ciclo pelo mês (prestador), nenhum lançamento abre o mês: os previstos do mês atual
+    são gerados quando o usuário o consulta. Idempotente; não faz nada no ciclo pelo salário."""
+    if not ciclo_pelo_mes(tipo_renda_do_usuario(db, usuario_id)):
+        return
+    travar_escritas(db, usuario_id)
+    gerar_previstos(db, usuario_id, ciclo_mensal(hoje, hoje, None), agora)
+    db.commit()
+
+
 def criar_recorrencia(
-    db: Session, usuario_id: int, dados: RecorrenciaIn, agora: datetime
+    db: Session, usuario_id: int, dados: RecorrenciaIn, agora: datetime, hoje: date
 ) -> Recorrencia:
     travar_escritas(db, usuario_id)
     categoria = _categoria_de_recorrencia(db, usuario_id, dados.categoria_id)
@@ -100,7 +111,7 @@ def criar_recorrencia(
     db.add(recorrencia)
     db.flush()
     # Com ciclo aberto, o previsto deste ciclo já aparece.
-    ciclo = ciclo_atual(datas_de_salario(db, usuario_id))
+    ciclo = ciclo_atual_do_usuario(db, usuario_id, hoje)
     if ciclo is not None:
         gerar_previstos(db, usuario_id, ciclo, agora, [recorrencia])
     db.commit()

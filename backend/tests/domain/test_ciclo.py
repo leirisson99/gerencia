@@ -5,10 +5,13 @@ import pytest
 from app.domain.ciclo import (
     Ciclo,
     ProblemaCobertura,
+    ProblemaTroca,
     ciclo_atual,
     ciclo_da_data,
+    ciclo_mensal,
     montar_ciclos,
     verificar_cobertura,
+    verificar_troca_tipo_renda,
 )
 
 OUT_05 = date(2026, 10, 5)
@@ -119,3 +122,127 @@ class TestVerificarCobertura:
     def test_outro_lancamento_antes_do_primeiro_salario(self) -> None:
         resultado = verificar_cobertura([NOV_06, OUT_05], date(2026, 10, 4))
         assert resultado is ProblemaCobertura.ANTES_DO_PRIMEIRO_CICLO
+
+
+class TestCicloMensal:
+    """Ciclo do prestador: mês do calendário (US2)."""
+
+    HOJE = date(2026, 10, 15)
+
+    def test_mes_atual_aberto_sem_proximo(self) -> None:
+        ciclo = ciclo_mensal(date(2026, 10, 15), self.HOJE, date(2026, 8, 3))
+        assert ciclo == Ciclo(
+            inicio=date(2026, 10, 1),
+            fim=date(2026, 10, 31),
+            anterior=date(2026, 9, 1),
+            proximo=None,
+            mes_atual=True,
+        )
+        assert ciclo.aberto
+
+    def test_mes_passado_fechado_com_proximo(self) -> None:
+        ciclo = ciclo_mensal(date(2026, 9, 10), self.HOJE, date(2026, 8, 3))
+        assert ciclo == Ciclo(
+            inicio=date(2026, 9, 1),
+            fim=date(2026, 9, 30),
+            anterior=date(2026, 8, 1),
+            proximo=date(2026, 10, 1),
+        )
+        assert not ciclo.aberto
+
+    def test_sem_anterior_quando_nao_ha_lancamento_antes(self) -> None:
+        # US2.8: primeiro lançamento em agosto → agosto não tem anterior
+        assert ciclo_mensal(date(2026, 8, 20), self.HOJE, date(2026, 8, 3)).anterior is None
+        assert ciclo_mensal(date(2026, 8, 20), self.HOJE, date(2026, 8, 1)).anterior is None
+        assert ciclo_mensal(date(2026, 8, 20), self.HOJE, None).anterior is None
+
+    def test_anterior_com_lancamento_no_ultimo_dia_do_mes_anterior(self) -> None:
+        ciclo = ciclo_mensal(date(2026, 8, 20), self.HOJE, date(2026, 7, 31))
+        assert ciclo.anterior == date(2026, 7, 1)
+
+    def test_mes_futuro_fechado_sem_proximo(self) -> None:
+        ciclo = ciclo_mensal(date(2026, 12, 5), self.HOJE, None)
+        assert ciclo.inicio == date(2026, 12, 1)
+        assert ciclo.fim == date(2026, 12, 31)
+        assert ciclo.proximo is None
+        assert not ciclo.aberto
+
+    @pytest.mark.parametrize(
+        ("data", "fim"),
+        [
+            (date(2027, 2, 10), date(2027, 2, 28)),
+            (date(2028, 2, 10), date(2028, 2, 29)),  # US2.5: bissexto
+            (date(2026, 4, 30), date(2026, 4, 30)),
+            (date(2026, 1, 1), date(2026, 1, 31)),
+            (date(2026, 7, 31), date(2026, 7, 31)),
+        ],
+    )
+    def test_fim_e_o_ultimo_dia_do_mes(self, data: date, fim: date) -> None:
+        ciclo = ciclo_mensal(data, self.HOJE, None)
+        assert ciclo.inicio == data.replace(day=1)
+        assert ciclo.fim == fim
+
+    def test_virada_de_ano(self) -> None:
+        hoje = date(2027, 3, 1)
+        dezembro = ciclo_mensal(date(2026, 12, 31), hoje, date(2026, 1, 1))
+        assert dezembro.proximo == date(2027, 1, 1)
+        janeiro = ciclo_mensal(date(2027, 1, 1), hoje, date(2026, 1, 1))
+        assert janeiro.anterior == date(2026, 12, 1)
+        assert janeiro.fim == date(2027, 1, 31)
+
+    def test_dezembro_atual_sem_proximo(self) -> None:
+        ciclo = ciclo_mensal(date(2026, 12, 1), date(2026, 12, 31), None)
+        assert ciclo.aberto
+        assert ciclo.proximo is None
+
+    def test_ciclo_de_salario_continua_aberto_so_sem_fim(self) -> None:
+        assert Ciclo(OUT_05, None, None, None).aberto
+        assert not Ciclo(OUT_05, NOV_06, None, None).aberto
+
+
+class TestTrocaTipoRenda:
+    """US4: a troca nunca deixa lançamento fora de ciclo."""
+
+    @pytest.mark.parametrize(
+        ("atual", "novo"),
+        [
+            ("clt", "clt"),
+            ("prestador", "prestador"),
+            ("clt", "clt_prestador"),
+            ("clt_prestador", "clt"),
+            ("clt", "prestador"),
+            ("clt_prestador", "prestador"),
+        ],
+    )
+    def test_trocas_sempre_aceitas(self, atual: str, novo: str) -> None:
+        # Mesmo com lançamentos que ficariam fora de um ciclo de salário.
+        assert verificar_troca_tipo_renda(atual, novo, [], OUT_05, True) is None
+
+    @pytest.mark.parametrize("novo", ["clt", "clt_prestador"])
+    def test_prestador_sem_salario_com_lancamentos(self, novo: str) -> None:
+        # US4.2
+        resultado = verificar_troca_tipo_renda("prestador", novo, [], OUT_05, False)
+        assert resultado is ProblemaTroca.LANCAMENTOS_SEM_CICLO
+
+    def test_lancamento_antes_do_primeiro_salario(self) -> None:
+        # US4.3
+        resultado = verificar_troca_tipo_renda(
+            "prestador", "clt", [date(2026, 9, 5)], date(2026, 9, 2), False
+        )
+        assert resultado is ProblemaTroca.LANCAMENTOS_SEM_CICLO
+
+    def test_todos_os_lancamentos_cobertos(self) -> None:
+        # US4.4: inclusive no mesmo dia do salário
+        resultado = verificar_troca_tipo_renda(
+            "prestador", "clt", [date(2026, 9, 5)], date(2026, 9, 5), False
+        )
+        assert resultado is None
+
+    def test_sem_lancamento_nenhum(self) -> None:
+        # US4.5
+        assert verificar_troca_tipo_renda("prestador", "clt", [], None, False) is None
+
+    def test_salario_irregular_tem_precedencia(self) -> None:
+        # US4.6
+        resultado = verificar_troca_tipo_renda("prestador", "clt_prestador", [], OUT_05, True)
+        assert resultado is ProblemaTroca.SALARIO_INVALIDO

@@ -12,6 +12,16 @@ MIN_SENHA = 8
 MAX_SENHA = 128
 DATA_NASCIMENTO_MINIMA = date(1900, 1, 1)
 
+TIPO_CLT = "clt"
+TIPO_PRESTADOR = "prestador"
+TIPO_CLT_PRESTADOR = "clt_prestador"
+TIPOS_RENDA = (TIPO_CLT, TIPO_PRESTADOR, TIPO_CLT_PRESTADOR)
+
+
+def ciclo_pelo_mes(tipo_renda: str) -> bool:
+    """Só o prestador usa o mês do calendário; os outros abrem o ciclo pelo salário."""
+    return tipo_renda == TIPO_PRESTADOR
+
 
 def limpar_texto(valor: str, max_len: int) -> str:
     texto = valor.strip()

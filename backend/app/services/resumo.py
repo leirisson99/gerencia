@@ -21,8 +21,8 @@ def _item(categoria_id: int, nome: str, total: int, limite: int | None) -> Total
     )
 
 
-def resumo_do_ciclo(db: Session, usuario_id: int, data: date) -> ResumoCicloOut:
-    ciclo = obter_ciclo_da_data(db, usuario_id, data)
+def resumo_do_ciclo(db: Session, usuario_id: int, data: date, hoje: date) -> ResumoCicloOut:
+    ciclo = obter_ciclo_da_data(db, usuario_id, data, hoje)
     lancamentos = lancamentos_no_ciclo(db, usuario_id, ciclo)
     resumo = resumir(
         Movimento(lanc.categoria_id, lanc.tipo, lanc.valor, lanc.status, lanc.conta_no_saldo)

@@ -173,3 +173,32 @@ def test_respostas_mostram_so_o_proprio_papel(client: TestClient) -> None:
     """O papel aparece para o frontend separar a área do admin; nunca é aceito na entrada."""
     assert client.post(URL, json=dados_validos()).json()["papel"] == "usuario"
     assert client.get("/api/v1/me").json()["papel"] == "usuario"
+
+
+@pytest.mark.parametrize("tipo", ["clt", "prestador", "clt_prestador"])
+def test_cadastro_com_tipo_de_renda(client: TestClient, tipo: str) -> None:
+    # US1.1
+    resposta = client.post(URL, json=dados_validos(tipo_renda=tipo))
+
+    assert resposta.status_code == 201
+    assert resposta.json()["tipo_renda"] == tipo
+    assert client.get("/api/v1/me").json()["tipo_renda"] == tipo
+
+
+def test_sem_tipo_de_renda_e_clt(client: TestClient, db: Session) -> None:
+    # US1.2
+    resposta = client.post(URL, json=dados_validos())
+
+    assert resposta.json()["tipo_renda"] == "clt"
+    usuario = db.scalar(select(Usuario).where(Usuario.email == "ana@exemplo.com"))
+    assert usuario is not None
+    assert usuario.tipo_renda == "clt"
+
+
+@pytest.mark.parametrize("valor", ["autonomo", "", None, "CLT"])
+def test_tipo_de_renda_invalido(client: TestClient, valor: str | None) -> None:
+    # US1.3
+    resposta = client.post(URL, json=dados_validos(tipo_renda=valor))
+
+    assert resposta.status_code == 422
+    assert "tipo_renda" in resposta.json()["erro"]["campos"]

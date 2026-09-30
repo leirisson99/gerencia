@@ -40,6 +40,7 @@ def cadastrar(db: Session, dados: CadastroIn, agora: datetime, hoje: date) -> tu
         cargo=dados.cargo,
         data_nascimento=dados.data_nascimento,
         papel=PAPEL_USUARIO,
+        tipo_renda=dados.tipo_renda,
         criado_em=agora,
         atualizado_em=agora,
     )

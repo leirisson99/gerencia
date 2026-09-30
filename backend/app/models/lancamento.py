@@ -17,9 +17,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
+from app.domain.usuario import ciclo_pelo_mes
 from app.models import Base
 from app.models.cartela import Casa
 from app.models.categoria import Categoria
+from app.models.usuario import Usuario
 
 STATUS_PREVISTO = "previsto"
 STATUS_REALIZADO = "realizado"
@@ -84,10 +86,22 @@ class Lancamento(Base):
         .scalar_subquery()
     )
 
+    # Tipo de renda do dono: para o prestador, "Salário" não abre ciclo.
+    tipo_renda_usuario: Mapped[str] = column_property(
+        select(Usuario.tipo_renda)
+        .where(Usuario.id == usuario_id)
+        .correlate_except(Usuario)
+        .scalar_subquery()
+    )
+
     @property
     def importado(self) -> bool:
         return self.id_externo is not None
 
     @property
     def abre_ciclo(self) -> bool:
-        return self.categoria.e_salario and self.status == STATUS_REALIZADO
+        return (
+            self.categoria.e_salario
+            and self.status == STATUS_REALIZADO
+            and not ciclo_pelo_mes(self.tipo_renda_usuario)
+        )
