@@ -55,14 +55,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Só o nível: nunca registrar corpo, cookies ou dados pessoais.
     logging.basicConfig(level=settings.log_level)
     dados_admin = settings.admin()
+    problema_admin = settings.problema_admin()
 
     @asynccontextmanager
     async def ciclo_de_vida(_: FastAPI) -> AsyncIterator[None]:
-        # O administrador vem do .env: criado ou alinhado a cada início; sem ele, não há admin.
-        if dados_admin is not None:
+        # O administrador vem do .env: criado ou alinhado a cada início. Um problema nele
+        # desliga só o admin, com aviso; nunca impede o resto da API de subir.
+        if problema_admin is not None:
+            logger.warning("Administrador do .env desligado: %s", problema_admin)
+        elif dados_admin is not None:
             with SessionLocal() as db:
-                resultado = sincronizar_administrador(db, dados_admin, Relogio().agora_utc())
-            logger.info("Administrador do .env: %s", resultado)
+                try:
+                    resultado = sincronizar_administrador(db, dados_admin, Relogio().agora_utc())
+                    logger.info("Administrador do .env: %s", resultado)
+                except ValueError as erro:
+                    logger.warning("Administrador do .env desligado: %s", erro)
         yield
 
     app = FastAPI(title="Gerencia API", version="0.1.0", lifespan=ciclo_de_vida)

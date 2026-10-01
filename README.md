@@ -57,6 +57,11 @@ ADMIN_NOME=Administrador   # opcional
 
 O `.env` sempre vence: para trocar a senha ou recuperar o acesso, gere outro hash e reinicie a API.
 
+Em produção (painel de variáveis do Easypanel ou similar), cole o hash **sem aspas**; aspas e
+espaços em volta são removidos de qualquer forma. Se o painel interpretar `$` como variável,
+escape cada `$` como `$$`. Se o admin estiver mal configurado, a API sobe normalmente sem ele e o
+log mostra `Administrador do .env desligado` com o motivo (nunca o valor).
+
 ### Frontend
 
 ```bash

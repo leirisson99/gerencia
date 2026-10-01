@@ -3,7 +3,6 @@
 from collections.abc import Callable
 
 import pytest
-from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -142,15 +141,44 @@ def test_admin_completo_no_env() -> None:
 
 
 @pytest.mark.parametrize(
+    "hash_do_painel",
+    [f"'{HASH}'", f'"{HASH}"', f"  {HASH}  ", f" '{HASH}'\n"],
+)
+def test_aceita_hash_com_aspas_ou_espacos(hash_do_painel: str) -> None:
+    """Painéis como o do Easypanel passam o valor como foi colado, aspas incluídas."""
+    settings = config(admin_email=" 'root@exemplo.com' ", admin_senha_hash=hash_do_painel)
+
+    admin = settings.admin()
+
+    assert settings.problema_admin() is None
+    assert admin is not None
+    assert (admin.email, admin.senha_hash) == ("root@exemplo.com", HASH)
+
+
+@pytest.mark.parametrize(
     "valores",
     [{"admin_email": "root@exemplo.com"}, {"admin_senha_hash": HASH}],
 )
-def test_email_e_hash_vem_juntos(valores: dict[str, str]) -> None:
-    with pytest.raises(ValidationError, match="ADMIN_EMAIL e ADMIN_SENHA_HASH"):
-        config(**valores)
+def test_email_sem_hash_desliga_so_o_admin(valores: dict[str, str]) -> None:
+    settings = config(**valores)
+
+    assert settings.admin() is None
+    assert "ADMIN_EMAIL e ADMIN_SENHA_HASH" in (settings.problema_admin() or "")
 
 
-@pytest.mark.parametrize("hash_invalido", ["segredoAdmin1", "$argon2id$quebrado"])
-def test_hash_precisa_ser_argon2(hash_invalido: str) -> None:
-    with pytest.raises(ValidationError, match="hash-senha"):
-        config(admin_email="root@exemplo.com", admin_senha_hash=hash_invalido)
+@pytest.mark.parametrize(
+    "hash_invalido",
+    [
+        "segredoAdmin1",
+        "$argon2id$quebrado",
+        # O que sobra quando o painel interpreta "$argon2id..." como variável de ambiente.
+        "=19=65536,t=3,p=4",
+    ],
+)
+def test_hash_invalido_desliga_so_o_admin(hash_invalido: str) -> None:
+    settings = config(admin_email="root@exemplo.com", admin_senha_hash=hash_invalido)
+
+    assert settings.admin() is None
+    problema = settings.problema_admin() or ""
+    assert "hash-senha" in problema
+    assert hash_invalido not in problema  # o valor nunca vai para o log

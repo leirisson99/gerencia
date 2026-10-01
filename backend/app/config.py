@@ -1,9 +1,8 @@
 from functools import lru_cache
-from typing import Self
 
 from argon2 import extract_parameters
 from argon2.exceptions import InvalidHashError
-from pydantic import field_validator, model_validator
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.schemas.admin import DadosAdmin
@@ -38,21 +37,36 @@ class Settings(BaseSettings):
                 return "postgresql+psycopg://" + url.removeprefix(prefixo)
         return url
 
-    @model_validator(mode="after")
-    def _admin_completo(self) -> Self:
-        if (self.admin_email is None) != (self.admin_senha_hash is None):
-            raise ValueError("Defina ADMIN_EMAIL e ADMIN_SENHA_HASH juntos, ou nenhum dos dois.")
-        if self.admin_senha_hash is not None:
-            try:
-                extract_parameters(self.admin_senha_hash)
-            except InvalidHashError:
-                raise ValueError(
-                    "ADMIN_SENHA_HASH não é um hash argon2. "
-                    "Gere com: uv run python -m app.cli hash-senha"
-                ) from None
-        return self
+    @field_validator("admin_email", "admin_senha_hash", mode="before")
+    @classmethod
+    def _sem_aspas(cls, valor: str | None) -> str | None:
+        """Painéis de hospedagem passam o valor como foi colado: tira espaços e aspas em volta."""
+        if valor is None:
+            return None
+        valor = valor.strip()
+        if len(valor) >= 2 and valor[0] == valor[-1] and valor[0] in "'\"":
+            valor = valor[1:-1].strip()
+        return valor or None
+
+    def problema_admin(self) -> str | None:
+        """Por que o admin do .env ficou desligado, sem repetir o valor (vai para o log)."""
+        if self.admin_email is None and self.admin_senha_hash is None:
+            return None
+        if self.admin_email is None or self.admin_senha_hash is None:
+            return "defina ADMIN_EMAIL e ADMIN_SENHA_HASH juntos, ou nenhum dos dois."
+        try:
+            extract_parameters(self.admin_senha_hash)
+        except InvalidHashError:
+            return (
+                "ADMIN_SENHA_HASH não é um hash argon2 válido (veio cortado ou com outro "
+                "conteúdo). Gere com: uv run python -m app.cli hash-senha"
+            )
+        return None
 
     def admin(self) -> DadosAdmin | None:
+        """O admin do .env, ou None quando não configurado ou com problema."""
+        if self.problema_admin() is not None:
+            return None
         if self.admin_email is None or self.admin_senha_hash is None:
             return None
         return DadosAdmin(

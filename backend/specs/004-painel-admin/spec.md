@@ -142,4 +142,8 @@ temporária e ser obrigada a trocá-la.
   permite. O `.env` sempre vence: e-mail ou senha novos derrubam as sessões; troca de senha e
   edição de perfil do administrador pela API são recusadas (403 `conta_gerenciada_no_servidor`).
   Os comandos `criar-admin` e `resetar-senha-admin` foram removidos; `hash-senha` gera o hash.
-  O `ADMIN_EMAIL` não pode ser de uma conta de usuário comum (a API não sobe).
+  O `ADMIN_EMAIL` não pode ser de uma conta de usuário comum.
+- Emenda de 2026-10-01 (robustez em produção): aspas e espaços em volta de `ADMIN_EMAIL` e
+  `ADMIN_SENHA_HASH` são removidos (painéis de hospedagem repassam o valor como foi colado).
+  Configuração incompleta, hash inválido ou e-mail de usuário comum desligam só o admin, com
+  aviso no log que dá o motivo sem repetir o valor; a API sobe normalmente.
