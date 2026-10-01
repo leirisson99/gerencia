@@ -2,13 +2,14 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import { z } from "zod"
 
 import { BotaoEnviar } from "@/components/forms/botao-enviar"
 import { Campo } from "@/components/forms/campo"
+import { CampoTipoRenda } from "@/components/forms/campo-tipo-renda"
 import { ErroForm } from "@/components/forms/erro-form"
 import { FieldGroup } from "@/components/ui/field"
 import { editarMe } from "@/lib/api/auth"
@@ -21,6 +22,7 @@ const esquema = z.object({
   telefone: regras.telefone,
   cargo: regras.obrigatorio(80),
   data_nascimento: regras.dataOpcional,
+  tipo_renda: z.enum(["clt", "prestador", "clt_prestador"]),
 })
 
 type Valores = z.infer<typeof esquema>
@@ -35,6 +37,7 @@ export function FormPerfil({ usuario }: { usuario: Usuario }) {
       telefone: formatarTelefone(usuario.telefone),
       cargo: usuario.cargo,
       data_nascimento: usuario.data_nascimento ?? "",
+      tipo_renda: usuario.tipo_renda,
     },
   })
   const { errors, isSubmitting, isDirty } = form.formState
@@ -52,11 +55,19 @@ export function FormPerfil({ usuario }: { usuario: Usuario }) {
         telefone: formatarTelefone(atualizado.telefone),
         cargo: atualizado.cargo,
         data_nascimento: atualizado.data_nascimento ?? "",
+        tipo_renda: atualizado.tipo_renda,
       })
       toast.success("Perfil salvo.")
       router.refresh()
     } catch (erro) {
-      setErroGeral(aplicarErroApi(form, erro))
+      // A troca de tipo de renda pode ser recusada; a mensagem da API diz o que ajustar antes.
+      setErroGeral(
+        aplicarErroApi(form, erro, {
+          servicos_pendentes: "tipo_renda",
+          salario_invalido: "tipo_renda",
+          lancamentos_sem_ciclo: "tipo_renda",
+        })
+      )
     }
   }
 
@@ -99,6 +110,20 @@ export function FormPerfil({ usuario }: { usuario: Usuario }) {
           autoComplete="organization-title"
           erro={errors.cargo?.message}
           {...form.register("cargo")}
+        />
+        <Controller
+          control={form.control}
+          name="tipo_renda"
+          render={({ field }) => (
+            <CampoTipoRenda
+              name={field.name}
+              ref={field.ref}
+              value={field.value}
+              onBlur={field.onBlur}
+              onChange={field.onChange}
+              erro={errors.tipo_renda?.message}
+            />
+          )}
         />
         <ErroForm mensagem={erroGeral} />
         <div>

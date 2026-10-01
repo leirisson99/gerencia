@@ -2,13 +2,14 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 
 import { BotaoEnviar } from "@/components/forms/botao-enviar"
 import { Campo } from "@/components/forms/campo"
 import { CampoSenha } from "@/components/forms/campo-senha"
+import { CampoTipoRenda } from "@/components/forms/campo-tipo-renda"
 import { ErroForm } from "@/components/forms/erro-form"
 import { FieldGroup } from "@/components/ui/field"
 import { cadastrar } from "@/lib/api/auth"
@@ -22,6 +23,7 @@ const esquema = z.object({
   cargo: regras.obrigatorio(80),
   senha: regras.senha,
   data_nascimento: regras.dataOpcional,
+  tipo_renda: z.enum(["clt", "prestador", "clt_prestador"]),
 })
 
 type Valores = z.infer<typeof esquema>
@@ -31,7 +33,7 @@ export function FormCadastro() {
   const [erroGeral, setErroGeral] = useState<string | null>(null)
   const form = useForm<Valores>({
     resolver: zodResolver(esquema),
-    defaultValues: { nome: "", email: "", telefone: "", cargo: "", senha: "", data_nascimento: "" },
+    defaultValues: { nome: "", email: "", telefone: "", cargo: "", senha: "", data_nascimento: "", tipo_renda: "clt" },
   })
   const { errors, isSubmitting } = form.formState
   const telefone = form.register("telefone")
@@ -93,6 +95,20 @@ export function FormCadastro() {
           autoComplete="organization-title"
           erro={errors.cargo?.message}
           {...form.register("cargo")}
+        />
+        <Controller
+          control={form.control}
+          name="tipo_renda"
+          render={({ field }) => (
+            <CampoTipoRenda
+              name={field.name}
+              ref={field.ref}
+              value={field.value}
+              onBlur={field.onBlur}
+              onChange={field.onChange}
+              erro={errors.tipo_renda?.message}
+            />
+          )}
         />
         <CampoSenha
           label="Senha"
