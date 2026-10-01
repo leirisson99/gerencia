@@ -5,8 +5,10 @@ import Link from "next/link"
 import { cn } from "cn"
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react"
 
+import { useTipoRenda } from "@/features/tipo-renda/contexto"
 import type { Categoria, Lancamento } from "@/lib/api/types"
 import { formatarCentavos, formatarDiaMes } from "@/lib/format"
+import { temServicos } from "@/lib/tipo-renda"
 import { ConfirmarPrevisto } from "./confirmar-previsto"
 import { DialogLancamento } from "./dialog-lancamento"
 import { ExcluirLancamento } from "./excluir-lancamento"
@@ -37,6 +39,7 @@ export function ListaLancamentos({
   // Continua preenchido enquanto o dialog fecha, para o conteúdo não trocar na animação.
   const [editando, setEditando] = useState<Lancamento | null>(null)
   const nomes = new Map(categorias.map((c) => [c.id, c.nome]))
+  const comServicos = temServicos(useTipoRenda())
 
   if (lancamentos.length === 0) {
     return <p className="border-t py-8 text-muted-foreground">{vazio}</p>
@@ -54,6 +57,7 @@ export function ListaLancamentos({
             l.recorrencia_id != null && "fixo",
             l.parcela_num != null && `parcela ${l.parcela_num}`,
             l.cartela_id != null && "cartela",
+            l.servico_id != null && "serviço",
             previsto && "previsto",
           ].filter(Boolean)
           return (
@@ -136,6 +140,14 @@ export function ListaLancamentos({
           (editando.divida_id != null ? (
             <p className="text-sm text-muted-foreground">
               Parcelas são geradas pela dívida e não podem ser excluídas uma a uma.
+            </p>
+          ) : editando.servico_id != null && comServicos ? (
+            <p className="text-sm text-muted-foreground">
+              Esta entrada é de um serviço. Para receber, desfazer ou excluir,{" "}
+              <Link href="/servicos" className="underline underline-offset-4">
+                use a tela de serviços
+              </Link>
+              .
             </p>
           ) : editando.cartela_id != null ? (
             <p className="text-sm text-muted-foreground">
