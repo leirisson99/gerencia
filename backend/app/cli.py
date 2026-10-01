@@ -3,11 +3,18 @@
 Uso:
   uv run python -m app.cli hash-senha          # gera o ADMIN_SENHA_HASH do .env
   uv run python -m app.cli gerar-chaves-vapid  # gera as chaves do push (VAPID_*) do .env
+  uv run python -m app.cli testar-login EMAIL  # entra na API pedindo a senha (--api URL)
 """
 
 import argparse
+import json
 import sys
+from collections.abc import Callable
 from getpass import getpass
+from http.cookiejar import CookieJar
+from typing import Any
+from urllib.error import HTTPError
+from urllib.request import HTTPCookieProcessor, Request, build_opener
 
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from py_vapid import Vapid
@@ -47,6 +54,45 @@ def _gerar_chaves_vapid(_: argparse.Namespace) -> int:
     return 0
 
 
+def _requisitar(
+    abrir: Callable[..., Any], metodo: str, url: str, corpo: object = None
+) -> tuple[int, dict[str, Any]]:
+    """Chamada JSON à API; erros HTTP voltam como status, não como exceção."""
+    dados = json.dumps(corpo).encode() if corpo is not None else None
+    pedido = Request(url, data=dados, method=metodo, headers={"Content-Type": "application/json"})
+    try:
+        with abrir(pedido, timeout=10) as resposta:
+            status, texto = resposta.status, resposta.read()
+    except HTTPError as erro:
+        status, texto = erro.code, erro.read()
+    return status, json.loads(texto) if texto else {}
+
+
+def _testar_login(args: argparse.Namespace) -> int:
+    """Entra na API com e-mail e senha, como o frontend faz, e encerra a sessão no fim."""
+    senha = getpass(f"Senha de {args.email}: ")
+    abrir = build_opener(HTTPCookieProcessor(CookieJar())).open
+    try:
+        status, corpo = _requisitar(
+            abrir, "POST", f"{args.api}/api/v1/auth/login", {"email": args.email, "senha": senha}
+        )
+        if status != 200:
+            print(f"Login recusado ({status}): {corpo.get('erro', {}).get('mensagem', corpo)}")
+            return 1
+        print(
+            f"Login ok. papel: {corpo['papel']} | "
+            f"troca de senha obrigatória: {corpo['troca_senha_obrigatoria']}"
+        )
+        if corpo["papel"] == "admin":
+            status, _ = _requisitar(abrir, "GET", f"{args.api}/api/v1/admin/resumo")
+            print(f"Painel do administrador: {status}")
+        _requisitar(abrir, "POST", f"{args.api}/api/v1/auth/logout")
+    except OSError as erro:
+        print(f"Não foi possível falar com a API em {args.api}: {erro}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m app.cli")
     comandos = parser.add_subparsers(dest="comando", required=True)
@@ -56,6 +102,11 @@ def main(argv: list[str] | None = None) -> int:
 
     vapid = comandos.add_parser("gerar-chaves-vapid", help="gera o par de chaves do push")
     vapid.set_defaults(executar=_gerar_chaves_vapid)
+
+    testar = comandos.add_parser("testar-login", help="entra na API com e-mail e senha")
+    testar.add_argument("email")
+    testar.add_argument("--api", default="http://localhost:8000")
+    testar.set_defaults(executar=_testar_login)
 
     args = parser.parse_args(argv)
     return args.executar(args)
