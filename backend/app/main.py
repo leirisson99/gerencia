@@ -17,6 +17,7 @@ from app.api.routes import (
     lancamentos,
     lembretes,
     me,
+    push,
     recorrencias,
     servicos,
 )
@@ -86,6 +87,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(importacoes.router)
     app.include_router(servicos.router)
     app.include_router(lembretes.router)
+    app.include_router(push.router)
     app.include_router(admin.router)
     return app
 

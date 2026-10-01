@@ -86,6 +86,10 @@ def settings_teste() -> Settings:
         # O admin do .env de desenvolvimento não entra nos testes.
         admin_email=None,
         admin_senha_hash=None,
+        # Nem as chaves de push: cada teste de push liga as suas.
+        vapid_chave_publica=None,
+        vapid_chave_privada=None,
+        vapid_contato=None,
     )
 
 

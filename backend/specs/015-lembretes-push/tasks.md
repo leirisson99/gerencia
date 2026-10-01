@@ -89,7 +89,7 @@ de aparelhos recusados.
 **Independent Test**: com inscrições criadas direto no banco e um enviador falso, rodar o envio,
 receber uma mensagem com as contagens, rodar de novo e não receber outra.
 
-- [ ] T015 [US2] Testes de serviço em backend/tests/services/test_envio_lembrete.py, escritos antes e começando no vermelho. O `EnviadorFalso` registra as chamadas e devolve `ok`, `expirado` (404/410) ou `falha` por endpoint. Casos:
+- [X] T015 [US2] Testes de serviço em backend/tests/services/test_envio_lembrete.py, escritos antes e começando no vermelho. O `EnviadorFalso` registra as chamadas e devolve `ok`, `expirado` (404/410) ou `falha` por endpoint. Casos:
   - Usuário com 2 contas a vencer e 1 valor atrasado: uma mensagem por aparelho, com `titulo`, `corpo` igual a `texto_resumo` e `url` `/lembretes`. O corpo não contém valores nem descrições.
   - Rodar de novo no mesmo dia não chama o enviador (`ja_enviados`).
   - Usuário sem pendências não recebe (`sem_pendencias`). Usuário sem aparelho é ignorado.
@@ -97,7 +97,7 @@ receber uma mensagem com as contagens, rodar de novo e não receber outra.
   - Dois aparelhos, um `expirado`: a inscrição expirada é apagada (`removidos=1`) e o outro recebe.
   - Todos os aparelhos com `falha`: a reserva de `envio_lembrete` é apagada (`falhas=1`) e uma segunda execução no mesmo dia tenta de novo.
   - Reserva já existente no dia (execução concorrente): não envia.
-- [ ] T016 [US2] Em backend/app/services/envio_lembrete.py, criar:
+- [X] T016 [US2] Em backend/app/services/envio_lembrete.py, criar:
   - `ResultadoEnvio` (Literal `"ok" | "expirado" | "falha"`);
   - o protocolo `Enviador` (`enviar(inscricao, payload: dict) -> ResultadoEnvio`);
   - `Relatorio` (dataclass só com contagens);
@@ -110,20 +110,20 @@ receber uma mensagem com as contagens, rodar de novo e não receber outra.
   - envia para cada aparelho e apaga os `expirado`;
   - se nenhum `ok`, apaga a reserva;
   - faz commit por usuário.
-- [ ] T017 [US2] Criar o adaptador `EnviadorWebPush` em backend/app/push.py:
+- [X] T017 [US2] Criar o adaptador `EnviadorWebPush` em backend/app/push.py:
   - usa `pywebpush.webpush` com `subscription_info` `{endpoint, keys: {p256dh, auth}}`, `data=json.dumps(payload)`, `vapid_private_key`, `vapid_claims={"sub": vapid_contato}`, `ttl=43200` e header `Urgency: normal`;
   - `WebPushException` com status 404 ou 410 vira `expirado`; outros erros e exceções de rede viram `falha`;
   - nunca registra endpoint nem payload em log.
-- [ ] T018 [US2] Adicionar dois subcomandos em backend/app/cli.py:
+- [X] T018 [US2] Adicionar dois subcomandos em backend/app/cli.py:
   - `enviar-lembretes`: sem as chaves VAPID, imprime a mensagem em stderr e devolve 1. Com as chaves, usa `Relogio().hoje_sp()`, `SessionLocal` e `EnviadorWebPush`, e imprime uma linha `usuarios=… enviados=… sem_pendencias=… ja_enviados=… removidos=… falhas=…`.
   - `gerar-chaves-vapid`: gera o par com `py_vapid.Vapid` e imprime `VAPID_CHAVE_PUBLICA=…` (ponto não comprimido em base64url) e `VAPID_CHAVE_PRIVADA=…` (base64url).
 
   Atualizar o docstring do módulo. (`gerar-chaves-vapid` e os testes dele já estão feitos,
   adiantados em 2026-10-01; falta `enviar-lembretes`.) Testar em backend/tests/services/test_cli.py: `enviar-lembretes` sem chaves devolve 1, e `gerar-chaves-vapid` imprime as duas variáveis.
-- [ ] T019 [P] [US2] Criar o service worker frontend/public/sw.js:
+- [X] T019 [P] [US2] Criar o service worker frontend/public/sw.js:
   - `push`: lê `{titulo, corpo, url}` e chama `showNotification(titulo, {body: corpo, icon: "/icone-192.png", badge: "/icone-192.png", tag: "lembretes", data: {url}})`.
   - `notificationclick`: fecha a notificação e foca uma janela do app, navegando para `url`, ou chama `clients.openWindow(url)`.
-- [ ] T020 [P] [US2] Em frontend/next.config.ts, adicionar `headers()` para `/sw.js` com `Content-Type: application/javascript; charset=utf-8`, `Cache-Control: no-cache, no-store, must-revalidate` e `Service-Worker-Allowed: /`, preservando os rewrites existentes.
+- [X] T020 [P] [US2] Em frontend/next.config.ts, adicionar `headers()` para `/sw.js` com `Content-Type: application/javascript; charset=utf-8`, `Cache-Control: no-cache, no-store, must-revalidate` e `Service-Worker-Allowed: /`, preservando os rewrites existentes.
 
 **Checkpoint**: com uma inscrição real (US3), o comando entrega o resumo uma vez por dia.
 
@@ -134,36 +134,36 @@ receber uma mensagem com as contagens, rodar de novo e não receber outra.
 **Independent Test**: ativar no Perfil, ver "ativadas neste aparelho", desativar e não receber
 mais o resumo nesse aparelho.
 
-- [ ] T021 [US3] Testes de API em backend/tests/api/test_push.py, escritos antes e começando no vermelho:
+- [X] T021 [US3] Testes de API em backend/tests/api/test_push.py, escritos antes e começando no vermelho:
   - `GET /push/chave` devolve a chave configurada, ou 503 `push_indisponivel` sem chaves (sobrescrever as settings no teste).
   - `PUT /push/inscricao` cria (204). O mesmo endpoint de novo atualiza as chaves sem duplicar. O endpoint de Bia, quando Ana faz `PUT`, passa a ser de Ana.
   - Validações 422: endpoint `http://` ou com mais de 2048 caracteres, `keys` ausentes, campo extra. `expirationTime` é aceito.
   - `PUT` sem chaves VAPID → 503.
   - `DELETE /push/inscricao` remove (204). Endpoint inexistente ou de outro usuário → 404 `nao_encontrado`, sem apagar a inscrição do outro.
   - Sem sessão → 401.
-- [ ] T022 [US3] Criar os schemas em backend/app/schemas/push.py:
+- [X] T022 [US3] Criar os schemas em backend/app/schemas/push.py:
   - `ChavePushOut(chave_publica: str)`;
   - `ChavesInscricao(p256dh: str ≤ 200, auth: str ≤ 100)`;
   - `InscricaoIn(endpoint: str` iniciando com `https://` e com no máximo 2048 caracteres, `keys: ChavesInscricao`, `expirationTime: int | None = None`), com `extra="forbid"`;
   - `InscricaoRemoverIn(endpoint: str)`.
-- [ ] T023 [US3] Em backend/app/services/push.py, criar:
+- [X] T023 [US3] Em backend/app/services/push.py, criar:
   - `inscrever(db, usuario_id, dados)`: upsert por `endpoint` com `INSERT ... ON CONFLICT (endpoint) DO UPDATE SET usuario_id, p256dh, auth`;
   - `remover_inscricao(db, usuario_id, endpoint)`: 404 se não houver linha desse usuário com esse endpoint;
   - `chave_publica(settings)`: 503 `push_indisponivel`, "As notificações não estão disponíveis no momento.", quando faltar alguma chave.
-- [ ] T024 [US3] Criar as rotas `GET /api/v1/push/chave`, `PUT /api/v1/push/inscricao` e `DELETE /api/v1/push/inscricao` (corpo `InscricaoRemoverIn`) em backend/app/api/routes/push.py e incluir o router em backend/app/main.py.
-- [ ] T025 [P] [US3] Criar no frontend `obterChavePush()`, `inscreverAparelho(sub)` e `removerAparelho(endpoint)` em frontend/lib/api/push.ts.
-- [ ] T026 [US3] Criar frontend/lib/push.ts (só cliente):
+- [X] T024 [US3] Criar as rotas `GET /api/v1/push/chave`, `PUT /api/v1/push/inscricao` e `DELETE /api/v1/push/inscricao` (corpo `InscricaoRemoverIn`) em backend/app/api/routes/push.py e incluir o router em backend/app/main.py.
+- [X] T025 [P] [US3] Criar no frontend `obterChavePush()`, `inscreverAparelho(sub)` e `removerAparelho(endpoint)` em frontend/lib/api/push.ts.
+- [X] T026 [US3] Criar frontend/lib/push.ts (só cliente):
   - `estadoPush()`, que devolve um dos estados `"sem_suporte" | "iphone_sem_instalar" | "bloqueado" | "inativo" | "ativo"`. Detectar `serviceWorker`, `PushManager`, `Notification.permission`, iOS e `display-mode: standalone` ou `navigator.standalone`.
   - `registrarServiceWorker()`, com `register("/sw.js", {scope: "/", updateViaCache: "none"})`.
   - `ativarPush()`: pede a permissão, faz `subscribe({userVisibleOnly: true, applicationServerKey})` a partir de `obterChavePush()` e chama `inscreverAparelho`.
   - `desativarPush()`: chama `removerAparelho`, ignora 404, e faz `unsubscribe`.
   - `sincronizarPush()`: se já existe inscrição local, chama `PUT` de novo.
-- [ ] T027 [US3] Criar frontend/features/perfil/secao-notificacoes.tsx e adicioná-la a frontend/app/(app)/(coluna)/perfil/page.tsx, entre `FormPerfil` e `SecaoSenha`, com `Separator`.
+- [X] T027 [US3] Criar frontend/features/perfil/secao-notificacoes.tsx e adicioná-la a frontend/app/(app)/(coluna)/perfil/page.tsx, entre `FormPerfil` e `SecaoSenha`, com `Separator`.
   - Mostra o estado, o botão "Ativar notificações" ou "Desativar neste aparelho", e as instruções para os estados bloqueado, iPhone sem instalar ("Adicione o app à tela inicial…") e sem suporte.
   - Esconde a ativação se `obterChavePush` der 503.
   - Ao montar, chama `sincronizarPush()`.
   - Mostra toasts de sucesso e de erro.
-- [ ] T028 [US3] Em frontend/features/auth/use-sair.ts, chamar `desativarPush()` antes de `sair()`, com try/catch, sem bloquear o logout.
+- [X] T028 [US3] Em frontend/features/auth/use-sair.ts, chamar `desativarPush()` antes de `sair()`, com try/catch, sem bloquear o logout.
 
 **Checkpoint**: o fluxo completo funciona em `http://localhost`: ativar, rodar `enviar-lembretes`, receber a notificação e tocar para abrir `/lembretes`.
 
