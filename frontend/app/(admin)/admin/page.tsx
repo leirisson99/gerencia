@@ -7,14 +7,15 @@ import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AlternarSituacao } from "@/features/admin/alternar-situacao"
-import { FormasPagamento } from "@/features/admin/formas-pagamento"
-import { GraficoMovimentacoes } from "@/features/admin/grafico-movimentacoes"
+import { Barras } from "@/features/admin/barras"
+import { GraficoCadastros, GraficoMovimentacoes } from "@/features/admin/graficos"
 import { ResetarSenha } from "@/features/admin/resetar-senha"
 import { Bloco, Indicador } from "@/features/dashboard/bloco"
 import { FORMAS } from "@/features/dividas/rotulos"
 import { listarUsuariosAdmin, obterResumoAdmin } from "@/lib/api/server"
-import type { SituacaoConta } from "@/lib/api/types"
+import type { Funcionalidade, SituacaoConta } from "@/lib/api/types"
 import { formatarDataDeInstante } from "@/lib/format"
+import { TIPOS_RENDA } from "@/lib/tipo-renda"
 
 export const metadata: Metadata = { title: "Administração" }
 
@@ -24,7 +25,20 @@ const FILTROS: { id: SituacaoConta | null; titulo: string }[] = [
   { id: "desativados", titulo: "Desativadas" },
 ]
 
+const FUNCIONALIDADES: Record<Funcionalidade, string> = {
+  recorrencias: "Recorrências",
+  dividas: "Dívidas",
+  cartelas: "Cartelas de poupança",
+  servicos: "Serviços a receber",
+  importacao: "Importação de extrato",
+}
+
 const numero = new Intl.NumberFormat("pt-BR")
+
+/** `parte` como porcentagem inteira de `todo`; zero quando não há contas. */
+function porcento(parte: number, todo: number) {
+  return todo ? `${Math.round((parte / todo) * 100)}%` : "0%"
+}
 
 function lerSituacao(param: unknown): SituacaoConta | null {
   return param === "ativos" || param === "desativados" ? param : null
@@ -40,7 +54,7 @@ function hrefFiltro(busca: string, situacao: SituacaoConta | null) {
 
 /**
  * Painel do administrador: contagens globais de uso (sem valores nem dados por conta) e as contas,
- * com reset de senha e desativação (constituição 5.0.0, papel admin).
+ * com reset de senha e desativação (constituição 5.2.0, papel admin).
  */
 export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const { busca: paramBusca, situacao: paramSituacao } = await searchParams
@@ -50,7 +64,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     obterResumoAdmin(),
     listarUsuariosAdmin(busca || undefined, situacao ?? undefined),
   ])
-  const { contas, lancamentos, dividas_por_forma: formas } = resumo
+  const { contas, lancamentos, engajamento, dividas_por_forma: formas } = resumo
   const dividas = formas.reduce((soma, f) => soma + f.quantidade, 0)
   const quantasPorFiltro = (id: SituacaoConta | null) =>
     id === "ativos" ? contas.ativas : id === "desativados" ? contas.desativadas : contas.total
@@ -62,33 +76,77 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         descricao="Uso do sistema somado entre todas as contas, sem valores em reais. Abaixo, as contas: resete senhas e desative ou reative o acesso."
       />
 
-      <div className="mb-4 grid gap-4 sm:grid-cols-3">
+      <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Bloco titulo="Contas">
           <Indicador
             valor={numero.format(contas.total)}
             legenda={`${numero.format(contas.ativas)} ativas · ${numero.format(contas.desativadas)} desativadas`}
           />
         </Bloco>
+        <Bloco titulo="Acessaram em 30 dias">
+          <Indicador
+            valor={numero.format(engajamento.ativas_30_dias)}
+            legenda={`${numero.format(engajamento.ativas_7_dias)} nos últimos 7 dias`}
+          />
+        </Bloco>
+        <Bloco titulo="Ativação">
+          <Indicador
+            valor={porcento(engajamento.com_lancamento, contas.total)}
+            legenda={`${numero.format(engajamento.com_lancamento)} de ${numero.format(contas.total)} contas já lançaram algo`}
+          />
+        </Bloco>
         <Bloco titulo="Lançamentos">
           <Indicador
             valor={numero.format(lancamentos.total)}
-            legenda={`${numero.format(lancamentos.realizados)} realizados · ${numero.format(lancamentos.previstos)} previstos`}
-          />
-        </Bloco>
-        <Bloco titulo="Dívidas">
-          <Indicador
-            valor={numero.format(dividas)}
-            legenda={dividas ? `Mais usada: ${FORMAS[formas[0].forma]}` : "Nenhuma ainda"}
+            legenda={
+              <>
+                {numero.format(lancamentos.realizados)} realizados · {numero.format(lancamentos.previstos)} previstos
+                <br />
+                {numero.format(lancamentos.importados)} importados · {numero.format(lancamentos.manuais)} manuais
+              </>
+            }
           />
         </Bloco>
       </div>
 
-      <div className="mb-10 grid gap-4 lg:grid-cols-3">
-        <Bloco titulo="Movimentações realizadas por mês" className="lg:col-span-2">
+      <div className="mb-4 grid gap-4 lg:grid-cols-2">
+        <Bloco titulo="Movimentações realizadas por mês">
           <GraficoMovimentacoes meses={resumo.por_mes} />
         </Bloco>
+        <Bloco titulo="Cadastros por mês">
+          <GraficoCadastros meses={resumo.cadastros_por_mes} />
+        </Bloco>
+      </div>
+
+      <div className="mb-10 grid gap-4 lg:grid-cols-3">
+        <Bloco titulo="Contas que usam cada funcionalidade">
+          <Barras
+            base={contas.total}
+            vazio="Nenhuma conta usa essas funcionalidades ainda."
+            itens={resumo.uso_funcionalidades.map((u) => ({
+              chave: u.funcionalidade,
+              rotulo: FUNCIONALIDADES[u.funcionalidade],
+              quantidade: u.contas,
+            }))}
+          />
+        </Bloco>
+        <Bloco titulo="Contas por tipo de renda">
+          <Barras
+            base={contas.total}
+            vazio="Nenhuma conta cadastrada ainda."
+            itens={TIPOS_RENDA.map((t) => ({
+              chave: t.valor,
+              rotulo: t.rotulo,
+              quantidade: resumo.por_tipo_renda[t.valor],
+            }))}
+          />
+        </Bloco>
         <Bloco titulo="Formas de pagamento das dívidas">
-          <FormasPagamento formas={formas} />
+          <Barras
+            base={dividas}
+            vazio="Nenhuma dívida cadastrada ainda."
+            itens={formas.map((f) => ({ chave: f.forma, rotulo: FORMAS[f.forma], quantidade: f.quantidade }))}
+          />
         </Bloco>
       </div>
 

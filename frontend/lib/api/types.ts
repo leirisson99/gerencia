@@ -216,13 +216,29 @@ export type SenhaTemporaria = { senha_temporaria: string }
 export type SituacaoConta = "ativos" | "desativados"
 
 /** Espelha app/schemas/admin.py: só contagens globais, nunca valores nem usuários. */
+export type Funcionalidade = "recorrencias" | "dividas" | "cartelas" | "servicos" | "importacao"
+
 export type ResumoAdmin = {
   contas: { total: number; ativas: number; desativadas: number }
-  lancamentos: { total: number; realizados: number; previstos: number }
+  lancamentos: {
+    total: number
+    realizados: number
+    previstos: number
+    /** Vieram de extrato de conta. */
+    importados: number
+    manuais: number
+  }
   /** Últimos 12 meses, do mais antigo ao atual; `mes` em `AAAA-MM`. Só realizados. */
   por_mes: { mes: string; entradas: number; saidas: number }[]
   /** As quatro formas, da mais usada à menos. */
   dividas_por_forma: { forma: FormaPagamento; quantidade: number }[]
+  /** Mesma janela de `por_mes`. */
+  cadastros_por_mes: { mes: string; quantidade: number }[]
+  /** Contas com acesso nos últimos 7/30 dias e com pelo menos um lançamento. */
+  engajamento: { ativas_7_dias: number; ativas_30_dias: number; com_lancamento: number }
+  /** Contas distintas que usam cada funcionalidade, em ordem fixa. */
+  uso_funcionalidades: { funcionalidade: Funcionalidade; contas: number }[]
+  por_tipo_renda: Record<TipoRenda, number>
 }
 
 // Espelham app/schemas/cartela.py.
