@@ -4,6 +4,7 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   HandCoinsIcon,
+  PiggyBankIcon,
   RepeatIcon,
   TagsIcon,
   UploadIcon,
@@ -23,6 +24,7 @@ export function SaldoDestaque({
   periodo,
   diaDoCiclo,
   nome = "ciclo",
+  guardado,
 }: {
   saldo: number
   entradas: number
@@ -31,6 +33,8 @@ export function SaldoDestaque({
   diaDoCiclo: number
   /** "mês" para o prestador. */
   nome?: "ciclo" | "mês"
+  /** Total guardado nas cartelas. */
+  guardado?: number
 }) {
   return (
     <section
@@ -54,6 +58,22 @@ export function SaldoDestaque({
         <Movimento titulo="Entradas" valor={entradas} icone={ArrowDownIcon} />
         <Movimento titulo="Saídas" valor={saidas} icone={ArrowUpIcon} saida />
       </div>
+
+      {guardado !== undefined && (
+        <Link
+          href="/cartelas"
+          className="mt-3 flex items-center gap-3 rounded-2xl bg-primary-foreground/10 p-3 active:opacity-70"
+        >
+          <span
+            aria-hidden
+            className="flex size-7 items-center justify-center rounded-full bg-primary-foreground text-primary"
+          >
+            <PiggyBankIcon className="size-4" />
+          </span>
+          <span className="text-xs opacity-70">Poupança</span>
+          <span className="valor ml-auto font-semibold">{formatarCentavos(guardado)}</span>
+        </Link>
+      )}
     </section>
   )
 }
