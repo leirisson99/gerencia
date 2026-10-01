@@ -6,13 +6,19 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.models import Base
 
 ACAO_RESET_SENHA = "reset_senha"
+ACAO_DESATIVAR_CONTA = "desativar_conta"
+ACAO_REATIVAR_CONTA = "reativar_conta"
 
 
 class AcaoAdmin(Base):
     """Auditoria de toda ação administrativa."""
 
     __tablename__ = "acao_admin"
-    __table_args__ = (CheckConstraint("acao IN ('reset_senha')", name="acao"),)
+    __table_args__ = (
+        CheckConstraint(
+            "acao IN ('reset_senha', 'desativar_conta', 'reativar_conta')", name="acao"
+        ),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     admin_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("usuario.id", ondelete="CASCADE"))

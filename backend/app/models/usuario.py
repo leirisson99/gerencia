@@ -10,6 +10,7 @@ from sqlalchemy import (
     false,
     func,
     text,
+    true,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -43,6 +44,8 @@ class Usuario(Base):
     # Define a regra do ciclo (domain/usuario.py: ciclo_pelo_mes).
     tipo_renda: Mapped[str] = mapped_column(String(13), default=TIPO_CLT, server_default=TIPO_CLT)
     troca_senha_obrigatoria: Mapped[bool] = mapped_column(default=False, server_default=false())
+    # Conta desativada pelo administrador: não entra, mas mantém os dados.
+    ativo: Mapped[bool] = mapped_column(default=True, server_default=true())
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     atualizado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

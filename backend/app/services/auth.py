@@ -86,6 +86,12 @@ def entrar(db: Session, email_informado: str, senha: str, agora: datetime) -> tu
         raise ErroApi(401, "credenciais_invalidas", "E-mail ou senha inválidos.")
 
     db.execute(delete(TentativaLogin).where(TentativaLogin.email_normalizado == email))
+    if not usuario.ativo:
+        # Só depois da senha conferir, para não revelar a situação de contas alheias.
+        db.commit()
+        raise ErroApi(
+            403, "conta_desativada", "Esta conta está desativada. Fale com o administrador."
+        )
     if precisa_rehash(usuario.senha_hash):
         usuario.senha_hash = hash_senha(senha)
     token = criar_sessao(db, usuario, agora)
