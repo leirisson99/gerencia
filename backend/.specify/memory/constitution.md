@@ -1,22 +1,22 @@
 <!--
 Sync Impact Report
-- Version change: 5.0.0 → 5.1.0 (MINOR: lembretes por push no PWA entram no escopo, pedido
-  pelo usuário em 2026-10-01)
+- Version change: 5.1.0 → 5.2.0 (MINOR: mais contagens globais no painel do administrador,
+  pedido pelo usuário em 2026-10-01)
 - Modified principles:
-  - V. Contas de Usuário e Isolamento de Dados: lembretes e inscrições de push pertencem ao
-    usuário; chaves VAPID entre os segredos
-  - VI. Escopo P0 e Simplicidade: regras de lembretes (origens, janela de 3 dias, derivação,
-    resumo diário sem valores nem nomes, envio por comando agendado)
-- Added sections: nenhuma (Stack ganhou o item "Notificações")
+  - V. Contas de Usuário e Isolamento de Dados: as contagens do administrador passam a
+    incluir cadastros por mês, contas ativas em 7 e 30 dias, contas com lançamento, uso de
+    cada funcionalidade, lançamentos importados × manuais e contas por tipo de renda;
+    o último acesso de cada conta passa a ser guardado só para essa contagem
+- Added sections: nenhuma
 - Removed sections: nenhuma
 - Templates: nenhuma alteração
 - Follow-up TODOs:
-  - CLAUDE.md: glossário (Lembrete, Inscrição de push) e modelo de dados (`lembrete`,
-    `inscricao_push`, `envio_lembrete`)
-  - Spec 015 (lembretes) via /speckit-specify
-- Decisão registrada: o Briefing pede 2 ciclos de uso real antes de qualquer item P1;
-  lembretes são P1 e o usuário decidiu seguir mesmo assim.
+  - CLAUDE.md: modelo de dados (`usuario.ultimo_acesso_em`)
+  - Spec 014-painel-admin-v2 (US4)
 - Histórico:
+  - 5.0.0 → 5.1.0: lembretes por push no PWA (feature 015). Decisão registrada: o Briefing
+    pede 2 ciclos de uso real antes de qualquer item P1; lembretes são P1 e o usuário decidiu
+    seguir mesmo assim.
   - 4.3.0 → 5.0.0: administrador vê situação das contas, desativa/reativa e vê contagens
     globais de uso (feature 014)
   - 4.2.0 → 4.3.0: tipo de renda e serviços a receber (features 012 e 013)
@@ -160,9 +160,12 @@ O sistema roda na web e é multiusuário: qualquer pessoa pode se cadastrar.
   - Pode ver apenas nome, e-mail, data de criação e situação (ativa ou desativada) das
     contas, e MUST NOT ter acesso a dados financeiros de um usuário nem aos demais dados
     pessoais (telefone, cargo, data de nascimento).
-  - Pode ver contagens globais de uso, somadas entre todos os usuários: contas, lançamentos,
-    entradas e saídas por mês e dívidas por forma de pagamento. Essas contagens MUST NOT
-    trazer valores em reais nem ser quebradas por usuário.
+  - Pode ver contagens globais de uso, somadas entre todos os usuários: contas (total,
+    cadastros por mês, ativas em 7 e 30 dias, com pelo menos um lançamento e por tipo de
+    renda), lançamentos (importados e manuais), entradas e saídas por mês, contas que usam
+    cada funcionalidade e dívidas por forma de pagamento. Essas contagens MUST NOT trazer
+    valores em reais nem ser quebradas por usuário. O último acesso de cada conta é guardado
+    só para contar as contas ativas e MUST NOT ser exibido por conta.
   - As ações administrativas permitidas são:
     - resetar senha: o sistema gera uma senha temporária aleatória, exibida uma única vez ao
       administrador, encerra as sessões do usuário e obriga a troca de senha no próximo
@@ -257,4 +260,4 @@ isso atrasa o MVP.
 - Toda revisão MUST verificar conformidade com os princípios. Violações só são aceitas com
   justificativa registrada na seção "Complexity Tracking" do plano da feature.
 
-**Version**: 5.1.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-01
+**Version**: 5.2.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-01

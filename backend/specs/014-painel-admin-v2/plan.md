@@ -25,6 +25,22 @@ previstos}`, `por_mes [{mes: "AAAA-MM", entradas, saidas}]` (12, do mais antigo 
 `dividas_por_forma [{forma, quantidade}]` (as 4 formas, mais usada primeiro). Só inteiros de
 contagem. Mudanças aditivas, sem quebra de contrato.
 
+## US4 — mais indicadores (constituição 5.2.0)
+
+Migração `0016`: `usuario.ultimo_acesso_em` (timestamptz, nulo). Atualizado em
+`criar_sessao` (login e cadastro) e em `resolver_sessao`, só quando
+`domain/painel.precisa_registrar_acesso` diz que o dia em São Paulo mudou — no máximo uma
+escrita por conta por dia. `ResumoAdminOut` ganha, de forma aditiva:
+
+- `cadastros_por_mes [{mes, quantidade}]` (12 meses, mesma janela do `por_mes`);
+- `engajamento {ativas_7_dias, ativas_30_dias, com_lancamento}`;
+- `lancamentos.importados` e `lancamentos.manuais` (`id_externo` preenchido ou não);
+- `uso_funcionalidades [{funcionalidade, contas}]` para `recorrencias`, `dividas`, `cartelas`,
+  `servicos` e `importacao` (contas distintas, ordem fixa);
+- `por_tipo_renda {clt, prestador, clt_prestador}`.
+
+Cada bloco é uma consulta agregada; nada sai por conta. `UsuarioAdminOut` não muda.
+
 ## Constitution Check (5.0.0)
 
 | Princípio | Verificação | Status |

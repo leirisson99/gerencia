@@ -70,6 +70,33 @@ pagamento, da mais usada para a menos usada.
    quantidade, com zero nas não usadas.
 5. **Then** nenhuma parte do resumo traz valor em reais nem identifica usuários.
 
+### User Story 4 - Mais indicadores de uso (Priority: P1)
+
+Pedido em 2026-10-01 ("adicionar mais informações KPIs para a análise do administrador"),
+grupos escolhidos: crescimento e engajamento, uso das funcionalidades e perfil por tipo de
+renda. Tudo somado entre as contas de usuário comum, sem valores e sem nada por conta
+(constituição 5.2.0).
+
+**Acceptance Scenarios**:
+
+1. **Given** contas criadas em meses diferentes, **Then** o resumo traz os cadastros de cada
+   um dos últimos 12 meses (o atual incluído), com zero nos meses sem cadastro.
+2. **Given** contas com último acesso há 2, 10 e 40 dias e uma que nunca entrou, **Then**
+   ativas em 7 dias = 1 e em 30 dias = 2.
+3. **Given** o login ou o uso de uma sessão, **Then** o último acesso da conta passa a ser
+   hoje; mais acessos no mesmo dia (horário de São Paulo) não gravam de novo.
+4. **Given** duas de três contas com lançamento, **Then** contas com lançamento = 2.
+5. **Given** contas usando recorrências, dívidas, cartelas, serviços e importação, **Then**
+   cada funcionalidade traz quantas contas distintas a usam (uma conta com dois usos conta
+   uma vez).
+6. **Given** lançamentos com e sem `id_externo`, **Then** o resumo separa importados e
+   manuais.
+7. **Given** contas `clt`, `prestador` e `clt_prestador`, **Then** o resumo traz quantas são
+   de cada tipo, sempre os três.
+8. **Then** o último acesso não aparece na lista de contas nem em nenhuma resposta por conta.
+
+---
+
 ### Edge Cases
 
 - Desativar não apaga nem altera dados financeiros.
@@ -97,3 +124,6 @@ pagamento, da mais usada para a menos usada.
 - "Movimentações" = lançamentos. O gráfico conta só realizados, pela data do lançamento.
 - "Tipo de pagamento" = `forma_pagamento` da dívida, contando dívidas (não parcelas).
 - Escopo backend e frontend (`/admin`).
+- US4: "ativas" conta pelo último acesso guardado a partir desta versão; antes do deploy não
+  há histórico, então as contas antigas começam como "nunca entrou".
+- US4: o administrador fica fora de todas as contagens.

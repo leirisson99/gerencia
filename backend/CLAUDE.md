@@ -50,7 +50,7 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo**: abe
 
 | Tabela | Campos principais |
 | --- | --- |
-| `usuario` | nome, email (único), senha_hash, telefone, cargo, data_nascimento (opcional), papel (`usuario` / `admin`), tipo_renda (`clt` / `prestador` / `clt_prestador`), troca_senha_obrigatoria, ativo, criado_em |
+| `usuario` | nome, email (único), senha_hash, telefone, cargo, data_nascimento (opcional), papel (`usuario` / `admin`), tipo_renda (`clt` / `prestador` / `clt_prestador`), troca_senha_obrigatoria, ativo, ultimo_acesso_em, criado_em |
 | `categoria` | usuario_id, nome (único por usuário, sem diferenciar maiúsculas), tipo (`entrada` / `saida`), ativa, sistema. "Salário" e "Poupança" são de sistema e protegidas |
 | `recorrencia` | usuario_id, categoria_id, descricao, valor, tipo, dia, ativa |
 | `divida` | usuario_id, categoria_id, descricao, pessoa, direcao, valor_total, parcelas, forma_pagamento, dia_vencimento, data_inicio |
