@@ -1,54 +1,31 @@
 """Comandos de servidor.
 
 Uso:
-  uv run python -m app.cli criar-admin --nome ... --email ... --telefone ... --cargo ...
-  uv run python -m app.cli resetar-senha-admin
+  uv run python -m app.cli hash-senha   # gera o ADMIN_SENHA_HASH do .env
 """
 
 import argparse
 import sys
+from getpass import getpass
 
-from pydantic import ValidationError
-
-from app.db import SessionLocal
-from app.erros import ErroApi
-from app.relogio import Relogio
-from app.schemas.admin import DadosAdmin
-from app.services.admin import criar_administrador, resetar_senha_do_administrador
+from app.domain.usuario import validar_senha
+from app.services.senha import hash_senha
 
 
-def _criar_admin(args: argparse.Namespace) -> int:
+def _hash_senha(_: argparse.Namespace) -> int:
+    senha = getpass("Senha do administrador: ")
+    if getpass("Repita a senha: ") != senha:
+        print("As senhas não conferem.", file=sys.stderr)
+        return 1
     try:
-        dados = DadosAdmin(
-            nome=args.nome, email=args.email, telefone=args.telefone, cargo=args.cargo
-        )
-    except ValidationError as erro:
-        for item in erro.errors():
-            campo = ".".join(str(parte) for parte in item["loc"])
-            mensagem = (item.get("ctx") or {}).get("error", item["msg"])
-            print(f"{campo}: {mensagem}", file=sys.stderr)
+        validar_senha(senha)
+    except ValueError as erro:
+        print(erro, file=sys.stderr)
         return 1
 
-    with SessionLocal() as db:
-        try:
-            _, senha = criar_administrador(db, dados, Relogio().agora_utc())
-        except ErroApi as erro:
-            print(erro.mensagem, file=sys.stderr)
-            return 1
-
-    print(f"Administrador criado. Senha temporária (troque no primeiro login): {senha}")
-    return 0
-
-
-def _resetar_senha_admin(_: argparse.Namespace) -> int:
-    with SessionLocal() as db:
-        try:
-            senha = resetar_senha_do_administrador(db, Relogio().agora_utc())
-        except ErroApi as erro:
-            print(erro.mensagem, file=sys.stderr)
-            return 1
-
-    print(f"Senha temporária do administrador (troque no próximo login): {senha}")
+    # Aspas simples: o .env não tenta expandir os "$" do hash.
+    print("Copie a linha abaixo para o .env e reinicie a API:")
+    print(f"ADMIN_SENHA_HASH='{hash_senha(senha)}'")
     return 0
 
 
@@ -56,15 +33,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m app.cli")
     comandos = parser.add_subparsers(dest="comando", required=True)
 
-    criar = comandos.add_parser("criar-admin", help="cria o único administrador")
-    for campo in ("nome", "email", "telefone", "cargo"):
-        criar.add_argument(f"--{campo}", required=True)
-    criar.set_defaults(executar=_criar_admin)
-
-    resetar = comandos.add_parser(
-        "resetar-senha-admin", help="gera nova senha temporária para o administrador"
-    )
-    resetar.set_defaults(executar=_resetar_senha_admin)
+    gerar = comandos.add_parser("hash-senha", help="gera o hash da senha do administrador")
+    gerar.set_defaults(executar=_hash_senha)
 
     args = parser.parse_args(argv)
     return args.executar(args)

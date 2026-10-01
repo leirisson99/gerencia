@@ -83,6 +83,9 @@ def settings_teste() -> Settings:
         test_database_url=url,
         frontend_origin="http://localhost:3000",
         cookie_secure=False,
+        # O admin do .env de desenvolvimento não entra nos testes.
+        admin_email=None,
+        admin_senha_hash=None,
     )
 
 

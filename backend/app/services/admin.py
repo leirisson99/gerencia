@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 
 from sqlalchemy import Date, cast, delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -9,7 +10,7 @@ from app.erros import ErroApi
 from app.models import AcaoAdmin, Divida, Lancamento, Sessao, Usuario
 from app.models.acao_admin import ACAO_DESATIVAR_CONTA, ACAO_REATIVAR_CONTA, ACAO_RESET_SENHA
 from app.models.lancamento import STATUS_REALIZADO
-from app.models.usuario import INDICE_ADMIN_UNICO, PAPEL_ADMIN, PAPEL_USUARIO
+from app.models.usuario import PAPEL_ADMIN, PAPEL_USUARIO
 from app.schemas.admin import (
     ContasOut,
     DadosAdmin,
@@ -21,39 +22,61 @@ from app.schemas.admin import (
 )
 from app.services.senha import gerar_senha_temporaria, hash_senha
 
+CARGO_ADMIN = "Administrador"
 
-def _erro_admin_existente() -> ErroApi:
-    return ErroApi(409, "administrador_existente", "Já existe um administrador.")
+ResultadoSincronizacao = Literal["criado", "atualizado", "sem_mudanca"]
 
 
-def criar_administrador(db: Session, dados: DadosAdmin, agora: datetime) -> tuple[Usuario, str]:
-    """Cria o único administrador, com senha temporária e troca obrigatória no 1º login."""
-    if db.scalar(select(Usuario.id).where(Usuario.papel == PAPEL_ADMIN)) is not None:
-        raise _erro_admin_existente()
+def sincronizar_administrador(
+    db: Session, dados: DadosAdmin, agora: datetime
+) -> ResultadoSincronizacao:
+    """Cria ou alinha o único administrador ao .env, que sempre vence.
 
-    senha = gerar_senha_temporaria()
-    admin = Usuario(
-        nome=dados.nome,
-        email=dados.email,
-        senha_hash=hash_senha(senha),
-        telefone=dados.telefone,
-        cargo=dados.cargo,
-        papel=PAPEL_ADMIN,
-        troca_senha_obrigatoria=True,
-        criado_em=agora,
-        atualizado_em=agora,
-    )
-    db.add(admin)
-    try:
-        db.flush()
-    except IntegrityError as erro:
-        db.rollback()
-        # O índice único resolve dois comandos simultâneos.
-        if INDICE_ADMIN_UNICO in str(erro.orig):
-            raise _erro_admin_existente() from None
-        raise ErroApi(409, "email_ja_cadastrado", "Este e-mail já está cadastrado.") from None
+    E-mail ou senha novos derrubam as sessões do administrador.
+    """
+    if db.scalar(
+        select(Usuario.id).where(Usuario.email == dados.email, Usuario.papel == PAPEL_USUARIO)
+    ):
+        raise ValueError("ADMIN_EMAIL já é usado por uma conta de usuário.")
+
+    admin = db.scalar(select(Usuario).where(Usuario.papel == PAPEL_ADMIN))
+    if admin is None:
+        db.add(
+            Usuario(
+                nome=dados.nome,
+                email=dados.email,
+                senha_hash=dados.senha_hash,
+                telefone="",
+                cargo=CARGO_ADMIN,
+                papel=PAPEL_ADMIN,
+                criado_em=agora,
+                atualizado_em=agora,
+            )
+        )
+        try:
+            db.commit()
+            return "criado"
+        except IntegrityError:
+            # Outro processo criou ao mesmo tempo (vários workers): segue alinhando o dele.
+            db.rollback()
+            admin = db.scalars(select(Usuario).where(Usuario.papel == PAPEL_ADMIN)).one()
+
+    credenciais_mudaram = (admin.email, admin.senha_hash) != (dados.email, dados.senha_hash)
+    if not credenciais_mudaram and (
+        admin.nome == dados.nome and admin.ativo and not admin.troca_senha_obrigatoria
+    ):
+        return "sem_mudanca"
+
+    admin.nome = dados.nome
+    admin.email = dados.email
+    admin.senha_hash = dados.senha_hash
+    admin.troca_senha_obrigatoria = False
+    admin.ativo = True
+    admin.atualizado_em = agora
+    if credenciais_mudaram:
+        db.execute(delete(Sessao).where(Sessao.usuario_id == admin.id))
     db.commit()
-    return admin, senha
+    return "atualizado"
 
 
 def _escapar_like(texto: str) -> str:
@@ -173,17 +196,3 @@ def obter_resumo(db: Session, hoje: date) -> ResumoAdminOut:
             FormaOut(forma=forma, quantidade=n) for forma, n in ranking_formas(dict(formas))
         ],
     )
-
-
-def resetar_senha_do_administrador(db: Session, agora: datetime) -> str:
-    """Recupera o acesso do administrador pelo servidor (comando `resetar-senha-admin`).
-
-    Não entra no registro de ações: é operação de quem opera o servidor, não do painel.
-    """
-    admin = db.scalar(select(Usuario).where(Usuario.papel == PAPEL_ADMIN))
-    if admin is None:
-        raise ErroApi(404, "nao_encontrado", "Nenhum administrador cadastrado.")
-
-    senha = _aplicar_senha_temporaria(db, admin, agora)
-    db.commit()
-    return senha

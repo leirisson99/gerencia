@@ -31,7 +31,12 @@ def editar_me(dados: PerfilIn, auth: AutenticadoDep, db: Db, relogio: RelogioDep
 @router.put(
     "/me/senha",
     status_code=204,
-    responses={400: {"model": ErroOut}, 401: {"model": ErroOut}, 422: {"model": ErroOut}},
+    responses={
+        400: {"model": ErroOut},
+        401: {"model": ErroOut},
+        403: {"model": ErroOut},
+        422: {"model": ErroOut},
+    },
 )
 def alterar_senha(
     dados: TrocaSenhaIn,

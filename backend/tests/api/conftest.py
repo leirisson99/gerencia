@@ -4,12 +4,13 @@ from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import update
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Usuario
 from app.schemas.admin import DadosAdmin
-from app.services.admin import criar_administrador
+from app.services.admin import sincronizar_administrador
+from app.services.senha import hash_senha
 from tests.conftest import RelogioFixo
 
 USUARIOS = "/api/v1/admin/usuarios"
@@ -17,17 +18,12 @@ USUARIOS = "/api/v1/admin/usuarios"
 
 @pytest.fixture
 def admin(db: Session, relogio: RelogioFixo) -> Usuario:
-    usuario, _ = criar_administrador(
-        db,
-        DadosAdmin(nome="Admin", email="admin@exemplo.com", telefone="11987654321", cargo="Adm"),
-        relogio.agora,
+    """O administrador como a inicialização o cria a partir do .env."""
+    dados = DadosAdmin(
+        nome="Admin", email="admin@exemplo.com", senha_hash=hash_senha("segredoAdmin1")
     )
-    # Troca inicial já feita, para os testes irem direto às rotas.
-    db.execute(
-        update(Usuario).where(Usuario.id == usuario.id).values(troca_senha_obrigatoria=False)
-    )
-    db.commit()
-    return usuario
+    sincronizar_administrador(db, dados, relogio.agora)
+    return db.scalars(select(Usuario).where(Usuario.papel == "admin")).one()
 
 
 @pytest.fixture

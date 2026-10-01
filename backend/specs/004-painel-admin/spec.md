@@ -136,3 +136,10 @@ temporária e ser obrigada a trocá-la.
 - Emenda de 2026-09-29: quem opera o servidor pode recuperar o acesso do administrador com o
   comando `resetar-senha-admin` (nova senha temporária, sessões encerradas, troca obrigatória),
   já que não há recuperação por e-mail e só existe um administrador.
+- Emenda de 2026-10-01 (substitui a US1, FR-003 e a emenda de 2026-09-29): o administrador
+  vem do `.env` (`ADMIN_EMAIL`, `ADMIN_SENHA_HASH` em argon2, `ADMIN_NOME` opcional) e é
+  criado ou alinhado a cada início da API — a "configuração de deploy" que a constituição já
+  permite. O `.env` sempre vence: e-mail ou senha novos derrubam as sessões; troca de senha e
+  edição de perfil do administrador pela API são recusadas (403 `conta_gerenciada_no_servidor`).
+  Os comandos `criar-admin` e `resetar-senha-admin` foram removidos; `hash-senha` gera o hash.
+  O `ADMIN_EMAIL` não pode ser de uma conta de usuário comum (a API não sobe).

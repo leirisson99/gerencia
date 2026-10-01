@@ -212,3 +212,33 @@ def test_rotas_de_admin_sao_so_estas(client: TestClient) -> None:
         f"{USUARIOS}/{{usuario_id}}/reativar",
         f"{USUARIOS}/{{usuario_id}}/reset-senha",
     ]
+
+
+# --- Conta do administrador vem do .env -------------------------------------------------------
+
+
+def test_admin_nao_troca_a_senha_pela_api(cliente_admin: TestClient) -> None:
+    troca = {"senha_atual": "segredoAdmin1", "nova_senha": "novaSenha123"}
+
+    resposta = cliente_admin.put("/api/v1/me/senha", json=troca)
+
+    assert resposta.status_code == 403
+    assert resposta.json()["erro"]["codigo"] == "conta_gerenciada_no_servidor"
+
+
+def test_admin_nao_edita_o_perfil_pela_api(cliente_admin: TestClient, admin: Usuario) -> None:
+    resposta = cliente_admin.patch("/api/v1/me", json={"nome": "Outro"})
+
+    assert resposta.status_code == 403
+    assert resposta.json()["erro"]["codigo"] == "conta_gerenciada_no_servidor"
+
+
+def test_admin_entra_com_a_senha_do_env(
+    admin: Usuario, novo_client: Callable[[], TestClient]
+) -> None:
+    login = {"email": "admin@exemplo.com", "senha": "segredoAdmin1"}
+
+    resposta = novo_client().post("/api/v1/auth/login", json=login)
+
+    assert resposta.status_code == 200
+    assert resposta.json()["troca_senha_obrigatoria"] is False

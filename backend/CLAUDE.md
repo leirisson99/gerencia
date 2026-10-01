@@ -109,7 +109,7 @@ uv run pytest
 uv run ruff check . && uv run ruff format .
 uv run alembic revision --autogenerate -m "mensagem"
 uv run alembic upgrade head
-uv run python -m app.cli criar-admin --nome ... --email ... --telefone ... --cargo ...   # único admin
+uv run python -m app.cli hash-senha   # gera ADMIN_SENHA_HASH; o admin único vem do .env (ADMIN_EMAIL, ADMIN_SENHA_HASH) a cada início
 ```
 
 ## Convenções

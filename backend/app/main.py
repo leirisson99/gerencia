@@ -1,5 +1,6 @@
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +20,12 @@ from app.api.routes import (
     servicos,
 )
 from app.config import Settings, get_settings
+from app.db import SessionLocal
 from app.erros import registrar_tratadores, resposta_erro
+from app.relogio import Relogio
+from app.services.admin import sincronizar_administrador
+
+logger = logging.getLogger(__name__)
 
 METODOS_COM_CORPO = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -46,8 +52,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     # Só o nível: nunca registrar corpo, cookies ou dados pessoais.
     logging.basicConfig(level=settings.log_level)
+    dados_admin = settings.admin()
 
-    app = FastAPI(title="Gerencia API", version="0.1.0")
+    @asynccontextmanager
+    async def ciclo_de_vida(_: FastAPI) -> AsyncIterator[None]:
+        # O administrador vem do .env: criado ou alinhado a cada início; sem ele, não há admin.
+        if dados_admin is not None:
+            with SessionLocal() as db:
+                resultado = sincronizar_administrador(db, dados_admin, Relogio().agora_utc())
+            logger.info("Administrador do .env: %s", resultado)
+        yield
+
+    app = FastAPI(title="Gerencia API", version="0.1.0", lifespan=ciclo_de_vida)
     registrar_tratadores(app)
     app.middleware("http")(exigir_json)
     app.add_middleware(

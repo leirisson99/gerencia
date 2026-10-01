@@ -1,15 +1,29 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
-from app.schemas.usuario import DadosPessoaisIn
+from app.domain.usuario import MAX_NOME, limpar_texto, normalizar_email
 
 SituacaoConta = Literal["ativos", "desativados"]
 
 
-class DadosAdmin(DadosPessoaisIn):
-    """Dados do comando criar-admin; a senha é sempre gerada."""
+class DadosAdmin(BaseModel):
+    """O administrador como vem do .env (ADMIN_NOME, ADMIN_EMAIL, ADMIN_SENHA_HASH)."""
+
+    nome: str
+    email: str
+    senha_hash: str
+
+    @field_validator("nome")
+    @classmethod
+    def _nome(cls, valor: str) -> str:
+        return limpar_texto(valor, MAX_NOME)
+
+    @field_validator("email")
+    @classmethod
+    def _email(cls, valor: str) -> str:
+        return normalizar_email(valor)
 
 
 class UsuarioAdminOut(BaseModel):
