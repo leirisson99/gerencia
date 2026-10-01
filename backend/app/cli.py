@@ -5,10 +5,13 @@ Uso:
   uv run python -m app.cli gerar-chaves-vapid  # gera as chaves do push (VAPID_*) do .env
   uv run python -m app.cli enviar-lembretes    # envia o resumo do dia (cron, 8h de São Paulo)
   uv run python -m app.cli testar-login EMAIL  # entra na API pedindo a senha (--api URL)
+  uv run python -m app.cli popular-demo        # cria as contas de demonstração (--api URL,
+                                               # --so ana|carlos, --sufixo v04; senha em DEMO_SENHA)
 """
 
 import argparse
 import json
+import os
 import sys
 from collections.abc import Callable
 from getpass import getpass
@@ -23,6 +26,7 @@ from py_vapid.utils import b64urlencode
 
 from app.config import get_settings
 from app.db import SessionLocal
+from app.demo import PERSONAS, ErroDemo
 from app.domain.usuario import validar_senha
 from app.relogio import Relogio
 from app.services.envio_lembrete import enviar_lembretes_do_dia
@@ -120,6 +124,42 @@ def _testar_login(args: argparse.Namespace) -> int:
     return 0
 
 
+def _popular_demo(args: argparse.Namespace) -> int:
+    """Cria Ana (CLT) e Carlos (prestador) com dados para gravar os vídeos.
+    Conta que já existe é pulada: rodar de novo não duplica nada. Com --sufixo, cria
+    contas novas (ana.demo+SUFIXO@...), para regravar um vídeo a partir do zero."""
+    # DEMO_SENHA deixa o gravador de vídeos rodar sem ninguém digitar.
+    senha = os.environ.get("DEMO_SENHA") or getpass("Senha das contas de demonstração: ")
+    try:
+        validar_senha(senha)
+    except ValueError as erro:
+        print(erro, file=sys.stderr)
+        return 1
+
+    hoje = Relogio().hoje_sp()
+    nomes = [args.so] if args.so else list(PERSONAS)
+    for nome in nomes:
+        conta, popular = PERSONAS[nome]
+        if args.sufixo:
+            conta = conta.com_sufixo(args.sufixo)
+        # Uma sessão por conta: o cadastro já deixa o cookie no próprio opener.
+        abrir = build_opener(HTTPCookieProcessor(CookieJar())).open
+
+        def chamar(metodo: str, caminho: str, corpo: object = None) -> tuple[int, Any]:
+            return _requisitar(abrir, metodo, f"{args.api}{caminho}", corpo)  # noqa: B023
+
+        try:
+            criada = popular(chamar, hoje, senha, conta)
+        except OSError as erro:
+            print(f"Não foi possível falar com a API em {args.api}: {erro}", file=sys.stderr)
+            return 1
+        except ErroDemo as erro:
+            print(f"{conta.email}: {erro}", file=sys.stderr)
+            return 1
+        print(f"{conta.email}: {'criada' if criada else 'já existia, pulei'}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m app.cli")
     comandos = parser.add_subparsers(dest="comando", required=True)
@@ -137,6 +177,12 @@ def main(argv: list[str] | None = None) -> int:
     testar.add_argument("email")
     testar.add_argument("--api", default="http://localhost:8000")
     testar.set_defaults(executar=_testar_login)
+
+    demo = comandos.add_parser("popular-demo", help="cria as contas de demonstração")
+    demo.add_argument("--api", default="http://localhost:8000")
+    demo.add_argument("--so", choices=["ana", "carlos"], help="cria só esta conta")
+    demo.add_argument("--sufixo", help="e-mail ana.demo+SUFIXO@...: conta nova para regravar")
+    demo.set_defaults(executar=_popular_demo)
 
     args = parser.parse_args(argv)
     return args.executar(args)
