@@ -14,6 +14,7 @@ dependencies = [
     "argon2-cffi",
     "email-validator",
     "pdfplumber>=0.11.10",
+    "pywebpush>=2.5",
 ]
 
 [dependency-groups]

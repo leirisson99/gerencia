@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     cookie_secure: bool = True
     sessao_dias_inatividade: int = 30
     log_level: str = "INFO"
+    # Push (Web Push/VAPID). Sem as chaves, as notificações ficam desligadas.
+    vapid_chave_publica: str | None = None
+    vapid_chave_privada: str | None = None
+    vapid_contato: str | None = None
     # Administrador único, sincronizado a cada inicialização: o .env sempre vence.
     admin_nome: str = "Administrador"
     admin_email: str | None = None
