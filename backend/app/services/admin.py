@@ -1,24 +1,38 @@
-from datetime import date, datetime
-from typing import Literal
+from datetime import date, datetime, timedelta
+from typing import Any, Literal
 
-from sqlalchemy import Date, cast, delete, func, or_, select
+from sqlalchemy import Date, cast, delete, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.domain.painel import ranking_formas, serie_mensal, ultimos_meses
 from app.erros import ErroApi
-from app.models import AcaoAdmin, Divida, Lancamento, Sessao, Usuario
+from app.models import (
+    AcaoAdmin,
+    Cartela,
+    Divida,
+    Lancamento,
+    Recorrencia,
+    Servico,
+    Sessao,
+    Usuario,
+)
 from app.models.acao_admin import ACAO_DESATIVAR_CONTA, ACAO_REATIVAR_CONTA, ACAO_RESET_SENHA
 from app.models.lancamento import STATUS_REALIZADO
 from app.models.usuario import PAPEL_ADMIN, PAPEL_USUARIO
+from app.relogio import SAO_PAULO
 from app.schemas.admin import (
+    CadastrosMesOut,
     ContasOut,
     DadosAdmin,
+    EngajamentoOut,
     FormaOut,
     LancamentosOut,
     MesOut,
     ResumoAdminOut,
     SituacaoConta,
+    TiposRendaOut,
+    UsoFuncionalidadeOut,
 )
 from app.services.senha import gerar_senha_temporaria, hash_senha
 
@@ -153,17 +167,58 @@ def definir_ativo(
     return usuario
 
 
-def obter_resumo(db: Session, hoje: date) -> ResumoAdminOut:
+def _contas(coluna_usuario: Any, *filtros: Any) -> Any:
+    """Quantas contas distintas aparecem na coluna, como subconsulta escalar."""
+    return select(func.count(func.distinct(coluna_usuario))).where(*filtros).scalar_subquery()
+
+
+def _uso_funcionalidades(db: Session) -> list[UsoFuncionalidadeOut]:
+    """Contas distintas que usam cada funcionalidade, numa consulta só."""
+    recorrencias, dividas, cartelas, servicos, importacao = db.execute(
+        select(
+            _contas(Recorrencia.usuario_id),
+            _contas(Divida.usuario_id),
+            _contas(Cartela.usuario_id),
+            _contas(Servico.usuario_id),
+            _contas(Lancamento.usuario_id, Lancamento.id_externo.is_not(None)),
+        )
+    ).one()
+    return [
+        UsoFuncionalidadeOut(funcionalidade="recorrencias", contas=recorrencias),
+        UsoFuncionalidadeOut(funcionalidade="dividas", contas=dividas),
+        UsoFuncionalidadeOut(funcionalidade="cartelas", contas=cartelas),
+        UsoFuncionalidadeOut(funcionalidade="servicos", contas=servicos),
+        UsoFuncionalidadeOut(funcionalidade="importacao", contas=importacao),
+    ]
+
+
+def obter_resumo(db: Session, agora: datetime) -> ResumoAdminOut:
     """Contagens globais de uso. Nunca soma valores nem agrupa por usuário."""
-    total, ativas = db.execute(
-        select(func.count(), func.count().filter(Usuario.ativo)).where(
-            Usuario.papel == PAPEL_USUARIO
+    hoje = agora.astimezone(SAO_PAULO).date()
+    comum = Usuario.papel == PAPEL_USUARIO
+    total, ativas, ativas_7, ativas_30, com_lancamento = db.execute(
+        select(
+            func.count(),
+            func.count().filter(Usuario.ativo),
+            func.count().filter(Usuario.ultimo_acesso_em >= agora - timedelta(days=7)),
+            func.count().filter(Usuario.ultimo_acesso_em >= agora - timedelta(days=30)),
+            func.count().filter(exists().where(Lancamento.usuario_id == Usuario.id)),
+        ).where(comum)
+    ).one()
+
+    lancamentos, realizados, importados = db.execute(
+        select(
+            func.count(),
+            func.count().filter(Lancamento.status == STATUS_REALIZADO),
+            func.count().filter(Lancamento.id_externo.is_not(None)),
         )
     ).one()
 
-    lancamentos, realizados = db.execute(
-        select(func.count(), func.count().filter(Lancamento.status == STATUS_REALIZADO))
-    ).one()
+    tipos: dict[str, int] = dict(
+        db.execute(
+            select(Usuario.tipo_renda, func.count()).where(comum).group_by(Usuario.tipo_renda)
+        ).all()
+    )
 
     meses = ultimos_meses(hoje, MESES_NO_RESUMO)
     ultimo = meses[-1]
@@ -179,6 +234,18 @@ def obter_resumo(db: Session, hoje: date) -> ResumoAdminOut:
         .group_by(mes, Lancamento.tipo)
     ).all()
 
+    # Mês do cadastro no horário de São Paulo, na mesma janela do gráfico de movimentações.
+    mes_cadastro = cast(
+        func.date_trunc("month", func.timezone(SAO_PAULO.key, Usuario.criado_em)), Date
+    )
+    cadastros: dict[date, int] = dict(
+        db.execute(
+            select(mes_cadastro, func.count())
+            .where(comum, mes_cadastro >= meses[0], mes_cadastro < fim)
+            .group_by(mes_cadastro)
+        ).all()
+    )
+
     formas = db.execute(
         select(Divida.forma_pagamento, func.count()).group_by(Divida.forma_pagamento)
     ).all()
@@ -186,7 +253,11 @@ def obter_resumo(db: Session, hoje: date) -> ResumoAdminOut:
     return ResumoAdminOut(
         contas=ContasOut(total=total, ativas=ativas, desativadas=total - ativas),
         lancamentos=LancamentosOut(
-            total=lancamentos, realizados=realizados, previstos=lancamentos - realizados
+            total=lancamentos,
+            realizados=realizados,
+            previstos=lancamentos - realizados,
+            importados=importados,
+            manuais=lancamentos - importados,
         ),
         por_mes=[
             MesOut(mes=m.strftime("%Y-%m"), entradas=entradas, saidas=saidas)
@@ -195,4 +266,16 @@ def obter_resumo(db: Session, hoje: date) -> ResumoAdminOut:
         dividas_por_forma=[
             FormaOut(forma=forma, quantidade=n) for forma, n in ranking_formas(dict(formas))
         ],
+        cadastros_por_mes=[
+            CadastrosMesOut(mes=m.strftime("%Y-%m"), quantidade=cadastros.get(m, 0)) for m in meses
+        ],
+        engajamento=EngajamentoOut(
+            ativas_7_dias=ativas_7, ativas_30_dias=ativas_30, com_lancamento=com_lancamento
+        ),
+        uso_funcionalidades=_uso_funcionalidades(db),
+        por_tipo_renda=TiposRendaOut(
+            clt=tipos.get("clt", 0),
+            prestador=tipos.get("prestador", 0),
+            clt_prestador=tipos.get("clt_prestador", 0),
+        ),
     )

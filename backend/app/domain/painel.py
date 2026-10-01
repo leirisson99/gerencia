@@ -1,7 +1,9 @@
 """Regras puras do resumo do administrador: só contagens, nunca valores."""
 
 from collections.abc import Mapping
-from datetime import date
+from datetime import date, datetime
+
+from app.relogio import SAO_PAULO
 
 FORMAS_PAGAMENTO = ("pix", "boleto", "cartao", "dinheiro")
 
@@ -30,3 +32,10 @@ def ranking_formas(contagens: Mapping[str, int]) -> list[tuple[str, int]]:
         ((forma, contagens.get(forma, 0)) for forma in FORMAS_PAGAMENTO),
         key=lambda item: -item[1],
     )
+
+
+def precisa_registrar_acesso(ultimo_acesso: datetime | None, agora: datetime) -> bool:
+    """Grava o último acesso no máximo uma vez por dia (São Paulo): só a data importa."""
+    if ultimo_acesso is None:
+        return True
+    return ultimo_acesso.astimezone(SAO_PAULO).date() != agora.astimezone(SAO_PAULO).date()

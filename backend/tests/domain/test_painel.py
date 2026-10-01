@@ -1,6 +1,13 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
-from app.domain.painel import ranking_formas, serie_mensal, ultimos_meses
+import pytest
+
+from app.domain.painel import (
+    precisa_registrar_acesso,
+    ranking_formas,
+    serie_mensal,
+    ultimos_meses,
+)
 
 HOJE = date(2026, 9, 30)
 
@@ -61,3 +68,24 @@ class TestRankingFormas:
 
     def test_sem_dividas(self) -> None:
         assert ranking_formas({}) == [("pix", 0), ("boleto", 0), ("cartao", 0), ("dinheiro", 0)]
+
+
+class TestPrecisaRegistrarAcesso:
+    def test_primeiro_acesso(self) -> None:
+        assert precisa_registrar_acesso(None, datetime(2026, 10, 1, 12, tzinfo=UTC))
+
+    def test_mesmo_dia_em_sao_paulo_nao_grava_de_novo(self) -> None:
+        # 03:01 e 23:59 UTC são o mesmo dia 1º em São Paulo (UTC-3).
+        ultimo = datetime(2026, 10, 1, 3, 1, tzinfo=UTC)
+        assert not precisa_registrar_acesso(ultimo, datetime(2026, 10, 1, 23, 59, tzinfo=UTC))
+
+    @pytest.mark.parametrize(
+        ("ultimo", "agora"),
+        [
+            # 02:59 UTC ainda é dia 30 em São Paulo; 03:00 já é dia 1º.
+            (datetime(2026, 10, 1, 2, 59, tzinfo=UTC), datetime(2026, 10, 1, 3, 0, tzinfo=UTC)),
+            (datetime(2026, 9, 1, 15, tzinfo=UTC), datetime(2026, 10, 1, 15, tzinfo=UTC)),
+        ],
+    )
+    def test_outro_dia_em_sao_paulo_grava(self, ultimo: datetime, agora: datetime) -> None:
+        assert precisa_registrar_acesso(ultimo, agora)

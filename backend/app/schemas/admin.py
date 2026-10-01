@@ -52,6 +52,8 @@ class LancamentosOut(BaseModel):
     total: int
     realizados: int
     previstos: int
+    importados: int  # vieram de extrato (id_externo preenchido)
+    manuais: int
 
 
 class MesOut(BaseModel):
@@ -65,6 +67,31 @@ class FormaOut(BaseModel):
     quantidade: int
 
 
+class CadastrosMesOut(BaseModel):
+    mes: str  # AAAA-MM
+    quantidade: int
+
+
+class EngajamentoOut(BaseModel):
+    ativas_7_dias: int
+    ativas_30_dias: int
+    com_lancamento: int
+
+
+Funcionalidade = Literal["recorrencias", "dividas", "cartelas", "servicos", "importacao"]
+
+
+class UsoFuncionalidadeOut(BaseModel):
+    funcionalidade: Funcionalidade
+    contas: int  # contas distintas que usam
+
+
+class TiposRendaOut(BaseModel):
+    clt: int
+    prestador: int
+    clt_prestador: int
+
+
 class ResumoAdminOut(BaseModel):
     """Só contagens somadas entre todos os usuários: nenhum valor, nenhum usuário."""
 
@@ -72,3 +99,7 @@ class ResumoAdminOut(BaseModel):
     lancamentos: LancamentosOut
     por_mes: list[MesOut]
     dividas_por_forma: list[FormaOut]
+    cadastros_por_mes: list[CadastrosMesOut]
+    engajamento: EngajamentoOut
+    uso_funcionalidades: list[UsoFuncionalidadeOut]
+    por_tipo_renda: TiposRendaOut

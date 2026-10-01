@@ -13,7 +13,7 @@ ALVO: dict[int | str, dict[str, object]] = {**ACESSO, 404: {"model": ErroOut}}
 
 @router.get("/resumo", responses=ACESSO)
 def resumo(admin: AdministradorDep, db: Db, relogio: RelogioDep) -> ResumoAdminOut:
-    return obter_resumo(db, relogio.hoje_sp())
+    return obter_resumo(db, relogio.agora_utc())
 
 
 @router.get("/usuarios", responses=ACESSO)
