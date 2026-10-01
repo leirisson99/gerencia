@@ -17,6 +17,8 @@ import type { Categoria, Lancamento, LancamentoComAviso, LancamentoIn } from "@/
 import { acharSalario, eSalario } from "@/lib/categorias"
 import { VALOR_MAXIMO, hojeSaoPaulo } from "@/lib/format"
 import { aplicarErroApi } from "@/lib/forms"
+import { ehPrestador, temServicos } from "@/lib/tipo-renda"
+import { useTipoRenda } from "@/features/tipo-renda/contexto"
 
 const MAX_DESCRICAO = 200
 
@@ -60,6 +62,12 @@ export function FormLancamento({
   const eParcela = lancamento?.divida_id != null
   // No depósito de cartela só data e descrição mudam; o resto sai da casa (a API recusa com 422).
   const eDeposito = lancamento?.cartela_id != null
+  // Entrada de serviço: só a descrição muda aqui; o resto é pelo serviço (a API recusa com 422).
+  // Como na API, a trava só vale enquanto o tipo de renda dá acesso a serviços.
+  const tipoRenda = useTipoRenda()
+  const eServico = lancamento?.servico_id != null && temServicos(tipoRenda)
+  // Para o prestador, Salário é uma entrada comum: pode ser prevista e ter data futura.
+  const salarioAbreCiclo = !ehPrestador(tipoRenda)
 
   const form = useForm<Valores>({
     resolver: zodResolver(esquema),
@@ -81,13 +89,16 @@ export function FormLancamento({
   })
   const { errors, isSubmitting, isDirty } = form.formState
   const categoriaEscolhida = useWatch({ control: form.control, name: "categoria_id" })
-  const escolheuSalario = salario !== undefined && categoriaEscolhida === String(salario.id)
+  const escolheuSalario =
+    salarioAbreCiclo && salario !== undefined && categoriaEscolhida === String(salario.id)
 
   function aoEscolherCategoria(valor: string) {
     if (salario && valor === String(salario.id)) {
-      // Salário é lançado quando entra: nunca previsto nem com data futura.
-      form.setValue("previsto", false)
-      if (form.getValues("data") > hoje) form.setValue("data", hoje)
+      // Salário que abre ciclo é lançado quando entra: nunca previsto nem com data futura.
+      if (salarioAbreCiclo) {
+        form.setValue("previsto", false)
+        if (form.getValues("data") > hoje) form.setValue("data", hoje)
+      }
       if (!lancamento && form.getValues("valor") === 0 && sugestaoSalario) {
         form.setValue("valor", sugestaoSalario)
       }
@@ -110,11 +121,13 @@ export function FormLancamento({
     try {
       if (!lancamento) return aoConcluir(await criarLancamento(dados))
       const { categoria_id, ...semCategoria } = dados
-      const mudancas = eDeposito
-        ? { data: dados.data, descricao: dados.descricao }
-        : eParcela
-          ? semCategoria
-          : { ...semCategoria, categoria_id }
+      const mudancas = eServico
+        ? { descricao: dados.descricao }
+        : eDeposito
+          ? { data: dados.data, descricao: dados.descricao }
+          : eParcela
+            ? semCategoria
+            : { ...semCategoria, categoria_id }
       aoConcluir(await editarLancamento(lancamento.id, mudancas))
     } catch (erro) {
       setErroGeral(
@@ -135,9 +148,15 @@ export function FormLancamento({
           render={({ field }) => (
             <CampoValor
               label="Valor"
-              autoFocus={!eDeposito}
-              disabled={eDeposito}
-              descricao={eDeposito ? "Depósito da cartela. Para mudar o valor, desmarque a casa na cartela." : undefined}
+              autoFocus={!eDeposito && !eServico}
+              disabled={eDeposito || eServico}
+              descricao={
+                eDeposito
+                  ? "Depósito da cartela. Para mudar o valor, desmarque a casa na cartela."
+                  : eServico
+                    ? "Entrada de um serviço. Valor, data e recebimento mudam pelo serviço."
+                    : undefined
+              }
               erro={errors.valor?.message}
               name={field.name}
               ref={field.ref}
@@ -162,7 +181,7 @@ export function FormLancamento({
                 field.onChange(valor)
                 aoEscolherCategoria(valor)
               }}
-              disabled={eParcela || eDeposito}
+              disabled={eParcela || eDeposito || eServico}
               descricao={
                 eParcela
                   ? `Parcela ${lancamento?.parcela_num} de uma dívida: a categoria vem da dívida.`
@@ -179,6 +198,7 @@ export function FormLancamento({
           label="Data"
           type="date"
           max={escolheuSalario ? hoje : undefined}
+          readOnly={eServico}
           descricao={escolheuSalario ? "O salário abre um ciclo nesta data." : undefined}
           erro={errors.data?.message}
           {...form.register("data")}
@@ -193,7 +213,7 @@ export function FormLancamento({
           {...form.register("descricao")}
         />
 
-        {!escolheuSalario && !eDeposito && (
+        {!escolheuSalario && !eDeposito && !eServico && (
           <Controller
             control={form.control}
             name="previsto"

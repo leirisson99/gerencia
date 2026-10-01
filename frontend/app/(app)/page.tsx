@@ -4,7 +4,7 @@ import { cn } from "cn"
 
 import { BarraProgresso } from "@/components/dados/barra-progresso"
 import { Button } from "@/components/ui/button"
-import { periodoCiclo } from "@/features/ciclo/navegacao-ciclo"
+import { periodoCiclo, tituloCiclo } from "@/features/ciclo/navegacao-ciclo"
 import { Atalhos, SaldoDestaque } from "@/features/dashboard/mobile"
 import { Bloco, Indicador } from "@/features/dashboard/bloco"
 import { ListaLancamentos } from "@/features/lancamentos/lista-lancamentos"
@@ -17,21 +17,29 @@ import {
   obterCiclo,
   obterResumo,
   obterSugestaoSalario,
+  obterTipoRenda,
 } from "@/lib/api/server"
 import { acharSalario } from "@/lib/categorias"
 import { diasEntre, formatarCentavos, hojeSaoPaulo } from "@/lib/format"
+import { ehPrestador, nomeCiclo } from "@/lib/tipo-renda"
 
 export const metadata: Metadata = { title: "Dashboard" }
 
 const ULTIMOS = 8
 
-/** Página inicial: quanto entrou, para onde foi e quanto sobrou no ciclo atual, na largura toda. */
+/**
+ * Página inicial: quanto entrou, para onde foi e quanto sobrou no ciclo atual, na largura toda.
+ * Para o prestador o ciclo é o mês, que sempre existe.
+ */
 export default async function DashboardPage() {
-  const [ciclo, categorias, sugestaoSalario] = await Promise.all([
+  const [ciclo, categorias, sugestaoSalario, tipoRenda] = await Promise.all([
     obterCiclo(),
     listarCategorias(),
     obterSugestaoSalario(),
+    obterTipoRenda(),
   ])
+  const mensal = ehPrestador(tipoRenda)
+  const nome = nomeCiclo(tipoRenda)
 
   if (!ciclo) {
     return (
@@ -63,6 +71,7 @@ export default async function DashboardPage() {
   const previstos = lancamentos.filter((l) => l.status === "previsto")
   const ultimos = realizados.slice(-ULTIMOS).reverse()
   const diaDoCiclo = diasEntre(ciclo.inicio, hojeSaoPaulo()) + 1
+  const periodo = periodoCiclo(ciclo, mensal)
 
   return (
     <section aria-labelledby="dashboard-titulo" className="flex flex-col md:block">
@@ -71,7 +80,9 @@ export default async function DashboardPage() {
           <h1 id="dashboard-titulo" className="text-title">
             Dashboard
           </h1>
-          <p className="valor mt-2 text-muted-foreground">Ciclo atual · {periodoCiclo(ciclo)}</p>
+          <p className="valor mt-2 text-muted-foreground">
+            {tituloCiclo(ciclo, mensal)} · {periodo}
+          </p>
         </div>
         <NovoLancamento categorias={categorias} sugestaoSalario={sugestaoSalario} />
       </div>
@@ -82,14 +93,15 @@ export default async function DashboardPage() {
           saldo={resumo.saldo}
           entradas={resumo.entradas}
           saidas={resumo.saidas}
-          periodo={periodoCiclo(ciclo)}
+          periodo={periodo}
           diaDoCiclo={diaDoCiclo}
+          nome={nome}
         />
         <Atalhos className="mt-6" />
       </div>
 
       <div className="mt-10 hidden gap-4 sm:grid-cols-2 md:grid xl:grid-cols-4">
-        <Bloco titulo="Saldo do ciclo" className="sm:col-span-2 xl:col-span-1">
+        <Bloco titulo={`Saldo do ${nome}`} className="sm:col-span-2 xl:col-span-1">
           <Indicador
             valor={formatarCentavos(resumo.saldo)}
             className={cn("text-display", resumo.saldo < 0 && "text-saida")}
@@ -102,7 +114,7 @@ export default async function DashboardPage() {
         <Bloco titulo="Saídas">
           <Indicador valor={formatarCentavos(resumo.saidas)} className="text-saida" />
         </Bloco>
-        <Bloco titulo="Dia do ciclo">
+        <Bloco titulo={`Dia do ${nome}`}>
           <Indicador
             valor={`${diaDoCiclo}º`}
             legenda={`${previstos.length} ${previstos.length === 1 ? "previsto pendente" : "previstos pendentes"}`}
@@ -116,7 +128,7 @@ export default async function DashboardPage() {
             totais={resumo.saidas_por_categoria}
             soma={resumo.saidas}
             tipo="saida"
-            vazio="Nenhuma saída realizada neste ciclo."
+            vazio={`Nenhuma saída realizada neste ${nome}.`}
           />
         </Bloco>
         <Bloco titulo="De onde veio">
@@ -124,7 +136,7 @@ export default async function DashboardPage() {
             totais={resumo.entradas_por_categoria}
             soma={resumo.entradas}
             tipo="entrada"
-            vazio="Nenhuma entrada realizada neste ciclo."
+            vazio={`Nenhuma entrada realizada neste ${nome}.`}
           />
         </Bloco>
         <Bloco
@@ -138,7 +150,7 @@ export default async function DashboardPage() {
         >
           {cartelas.length === 0 ? (
             <p className="py-6 text-muted-foreground">
-              Nenhuma cartela. O que sobrar do ciclo pode virar depósito numa meta.
+              Nenhuma cartela. O que sobrar do {nome} pode virar depósito numa meta.
             </p>
           ) : (
             <ul className="grid gap-4">
@@ -176,12 +188,12 @@ export default async function DashboardPage() {
             sugestaoSalario={sugestaoSalario}
           />
         </Bloco>
-        <Bloco titulo="Previstos do ciclo">
+        <Bloco titulo={`Previstos do ${nome}`}>
           <ListaLancamentos
             lancamentos={previstos}
             categorias={categorias}
             sugestaoSalario={sugestaoSalario}
-            vazio="Nada previsto neste ciclo."
+            vazio={`Nada previsto neste ${nome}.`}
           />
         </Bloco>
       </div>

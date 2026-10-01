@@ -1,5 +1,6 @@
 import "server-only"
 
+import { cache } from "react"
 import { cookies } from "next/headers"
 
 import { ApiError, requisitar } from "./client"
@@ -11,7 +12,9 @@ import type {
   Lancamento,
   Recorrencia,
   ResumoCiclo,
+  Servico,
   SugestaoSalario,
+  TipoRenda,
   Usuario,
   UsuarioAdmin,
 } from "./types"
@@ -26,11 +29,12 @@ async function buscar<T>(caminho: string): Promise<T> {
 
 /**
  * Busca o usuário da sessão no servidor, repassando o cookie do navegador.
- * Devolve `null` quando não há sessão válida.
+ * Devolve `null` quando não há sessão válida. Uma chamada por requisição, mesmo usada no layout
+ * e na página.
  */
-export async function obterUsuarioSessao(): Promise<
+export const obterUsuarioSessao = cache(async (): Promise<
   { usuario: Usuario; trocaObrigatoria: false } | { usuario: null; trocaObrigatoria: boolean }
-> {
+> => {
   const jar = await cookies()
   if (!jar.toString()) return { usuario: null, trocaObrigatoria: false }
 
@@ -46,10 +50,15 @@ export async function obterUsuarioSessao(): Promise<
     }
     throw erro
   }
+})
+
+/** Tipo de renda de quem está logado. Sem sessão o layout já redireciona; aqui vale `clt`. */
+export async function obterTipoRenda(): Promise<TipoRenda> {
+  return (await obterUsuarioSessao()).usuario?.tipo_renda ?? "clt"
 }
 
 /**
- * Ciclo que contém a data, ou o atual (aberto) sem data.
+ * Ciclo que contém a data, ou o atual (aberto) sem data. Para o prestador é o mês do calendário.
  * Devolve `null` quando não há ciclo: nenhum salário lançado ou data anterior ao primeiro.
  */
 export async function obterCiclo(data?: string): Promise<Ciclo | null> {
@@ -105,6 +114,11 @@ export async function obterDivida(id: number): Promise<Divida | null> {
 export function listarUsuariosAdmin(busca?: string) {
   const query = busca ? `?busca=${encodeURIComponent(busca)}` : ""
   return buscar<UsuarioAdmin[]>(`/admin/usuarios${query}`)
+}
+
+/** Por data prevista. Só para `prestador` e `clt_prestador`; os outros recebem 403. */
+export function listarServicos() {
+  return buscar<Servico[]>("/servicos")
 }
 
 export function listarCartelas() {

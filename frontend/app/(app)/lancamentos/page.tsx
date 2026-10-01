@@ -7,6 +7,7 @@ import {
   NavegacaoCiclo,
   NavegacaoCicloCompacta,
   periodoCiclo,
+  tituloCiclo,
 } from "@/features/ciclo/navegacao-ciclo"
 import { FiltroLancamentos } from "@/features/lancamentos/filtro-lancamentos"
 import { NovoLancamento } from "@/features/lancamentos/novo-lancamento"
@@ -16,26 +17,30 @@ import {
   obterCiclo,
   obterResumo,
   obterSugestaoSalario,
+  obterTipoRenda,
 } from "@/lib/api/server"
 import { acharSalario } from "@/lib/categorias"
 import { formatarCentavos } from "@/lib/format"
+import { ehPrestador } from "@/lib/tipo-renda"
 
 export const metadata: Metadata = { title: "Lançamentos" }
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/
 
-/** Ciclo atual, ou o de `?ciclo=YYYY-MM-DD`, com seus lançamentos. */
+/** Ciclo atual, ou o de `?ciclo=YYYY-MM-DD`, com seus lançamentos. Para o prestador, o mês. */
 export default async function LancamentosPage({ searchParams }: PageProps<"/lancamentos">) {
   const { ciclo: param } = await searchParams
   const dataCiclo = typeof param === "string" && DATA_ISO.test(param) ? param : undefined
   if (param !== undefined && !dataCiclo) redirect("/lancamentos")
 
-  const [ciclo, categorias, sugestaoSalario] = await Promise.all([
+  const [ciclo, categorias, sugestaoSalario, tipoRenda] = await Promise.all([
     obterCiclo(dataCiclo),
     listarCategorias(),
     obterSugestaoSalario(),
+    obterTipoRenda(),
   ])
   const salario = acharSalario(categorias)
+  const mensal = ehPrestador(tipoRenda)
 
   if (!ciclo) {
     // Data fora de qualquer ciclo: volta ao atual, que decide se há ciclo.
@@ -73,7 +78,7 @@ export default async function LancamentosPage({ searchParams }: PageProps<"/lanc
     <section aria-labelledby="ciclo-titulo">
       {/* Celular: pílula de navegação do ciclo e três números em cartões. Lançar fica na barra inferior. */}
       <div className="md:hidden">
-        <NavegacaoCicloCompacta ciclo={ciclo} />
+        <NavegacaoCicloCompacta ciclo={ciclo} mensal={mensal} />
         <dl className="valor mt-4 grid grid-cols-3 gap-2">
           <ResumoCartao titulo="Saldo" destaque>
             <span className={cn(resumo.saldo < 0 && "text-saida")}>
@@ -90,9 +95,9 @@ export default async function LancamentosPage({ searchParams }: PageProps<"/lanc
       <div className="hidden flex-wrap items-start justify-between gap-4 md:flex">
         <div>
           <h1 id="ciclo-titulo" className="text-title">
-            {ciclo.aberto ? "Ciclo atual" : "Ciclo encerrado"}
+            {tituloCiclo(ciclo, mensal)}
           </h1>
-          <p className="valor mt-2 text-muted-foreground">{periodoCiclo(ciclo)}</p>
+          <p className="valor mt-2 text-muted-foreground">{periodoCiclo(ciclo, mensal)}</p>
           <dl className="valor mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm">
             <div className="flex gap-2">
               <dt className="text-muted-foreground">Saldo</dt>
@@ -111,7 +116,7 @@ export default async function LancamentosPage({ searchParams }: PageProps<"/lanc
           </dl>
         </div>
         <div className="flex items-center gap-3">
-          <NavegacaoCiclo ciclo={ciclo} />
+          <NavegacaoCiclo ciclo={ciclo} mensal={mensal} />
           <NovoLancamento categorias={categorias} sugestaoSalario={sugestaoSalario} />
         </div>
       </div>

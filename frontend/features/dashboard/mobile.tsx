@@ -13,7 +13,7 @@ import {
 import { formatarCentavos } from "@/lib/format"
 
 /**
- * Cartão do topo do dashboard no celular: saldo do ciclo em destaque, com entradas e saídas logo
+ * Cartão do topo do dashboard no celular: saldo do ciclo (ou do mês) em destaque, com entradas e saídas logo
  * abaixo. Fundo invertido (preto no tema claro, branco no escuro) para ser o primeiro olhar.
  */
 export function SaldoDestaque({
@@ -22,19 +22,22 @@ export function SaldoDestaque({
   saidas,
   periodo,
   diaDoCiclo,
+  nome = "ciclo",
 }: {
   saldo: number
   entradas: number
   saidas: number
   periodo: string
   diaDoCiclo: number
+  /** "mês" para o prestador. */
+  nome?: "ciclo" | "mês"
 }) {
   return (
     <section
-      aria-label="Saldo do ciclo"
+      aria-label={`Saldo do ${nome}`}
       className="rounded-3xl bg-primary p-5 text-primary-foreground shadow-sm"
     >
-      <p className="text-center text-sm opacity-70">Saldo do ciclo</p>
+      <p className="text-center text-sm opacity-70">Saldo do {nome}</p>
       <p
         className={cn(
           "valor mt-1 text-center text-[2.5rem] leading-none font-semibold tracking-tight",
