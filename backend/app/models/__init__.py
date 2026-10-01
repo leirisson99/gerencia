@@ -20,6 +20,7 @@ from app.models.categoria import Categoria  # noqa: E402
 from app.models.divida import Divida  # noqa: E402
 from app.models.lancamento import Lancamento  # noqa: E402
 from app.models.recorrencia import Recorrencia  # noqa: E402
+from app.models.servico import Servico  # noqa: E402
 from app.models.sessao import Sessao  # noqa: E402
 from app.models.tentativa_login import TentativaLogin  # noqa: E402
 from app.models.usuario import Usuario  # noqa: E402
@@ -33,6 +34,7 @@ __all__ = [
     "Divida",
     "Lancamento",
     "Recorrencia",
+    "Servico",
     "Sessao",
     "TentativaLogin",
     "Usuario",

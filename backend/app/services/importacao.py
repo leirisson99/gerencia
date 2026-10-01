@@ -22,6 +22,7 @@ from app.domain.importacao import (
     sugerir_categoria,
     tipo_da_linha,
 )
+from app.domain.usuario import ciclo_pelo_mes
 from app.erros import MENSAGEM_VALIDACAO, ErroApi
 from app.models import Categoria, Lancamento
 from app.models.lancamento import STATUS_REALIZADO
@@ -37,7 +38,7 @@ from app.schemas.importacao import (
     ResumoPreviaOut,
 )
 from app.schemas.lancamento import MAX_DESCRICAO
-from app.services.ciclo import datas_de_salario, travar_escritas
+from app.services.ciclo import datas_de_salario, tipo_renda_do_usuario, travar_escritas
 from app.services.lancamento import erro_de_cobertura, menor_data_dos_outros
 from app.services.pdf import PdfSemTexto, linhas_do_pdf
 from app.services.recorrencia import gerar_previstos
@@ -153,7 +154,9 @@ def previa(db: Session, usuario_id: int, dados: PreviaIn) -> PreviaOut:
         return PreviaOut(linhas=[], resumo=ResumoPreviaOut())
 
     ids = ids_externos(banco.codigo, dados.formato, linhas)
-    salarios = datas_de_salario(db, usuario_id)
+    # No ciclo pelo mês (prestador), nenhuma linha fica antes do primeiro ciclo.
+    pelo_mes = ciclo_pelo_mes(tipo_renda_do_usuario(db, usuario_id))
+    salarios = [] if pelo_mes else datas_de_salario(db, usuario_id)
     situacoes = classificar(
         linhas,
         ids,
@@ -196,7 +199,9 @@ def _categorias_das_linhas(
     return categorias
 
 
-def _validar_linhas(dados: ImportacaoIn, categorias: dict[int, Categoria], hoje: date) -> None:
+def _validar_linhas(
+    dados: ImportacaoIn, categorias: dict[int, Categoria], hoje: date, pelo_mes: bool
+) -> None:
     erros: dict[str, str] = {}
     for i, linha in enumerate(dados.linhas):
         categoria = categorias[linha.categoria_id]
@@ -208,7 +213,7 @@ def _validar_linhas(dados: ImportacaoIn, categorias: dict[int, Categoria], hoje:
                 if linha.tipo == "entrada"
                 else "A linha é de saída; escolha uma categoria de saída."
             )
-        elif categoria.e_salario and linha.data > hoje:
+        elif not pelo_mes and categoria.e_salario and linha.data > hoje:
             erros[f"linhas.{i}.data"] = (
                 "O salário é lançado quando entra; a data não pode ser futura."
             )
@@ -219,9 +224,9 @@ def _validar_linhas(dados: ImportacaoIn, categorias: dict[int, Categoria], hoje:
 def confirmar(
     db: Session, usuario_id: int, dados: ImportacaoIn, agora: datetime, hoje: date
 ) -> ImportacaoOut:
-    travar_escritas(db, usuario_id)
+    pelo_mes = ciclo_pelo_mes(travar_escritas(db, usuario_id))
     categorias = _categorias_das_linhas(db, usuario_id, dados)
-    _validar_linhas(dados, categorias, hoje)
+    _validar_linhas(dados, categorias, hoje, pelo_mes)
 
     ja_importados = _ja_importados(db, usuario_id, [linha.id_externo for linha in dados.linhas])
     novas = []
@@ -230,15 +235,21 @@ def confirmar(
             ja_importados.add(linha.id_externo)  # repetida no próprio lote conta uma vez
             novas.append(linha)
 
-    salarios = datas_de_salario(db, usuario_id)
-    salarios_lote = [linha.data for linha in novas if categorias[linha.categoria_id].e_salario]
-    problema = cobertura_do_lote(
-        salarios,
-        menor_data_dos_outros(db, usuario_id, None),
-        [(categorias[linha.categoria_id].e_salario, linha.data) for linha in novas],
+    # Para o prestador, "Salário" não abre ciclo e não há cobertura a verificar.
+    salarios = [] if pelo_mes else datas_de_salario(db, usuario_id)
+    salarios_lote = (
+        []
+        if pelo_mes
+        else [linha.data for linha in novas if categorias[linha.categoria_id].e_salario]
     )
-    if problema:
-        raise erro_de_cobertura(problema, salarios + salarios_lote)
+    if not pelo_mes:
+        problema = cobertura_do_lote(
+            salarios,
+            menor_data_dos_outros(db, usuario_id, None),
+            [(categorias[linha.categoria_id].e_salario, linha.data) for linha in novas],
+        )
+        if problema:
+            raise erro_de_cobertura(problema, salarios + salarios_lote)
 
     lancamentos = [
         Lancamento(

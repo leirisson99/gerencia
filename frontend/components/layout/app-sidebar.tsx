@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   CalendarDaysIcon,
+  BriefcaseIcon,
   ChevronsUpDownIcon,
   HandCoinsIcon,
   LayoutDashboardIcon,
@@ -41,9 +42,17 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useSair } from "@/features/auth/use-sair"
-import type { Usuario } from "@/lib/api/types"
+import { useTipoRenda } from "@/features/tipo-renda/contexto"
+import type { TipoRenda, Usuario } from "@/lib/api/types"
+import { temServicos } from "@/lib/tipo-renda"
 
-type Item = { titulo: string; href: string; icone: LucideIcon }
+type Item = {
+  titulo: string
+  href: string
+  icone: LucideIcon
+  /** Só aparece para esses tipos de renda. */
+  visivel?: (tipo: TipoRenda) => boolean
+}
 type Grupo = { titulo: string; itens: Item[] }
 
 // Só páginas que já existem; novas entradas chegam junto com suas features.
@@ -62,6 +71,7 @@ const GRUPOS: Grupo[] = [
     itens: [
       { titulo: "Categorias", href: "/categorias", icone: TagsIcon },
       { titulo: "Recorrências", href: "/recorrencias", icone: RepeatIcon },
+      { titulo: "Serviços", href: "/servicos", icone: BriefcaseIcon, visivel: temServicos },
       { titulo: "Dívidas", href: "/dividas", icone: HandCoinsIcon },
       { titulo: "Cartelas", href: "/cartelas", icone: PiggyBankIcon },
     ],
@@ -80,6 +90,7 @@ function itemAtivo(href: string, pathname: string) {
 export function AppSidebar({ usuario }: { usuario: Pick<Usuario, "nome" | "email"> }) {
   const pathname = usePathname()
   const { isMobile, setOpenMobile } = useSidebar()
+  const tipoRenda = useTipoRenda()
 
   return (
     <Sidebar collapsible="icon">
@@ -100,7 +111,7 @@ export function AppSidebar({ usuario }: { usuario: Pick<Usuario, "nome" | "email
             <SidebarGroupLabel>{grupo.titulo}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {grupo.itens.map((item) => {
+                {grupo.itens.filter((item) => item.visivel?.(tipoRenda) ?? true).map((item) => {
                   const ativo = itemAtivo(item.href, pathname)
                   return (
                     <SidebarMenuItem key={item.href}>

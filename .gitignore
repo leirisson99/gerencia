@@ -1,0 +1,6 @@
+# Configuração local do Claude Code e das skills
+.claude/
+skills-lock.json
+
+# Projeto de vídeo (Remotion), fora do app
+video/

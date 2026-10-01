@@ -16,6 +16,7 @@ from app.api.routes import (
     lancamentos,
     me,
     recorrencias,
+    servicos,
 )
 from app.config import Settings, get_settings
 from app.erros import registrar_tratadores, resposta_erro
@@ -66,6 +67,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(dividas.router)
     app.include_router(cartelas.router)
     app.include_router(importacoes.router)
+    app.include_router(servicos.router)
     app.include_router(admin.router)
     return app
 

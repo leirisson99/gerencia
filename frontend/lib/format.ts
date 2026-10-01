@@ -102,3 +102,15 @@ export function formatarCentavosCurto(centavos: number): string {
   if (centavos % 100 !== 0) return formatarCentavos(centavos)
   return `R$ ${formatarCentavosCampo(centavos).slice(0, -3)}`
 }
+
+const moedaCompacta = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  notation: "compact",
+  maximumFractionDigits: 1,
+})
+
+/** Para eixo de gráfico: `123456` → `R$ 1,2 mil`. */
+export function formatarCentavosCompacto(centavos: number): string {
+  return moedaCompacta.format(centavos / 100)
+}

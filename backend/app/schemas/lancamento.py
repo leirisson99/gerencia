@@ -80,6 +80,7 @@ class LancamentoOut(BaseModel):
     divida_id: int | None
     parcela_num: int | None
     cartela_id: int | None
+    servico_id: int | None
     importado: bool  # veio de extrato (feature 011)
     criado_em: datetime
 

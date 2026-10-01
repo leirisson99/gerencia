@@ -16,7 +16,12 @@ def obter_me(auth: AutenticadoDep) -> UsuarioOut:
 
 @router.patch(
     "/me",
-    responses={401: {"model": ErroOut}, 403: {"model": ErroOut}, 422: {"model": ErroOut}},
+    responses={
+        401: {"model": ErroOut},
+        403: {"model": ErroOut},
+        409: {"model": ErroOut},  # troca de tipo de renda que deixaria lançamentos fora de ciclo
+        422: {"model": ErroOut},
+    },
 )
 def editar_me(dados: PerfilIn, auth: AutenticadoDep, db: Db, relogio: RelogioDep) -> UsuarioOut:
     usuario = atualizar_perfil(db, auth.usuario, dados, relogio.agora_utc(), relogio.hoje_sp())

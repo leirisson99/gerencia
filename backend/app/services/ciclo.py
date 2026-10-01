@@ -1,18 +1,47 @@
 from datetime import date
 
-from sqlalchemy import ColumnElement, and_, select
+from sqlalchemy import ColumnElement, and_, func, select
 from sqlalchemy.orm import Session
 
 from app.domain.categoria import NOME_SALARIO
-from app.domain.ciclo import Ciclo, ciclo_atual, ciclo_da_data
+from app.domain.ciclo import Ciclo, ciclo_atual, ciclo_da_data, ciclo_mensal
+from app.domain.usuario import ciclo_pelo_mes
 from app.erros import ErroApi
 from app.models import Categoria, Lancamento, Usuario
 from app.models.lancamento import STATUS_REALIZADO
 
 
-def travar_escritas(db: Session, usuario_id: int) -> None:
-    """Serializa as escritas que mexem nos ciclos do usuário (lançamentos e previstos)."""
-    db.execute(select(Usuario.id).where(Usuario.id == usuario_id).with_for_update())
+def travar_escritas(db: Session, usuario_id: int) -> str:
+    """Serializa as escritas que mexem nos ciclos do usuário (lançamentos e previstos).
+
+    Devolve o tipo de renda, lido sob o mesmo lock.
+    """
+    tipo = db.scalar(select(Usuario.tipo_renda).where(Usuario.id == usuario_id).with_for_update())
+    assert tipo is not None, "usuário autenticado existe"
+    return tipo
+
+
+def tipo_renda_do_usuario(db: Session, usuario_id: int) -> str:
+    tipo = db.scalar(select(Usuario.tipo_renda).where(Usuario.id == usuario_id))
+    assert tipo is not None, "usuário autenticado existe"
+    return tipo
+
+
+def primeira_data_lancamento(db: Session, usuario_id: int) -> date | None:
+    return db.scalar(select(func.min(Lancamento.data)).where(Lancamento.usuario_id == usuario_id))
+
+
+def ciclo_da_data_do_usuario(db: Session, usuario_id: int, data: date, hoje: date) -> Ciclo | None:
+    """Único ponto que decide a regra: mês do calendário (prestador) ou salário (os outros)."""
+    if ciclo_pelo_mes(tipo_renda_do_usuario(db, usuario_id)):
+        return ciclo_mensal(data, hoje, primeira_data_lancamento(db, usuario_id))
+    return ciclo_da_data(datas_de_salario(db, usuario_id), data)
+
+
+def ciclo_atual_do_usuario(db: Session, usuario_id: int, hoje: date) -> Ciclo | None:
+    if ciclo_pelo_mes(tipo_renda_do_usuario(db, usuario_id)):
+        return ciclo_mensal(hoje, hoje, primeira_data_lancamento(db, usuario_id))
+    return ciclo_atual(datas_de_salario(db, usuario_id))
 
 
 def condicao_salario() -> ColumnElement[bool]:
@@ -38,22 +67,22 @@ def datas_de_salario(db: Session, usuario_id: int, ignorar_id: int | None = None
     return list(db.scalars(consulta))
 
 
-def obter_ciclo_atual(db: Session, usuario_id: int) -> Ciclo:
-    ciclo = ciclo_atual(datas_de_salario(db, usuario_id))
+def obter_ciclo_atual(db: Session, usuario_id: int, hoje: date) -> Ciclo:
+    ciclo = ciclo_atual_do_usuario(db, usuario_id, hoje)
     if ciclo is None:
         raise ErroApi(404, "sem_ciclo", "Lance seu salário para abrir o primeiro ciclo.")
     return ciclo
 
 
-def obter_ciclo_da_data(db: Session, usuario_id: int, data: date) -> Ciclo:
-    ciclo = ciclo_da_data(datas_de_salario(db, usuario_id), data)
+def obter_ciclo_da_data(db: Session, usuario_id: int, data: date, hoje: date) -> Ciclo:
+    ciclo = ciclo_da_data_do_usuario(db, usuario_id, data, hoje)
     if ciclo is None:
         raise ErroApi(404, "sem_ciclo", "Não há ciclo nessa data.")
     return ciclo
 
 
-def lancamentos_do_ciclo(db: Session, usuario_id: int, data: date) -> list[Lancamento]:
-    return lancamentos_no_ciclo(db, usuario_id, obter_ciclo_da_data(db, usuario_id, data))
+def lancamentos_do_ciclo(db: Session, usuario_id: int, data: date, hoje: date) -> list[Lancamento]:
+    return lancamentos_no_ciclo(db, usuario_id, obter_ciclo_da_data(db, usuario_id, data, hoje))
 
 
 def lancamentos_no_ciclo(db: Session, usuario_id: int, ciclo: Ciclo) -> list[Lancamento]:

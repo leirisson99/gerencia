@@ -1,5 +1,8 @@
 // Espelham os schemas do backend em app/schemas/usuario.py e app/schemas/erro.py.
 
+/** Define a regra do ciclo (salário ou mês do calendário) e o acesso a Serviços. */
+export type TipoRenda = "clt" | "prestador" | "clt_prestador"
+
 export type Usuario = {
   id: number
   nome: string
@@ -11,6 +14,7 @@ export type Usuario = {
   troca_senha_obrigatoria: boolean
   /** Só o do próprio usuário. O administrador tem área própria e não vê dados financeiros. */
   papel: "usuario" | "admin"
+  tipo_renda: TipoRenda
   criado_em: string
 }
 
@@ -21,6 +25,8 @@ export type CadastroIn = {
   cargo: string
   senha: string
   data_nascimento?: string | null
+  /** A API usa `clt` quando ausente. */
+  tipo_renda?: TipoRenda
 }
 
 export type LoginIn = {
@@ -28,7 +34,7 @@ export type LoginIn = {
   senha: string
 }
 
-export type PerfilIn = Partial<Pick<Usuario, "nome" | "telefone" | "cargo" | "data_nascimento">>
+export type PerfilIn = Partial<Pick<Usuario, "nome" | "telefone" | "cargo" | "data_nascimento" | "tipo_renda">>
 
 export type TrocaSenhaIn = {
   senha_atual: string
@@ -85,6 +91,8 @@ export type Lancamento = {
   cartela_id: number | null
   /** Veio de extrato importado. */
   importado: boolean
+  /** Entrada de um serviço: valor, status, categoria e data mudam só pelo serviço. */
+  servico_id: number | null
   criado_em: string
 }
 
@@ -299,3 +307,40 @@ export type ResultadoImportacao = {
   ignoradas: number
   lancamento_ids: number[]
 }
+
+// Espelham app/schemas/servico.py. Valores em centavos inteiros.
+
+/** Derivada pela API: `recebido` se o lançamento está realizado; senão pela data prevista. */
+export type SituacaoServico = "a_receber" | "atrasado" | "recebido"
+
+export type Servico = {
+  id: number
+  cliente: string
+  descricao: string | null
+  /** Centavos, o combinado. */
+  valor: number
+  /** ISO `YYYY-MM-DD` */
+  data_prevista: string
+  categoria_id: number
+  lancamento_id: number
+  situacao: SituacaoServico
+  /** Só quando recebido. */
+  data_recebimento: string | null
+  valor_recebido: number | null
+  criado_em: string
+}
+
+/** A categoria é de entrada e não pode ser "Salário". */
+export type ServicoIn = {
+  cliente: string
+  descricao?: string | null
+  valor: number
+  data_prevista: string
+  categoria_id: number
+}
+
+/** Só enquanto não recebido. `descricao: null` remove a descrição. */
+export type ServicoPatch = Partial<ServicoIn>
+
+/** `valor` ausente: recebeu o valor combinado. A data não pode ser futura. */
+export type RecebimentoIn = { data: string; valor?: number }

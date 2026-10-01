@@ -4,6 +4,7 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   HandCoinsIcon,
+  PiggyBankIcon,
   RepeatIcon,
   TagsIcon,
   UploadIcon,
@@ -13,7 +14,7 @@ import {
 import { formatarCentavos } from "@/lib/format"
 
 /**
- * Cartão do topo do dashboard no celular: saldo do ciclo em destaque, com entradas e saídas logo
+ * Cartão do topo do dashboard no celular: saldo do ciclo (ou do mês) em destaque, com entradas e saídas logo
  * abaixo. Fundo invertido (preto no tema claro, branco no escuro) para ser o primeiro olhar.
  */
 export function SaldoDestaque({
@@ -22,19 +23,25 @@ export function SaldoDestaque({
   saidas,
   periodo,
   diaDoCiclo,
+  nome = "ciclo",
+  guardado,
 }: {
   saldo: number
   entradas: number
   saidas: number
   periodo: string
   diaDoCiclo: number
+  /** "mês" para o prestador. */
+  nome?: "ciclo" | "mês"
+  /** Total guardado nas cartelas. */
+  guardado?: number
 }) {
   return (
     <section
-      aria-label="Saldo do ciclo"
+      aria-label={`Saldo do ${nome}`}
       className="rounded-3xl bg-primary p-5 text-primary-foreground shadow-sm"
     >
-      <p className="text-center text-sm opacity-70">Saldo do ciclo</p>
+      <p className="text-center text-sm opacity-70">Saldo do {nome}</p>
       <p
         className={cn(
           "valor mt-1 text-center text-[2.5rem] leading-none font-semibold tracking-tight",
@@ -51,6 +58,22 @@ export function SaldoDestaque({
         <Movimento titulo="Entradas" valor={entradas} icone={ArrowDownIcon} />
         <Movimento titulo="Saídas" valor={saidas} icone={ArrowUpIcon} saida />
       </div>
+
+      {guardado !== undefined && (
+        <Link
+          href="/cartelas"
+          className="mt-3 flex items-center gap-3 rounded-2xl bg-primary-foreground/10 p-3 active:opacity-70"
+        >
+          <span
+            aria-hidden
+            className="flex size-7 items-center justify-center rounded-full bg-primary-foreground text-primary"
+          >
+            <PiggyBankIcon className="size-4" />
+          </span>
+          <span className="text-xs opacity-70">Poupança</span>
+          <span className="valor ml-auto font-semibold">{formatarCentavos(guardado)}</span>
+        </Link>
+      )}
     </section>
   )
 }

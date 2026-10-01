@@ -13,6 +13,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.domain.usuario import TIPO_CLT
 from app.models import Base
 
 PAPEL_USUARIO = "usuario"
@@ -24,6 +25,7 @@ class Usuario(Base):
     __tablename__ = "usuario"
     __table_args__ = (
         CheckConstraint("papel IN ('usuario', 'admin')", name="papel"),
+        CheckConstraint("tipo_renda IN ('clt', 'prestador', 'clt_prestador')", name="tipo_renda"),
         # Um único administrador por enquanto; remover o índice libera vários.
         Index(INDICE_ADMIN_UNICO, "papel", unique=True, postgresql_where=text("papel = 'admin'")),
     )
@@ -38,6 +40,8 @@ class Usuario(Base):
     papel: Mapped[str] = mapped_column(
         String(10), default=PAPEL_USUARIO, server_default=PAPEL_USUARIO
     )
+    # Define a regra do ciclo (domain/usuario.py: ciclo_pelo_mes).
+    tipo_renda: Mapped[str] = mapped_column(String(13), default=TIPO_CLT, server_default=TIPO_CLT)
     troca_senha_obrigatoria: Mapped[bool] = mapped_column(default=False, server_default=false())
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     atualizado_em: Mapped[datetime] = mapped_column(

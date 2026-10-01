@@ -32,6 +32,7 @@ def test_ve_os_proprios_dados_sem_senha(client: TestClient, logado: Usuario) -> 
         "data_nascimento": "1995-03-15",
         "troca_senha_obrigatoria": False,
         "papel": "usuario",
+        "tipo_renda": "clt",
         "criado_em": corpo["criado_em"],
     }
 
@@ -124,3 +125,23 @@ def test_editar_bloqueado_com_troca_obrigatoria(
 
     assert resposta.status_code == 403
     assert resposta.json()["erro"]["codigo"] == "troca_senha_obrigatoria"
+
+
+def test_troca_clt_para_clt_prestador(client: TestClient, logado: Usuario) -> None:
+    # US1.5
+    resposta = client.patch(URL, json={"tipo_renda": "clt_prestador"})
+
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo_renda"] == "clt_prestador"
+    assert client.get(URL).json()["tipo_renda"] == "clt_prestador"
+
+
+@pytest.mark.parametrize("valor", [None, "autonomo", ""])
+def test_recusa_tipo_de_renda_invalido(
+    client: TestClient, logado: Usuario, valor: str | None
+) -> None:
+    resposta = client.patch(URL, json={"tipo_renda": valor})
+
+    assert resposta.status_code == 422
+    assert "tipo_renda" in resposta.json()["erro"]["campos"]
+    assert client.get(URL).json()["tipo_renda"] == "clt"

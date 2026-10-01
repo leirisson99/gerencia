@@ -3,10 +3,13 @@
 import { useState } from "react"
 import Link from "next/link"
 import { cn } from "cn"
-import { ArrowDownIcon, ArrowUpIcon } from "lucide-react"
+import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
+import { useTipoRenda } from "@/features/tipo-renda/contexto"
 import type { Categoria, Lancamento } from "@/lib/api/types"
 import { formatarCentavos, formatarDiaMes } from "@/lib/format"
+import { temServicos } from "@/lib/tipo-renda"
 import { ConfirmarPrevisto } from "./confirmar-previsto"
 import { DialogLancamento } from "./dialog-lancamento"
 import { ExcluirLancamento } from "./excluir-lancamento"
@@ -22,6 +25,8 @@ type Props = {
   rotuloConfirmar?: string
   /** Esconde a coluna de data quando a lista já é de um único dia. */
   semData?: boolean
+  /** Mostra os lançamentos em páginas deste tamanho, com navegação no rodapé. Sem ele, todos. */
+  porPagina?: number
 }
 
 /** Lançamentos na ordem recebida. Clicar num item abre a edição; previstos têm confirmação rápida. */
@@ -32,11 +37,18 @@ export function ListaLancamentos({
   vazio = "Nenhum lançamento neste ciclo.",
   rotuloConfirmar,
   semData = false,
+  porPagina,
 }: Props) {
   const [aberto, setAberto] = useState(false)
   // Continua preenchido enquanto o dialog fecha, para o conteúdo não trocar na animação.
   const [editando, setEditando] = useState<Lancamento | null>(null)
   const nomes = new Map(categorias.map((c) => [c.id, c.nome]))
+  const comServicos = temServicos(useTipoRenda())
+  const [paginaPedida, setPagina] = useState(0)
+  const totalPaginas = porPagina ? Math.max(1, Math.ceil(lancamentos.length / porPagina)) : 1
+  // Se a lista encolher (previsto confirmado, lançamento excluído), fica na última página que existe.
+  const pagina = Math.min(paginaPedida, totalPaginas - 1)
+  const visiveis = porPagina ? lancamentos.slice(pagina * porPagina, (pagina + 1) * porPagina) : lancamentos
 
   if (lancamentos.length === 0) {
     return <p className="border-t py-8 text-muted-foreground">{vazio}</p>
@@ -45,7 +57,7 @@ export function ListaLancamentos({
   return (
     <>
       <ul className="border-t">
-        {lancamentos.map((l) => {
+        {visiveis.map((l) => {
           const categoria = nomes.get(l.categoria_id) ?? "Sem categoria"
           const previsto = l.status === "previsto"
           const detalhes = [
@@ -54,6 +66,7 @@ export function ListaLancamentos({
             l.recorrencia_id != null && "fixo",
             l.parcela_num != null && `parcela ${l.parcela_num}`,
             l.cartela_id != null && "cartela",
+            l.servico_id != null && "serviço",
             previsto && "previsto",
           ].filter(Boolean)
           return (
@@ -125,6 +138,35 @@ export function ListaLancamentos({
         })}
       </ul>
 
+      {porPagina && totalPaginas > 1 && (
+        <nav aria-label="Páginas" className="mt-3 flex items-center justify-between gap-2 text-sm">
+          <span className="valor text-muted-foreground">
+            {pagina * porPagina + 1}–{Math.min((pagina + 1) * porPagina, lancamentos.length)} de{" "}
+            {lancamentos.length}
+          </span>
+          <span className="flex gap-1">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Página anterior"
+              disabled={pagina === 0}
+              onClick={() => setPagina(pagina - 1)}
+            >
+              <ChevronLeftIcon />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Próxima página"
+              disabled={pagina >= totalPaginas - 1}
+              onClick={() => setPagina(pagina + 1)}
+            >
+              <ChevronRightIcon />
+            </Button>
+          </span>
+        </nav>
+      )}
+
       <DialogLancamento
         aberto={aberto}
         aoMudar={setAberto}
@@ -136,6 +178,14 @@ export function ListaLancamentos({
           (editando.divida_id != null ? (
             <p className="text-sm text-muted-foreground">
               Parcelas são geradas pela dívida e não podem ser excluídas uma a uma.
+            </p>
+          ) : editando.servico_id != null && comServicos ? (
+            <p className="text-sm text-muted-foreground">
+              Esta entrada é de um serviço. Para receber, desfazer ou excluir,{" "}
+              <Link href="/servicos" className="underline underline-offset-4">
+                use a tela de serviços
+              </Link>
+              .
             </p>
           ) : editando.cartela_id != null ? (
             <p className="text-sm text-muted-foreground">

@@ -22,7 +22,9 @@ def listar(auth: AutenticadoDep, db: Db) -> list[RecorrenciaOut]:
 def criar(
     dados: RecorrenciaIn, auth: AutenticadoDep, db: Db, relogio: RelogioDep
 ) -> RecorrenciaOut:
-    recorrencia = criar_recorrencia(db, auth.usuario.id, dados, relogio.agora_utc())
+    recorrencia = criar_recorrencia(
+        db, auth.usuario.id, dados, relogio.agora_utc(), relogio.hoje_sp()
+    )
     return RecorrenciaOut.model_validate(recorrencia)
 
 
