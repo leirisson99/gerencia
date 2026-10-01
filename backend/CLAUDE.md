@@ -8,7 +8,7 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo**: abe
 
 - **Escopo:** backend (API FastAPI) e frontend (Next.js + shadcn/ui, em `../frontend`, desde 2026-09-28). Regras e critérios precisam ser verificáveis pela API.
 - Multiusuário na web: qualquer pessoa pode se cadastrar; cada usuário só vê os próprios dados.
-- Login com e-mail e senha. Um único administrador, que só pode resetar senhas.
+- Login com e-mail e senha. Um único administrador, que reseta senhas, desativa e reativa contas e vê contagens globais de uso (sem valores e sem nada por usuário).
 - Problema central: não saber para onde o dinheiro vai.
 - Tudo é lançado manualmente no MVP, inclusive o salário, que abre o ciclo de quem é CLT.
 - Três tipos de renda: `clt`, `prestador` e `clt_prestador` (escolhido no cadastro, editável no perfil).
@@ -42,13 +42,15 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo**: abe
 | Cartela | Meta de poupança dividida em casas sequenciais (base × 1…N) + casa de ajuste |
 | Casa | Um depósito da cartela. Livre ou depositada |
 | Importação | Extrato de conta (OFX, CSV ou PDF) lido numa prévia; só as linhas que o usuário confirma viram lançamentos, com as mesmas regras do lançamento manual |
-| Administrador | Papel criado só no servidor; vê nome, e-mail e data de criação das contas e só reseta senha |
+| Lembrete | Aviso do que vence: contas a pagar e valores a receber (derivados dos previstos, janela de hoje + 3 dias, inclui atrasados) ou lembrete livre (texto e data, criado pelo usuário) |
+| Inscrição de push | Aparelho que o usuário autorizou a receber notificações (Web Push, VAPID). Recebe um resumo diário sem valores nem nomes |
+| Administrador | Papel criado só no servidor; vê nome, e-mail, data de criação e situação das contas e contagens globais de uso; reseta senha, desativa e reativa contas |
 
 ## Modelo de dados
 
 | Tabela | Campos principais |
 | --- | --- |
-| `usuario` | nome, email (único), senha_hash, telefone, cargo, data_nascimento (opcional), papel (`usuario` / `admin`), tipo_renda (`clt` / `prestador` / `clt_prestador`), troca_senha_obrigatoria, criado_em |
+| `usuario` | nome, email (único), senha_hash, telefone, cargo, data_nascimento (opcional), papel (`usuario` / `admin`), tipo_renda (`clt` / `prestador` / `clt_prestador`), troca_senha_obrigatoria, ativo, ultimo_acesso_em, criado_em |
 | `categoria` | usuario_id, nome (único por usuário, sem diferenciar maiúsculas), tipo (`entrada` / `saida`), ativa, sistema. "Salário" e "Poupança" são de sistema e protegidas |
 | `recorrencia` | usuario_id, categoria_id, descricao, valor, tipo, dia, ativa |
 | `divida` | usuario_id, categoria_id, descricao, pessoa, direcao, valor_total, parcelas, forma_pagamento, dia_vencimento, data_inicio |
@@ -56,6 +58,9 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo**: abe
 | `cartela` | usuario_id, nome, meta, valor_base, criada_em |
 | `casa` | cartela_id, valor, ordem, is_ajuste, depositado_em, lancamento_id |
 | `servico` | usuario_id, categoria_id, cliente, descricao, valor, data_prevista, lancamento_id, criado_em |
+| `lembrete` | usuario_id, texto, data, concluido_em, criado_em (só lembretes livres; contas e valores são derivados) |
+| `inscricao_push` | usuario_id, endpoint (único), p256dh, auth, criado_em |
+| `envio_lembrete` | usuario_id, dia (único por usuário): garante no máximo um resumo por dia |
 | `sessao`, `tentativa_login`, `acao_admin` | sessão em cookie, bloqueio de login e auditoria do administrador |
 
 Todos os campos de valor são `int` em centavos. Não existe tabela de configuração de pagamento. A `forma_pagamento` fica na dívida, não no lançamento. Specs de cada feature em `specs/`.
@@ -70,6 +75,7 @@ Todos os campos de valor são `int` em centavos. Não existe tabela de configura
 - **Serviço:** a situação é derivada: `recebido` se o lançamento estiver realizado; senão `atrasado` se `data_prevista < hoje`, ou `a_receber`.
 - **Cartela:** N = maior inteiro com `base × N(N+1)/2 ≤ meta`. O resto vira uma casa com `is_ajuste = True`. A soma das casas é sempre igual à meta.
 - **Parcelas:** `valor_total // parcelas` em cada uma. O resto de centavos vai para a última.
+- **Lembretes:** contas a pagar = saídas previstas com `conta_no_saldo = True` e data ≤ hoje + 3 dias (inclui atrasadas); valores a receber = entradas previstas na mesma janela. Derivados, nunca armazenados. O resumo diário (≈ 8h, `America/Sao_Paulo`) sai por comando agendado, no máximo uma vez por dia, sem valores, descrições ou nomes.
 - **Depósito na cartela** gera um lançamento `saida` na categoria "Poupança" com `conta_no_saldo = False`: não sai do saldo nem conta como gasto.
 
 ## Estrutura
@@ -109,7 +115,8 @@ uv run pytest
 uv run ruff check . && uv run ruff format .
 uv run alembic revision --autogenerate -m "mensagem"
 uv run alembic upgrade head
-uv run python -m app.cli criar-admin --nome ... --email ... --telefone ... --cargo ...   # único admin
+uv run python -m app.cli hash-senha   # gera ADMIN_SENHA_HASH; o admin único vem do .env (ADMIN_EMAIL, ADMIN_SENHA_HASH) a cada início
+uv run python -m app.cli popular-demo # com a API no ar: cria as contas de demonstração dos vídeos (Ana CLT, Carlos prestador)
 ```
 
 ## Convenções

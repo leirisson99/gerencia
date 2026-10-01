@@ -28,7 +28,12 @@ def cadastro(
 
 @router.post(
     "/login",
-    responses={401: {"model": ErroOut}, 422: {"model": ErroOut}, 429: {"model": ErroOut}},
+    responses={
+        401: {"model": ErroOut},
+        403: {"model": ErroOut},
+        422: {"model": ErroOut},
+        429: {"model": ErroOut},
+    },
 )
 def login(
     dados: LoginIn,

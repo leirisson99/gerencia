@@ -6,6 +6,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.domain.login import sessao_expirada
+from app.domain.painel import precisa_registrar_acesso
 from app.models import Sessao, Usuario
 
 
@@ -13,8 +14,14 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def registrar_acesso(usuario: Usuario, agora: datetime) -> None:
+    if precisa_registrar_acesso(usuario.ultimo_acesso_em, agora):
+        usuario.ultimo_acesso_em = agora
+
+
 def criar_sessao(db: Session, usuario: Usuario, agora: datetime) -> str:
     """Cria a sessão e devolve o token em claro; só o hash fica no banco."""
+    registrar_acesso(usuario, agora)
     token = secrets.token_urlsafe(32)
     db.add(
         Sessao(
@@ -37,6 +44,7 @@ def resolver_sessao(db: Session, token: str, agora: datetime, dias: int) -> Sess
         db.commit()
         return None
     sessao.ultimo_uso_em = agora
+    registrar_acesso(sessao.usuario, agora)
     db.commit()
     return sessao
 

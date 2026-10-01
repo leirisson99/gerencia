@@ -36,7 +36,7 @@ def autenticacao_permitindo_troca(
     if not sessao:
         raise ErroApi(401, "nao_autenticado", "Entre para continuar.")
     registro = resolver_sessao(db, sessao, relogio.agora_utc(), settings.sessao_dias_inatividade)
-    if registro is None:
+    if registro is None or not registro.usuario.ativo:
         raise ErroApi(401, "nao_autenticado", "Entre para continuar.")
     # Renova o cookie a cada uso: a expiração conta a partir do último uso.
     definir_cookie_sessao(response, sessao, settings)

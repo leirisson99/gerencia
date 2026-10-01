@@ -1,92 +1,140 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { SearchIcon } from "lucide-react"
+import { redirect } from "next/navigation"
 
 import { PageHeader } from "@/components/layout/page-header"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ResetarSenha } from "@/features/admin/resetar-senha"
-import { listarUsuariosAdmin } from "@/lib/api/server"
-import { formatarDataDeInstante } from "@/lib/format"
+import { Barras } from "@/features/admin/barras"
+import { GraficoCadastros, GraficoMovimentacoes } from "@/features/admin/graficos"
+import { Bloco, Indicador } from "@/features/dashboard/bloco"
+import { FORMAS } from "@/features/dividas/rotulos"
+import { obterResumoAdmin } from "@/lib/api/server"
+import type { Funcionalidade } from "@/lib/api/types"
+import { TIPOS_RENDA } from "@/lib/tipo-renda"
 
-export const metadata: Metadata = { title: "Administração" }
+export const metadata: Metadata = { title: "Visão geral" }
 
-/** Busca de contas e reset de senha: a única ação do administrador (constituição, papel admin). */
-export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
-  const { busca: param } = await searchParams
-  const busca = typeof param === "string" ? param.trim() : ""
-  const usuarios = await listarUsuariosAdmin(busca || undefined)
+const FUNCIONALIDADES: Record<Funcionalidade, string> = {
+  recorrencias: "Recorrências",
+  dividas: "Dívidas",
+  cartelas: "Cartelas de poupança",
+  servicos: "Serviços a receber",
+  importacao: "Importação de extrato",
+}
+
+const numero = new Intl.NumberFormat("pt-BR")
+
+/** `parte` como porcentagem inteira de `todo`; zero quando não há contas. */
+function porcento(parte: number, todo: number) {
+  return todo ? `${Math.round((parte / todo) * 100)}%` : "0%"
+}
+
+/**
+ * Visão geral da administração: só contagens somadas entre as contas, sem valores em reais nem
+ * nada por conta (constituição 5.2.0, papel admin).
+ */
+export default async function AdminVisaoGeralPage({ searchParams }: PageProps<"/admin">) {
+  // A lista de contas morava aqui; links antigos com busca ou filtro seguem para a página nova.
+  const params = await searchParams
+  if (params.busca || params.situacao) {
+    const query = new URLSearchParams()
+    for (const chave of ["busca", "situacao"] as const) {
+      const valor = params[chave]
+      if (typeof valor === "string") query.set(chave, valor)
+    }
+    redirect(`/admin/contas?${query}`)
+  }
+
+  const resumo = await obterResumoAdmin()
+  const { contas, lancamentos, engajamento, dividas_por_forma: formas } = resumo
+  const dividas = formas.reduce((soma, f) => soma + f.quantidade, 0)
 
   return (
     <>
       <PageHeader
-        titulo="Contas"
-        descricao="Encontre quem pediu ajuda para entrar e gere uma senha temporária. Dados financeiros não aparecem aqui."
+        titulo="Visão geral"
+        descricao="Uso do sistema somado entre todas as contas, sem valores em reais e sem nada por conta."
       />
 
-      {/* Formulário GET: a busca fica na URL e funciona sem JavaScript. */}
-      <form role="search" className="mb-6 flex max-w-xl gap-2">
-        <label htmlFor="busca" className="sr-only">
-          Buscar por nome ou e-mail
-        </label>
-        <Input
-          id="busca"
-          name="busca"
-          type="search"
-          defaultValue={busca}
-          placeholder="Buscar por nome ou e-mail"
-          autoComplete="off"
-        />
-        <Button type="submit" variant="outline">
-          <SearchIcon aria-hidden />
-          Buscar
-        </Button>
-      </form>
+      <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Bloco
+          titulo="Contas"
+          acao={
+            <Link href="/admin/contas" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
+              Ver contas
+            </Link>
+          }
+        >
+          <Indicador
+            valor={numero.format(contas.total)}
+            legenda={`${numero.format(contas.ativas)} ativas · ${numero.format(contas.desativadas)} desativadas`}
+          />
+        </Bloco>
+        <Bloco titulo="Acessaram em 30 dias">
+          <Indicador
+            valor={numero.format(engajamento.ativas_30_dias)}
+            legenda={`${numero.format(engajamento.ativas_7_dias)} nos últimos 7 dias`}
+          />
+        </Bloco>
+        <Bloco titulo="Ativação">
+          <Indicador
+            valor={porcento(engajamento.com_lancamento, contas.total)}
+            legenda={`${numero.format(engajamento.com_lancamento)} de ${numero.format(contas.total)} contas já lançaram algo`}
+          />
+        </Bloco>
+        <Bloco titulo="Lançamentos">
+          <Indicador
+            valor={numero.format(lancamentos.total)}
+            legenda={
+              <>
+                {numero.format(lancamentos.realizados)} realizados · {numero.format(lancamentos.previstos)} previstos
+                <br />
+                {numero.format(lancamentos.importados)} importados · {numero.format(lancamentos.manuais)} manuais
+              </>
+            }
+          />
+        </Bloco>
+      </div>
 
-      {usuarios.length === 0 ? (
-        <p className="border-t py-8 text-muted-foreground">
-          {busca ? (
-            <>
-              Nenhuma conta encontrada para &ldquo;{busca}&rdquo;.{" "}
-              <Link href="/admin" className="underline underline-offset-4">
-                Limpar busca
-              </Link>
-            </>
-          ) : (
-            "Nenhuma conta cadastrada ainda."
-          )}
-        </p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[36rem] text-left">
-            <caption className="sr-only">Contas de usuário</caption>
-            <thead className="text-sm text-muted-foreground">
-              <tr className="border-b">
-                <th scope="col" className="py-3 pr-4 font-medium">Nome</th>
-                <th scope="col" className="py-3 pr-4 font-medium">E-mail</th>
-                <th scope="col" className="py-3 pr-4 font-medium">Criada em</th>
-                <th scope="col" className="py-3 font-medium">
-                  <span className="sr-only">Ações</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.map((u) => (
-                <tr key={u.id} className="border-b">
-                  <td className="py-3 pr-4">{u.nome}</td>
-                  <td className="py-3 pr-4 text-muted-foreground">{u.email}</td>
-                  <td className="valor py-3 pr-4 text-muted-foreground">
-                    {formatarDataDeInstante(u.criado_em)}
-                  </td>
-                  <td className="py-3 text-right">
-                    <ResetarSenha usuario={u} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <div className="mb-4 grid gap-4 lg:grid-cols-3">
+        <Bloco titulo="Movimentações realizadas por mês" className="lg:col-span-2">
+          <GraficoMovimentacoes meses={resumo.por_mes} />
+        </Bloco>
+        <Bloco titulo="Cadastros por mês">
+          <GraficoCadastros meses={resumo.cadastros_por_mes} />
+        </Bloco>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Bloco titulo="Contas que usam cada funcionalidade">
+          <Barras
+            base={contas.total}
+            vazio="Nenhuma conta usa essas funcionalidades ainda."
+            itens={resumo.uso_funcionalidades.map((u) => ({
+              chave: u.funcionalidade,
+              rotulo: FUNCIONALIDADES[u.funcionalidade],
+              quantidade: u.contas,
+            }))}
+          />
+        </Bloco>
+        <Bloco titulo="Contas por tipo de renda">
+          <Barras
+            base={contas.total}
+            vazio="Nenhuma conta cadastrada ainda."
+            itens={TIPOS_RENDA.map((t) => ({
+              chave: t.valor,
+              rotulo: t.rotulo,
+              quantidade: resumo.por_tipo_renda[t.valor],
+            }))}
+          />
+        </Bloco>
+        <Bloco titulo="Formas de pagamento das dívidas">
+          <Barras
+            base={dividas}
+            vazio="Nenhuma dívida cadastrada ainda."
+            itens={formas.map((f) => ({ chave: f.forma, rotulo: FORMAS[f.forma], quantidade: f.quantidade }))}
+          />
+        </Bloco>
+      </div>
     </>
   )
 }

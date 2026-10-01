@@ -1,0 +1,4 @@
+# Serviço `lembretes` (backend/Dockerfile.cron), agendado pelo supercronic.
+# 11:00 UTC = 8h em São Paulo (UTC-3 fixo, sem horário de verão desde 2019).
+# O comando é idempotente no mesmo dia: rodar de novo não reenvia o resumo.
+0 11 * * * python -m app.cli enviar-lembretes

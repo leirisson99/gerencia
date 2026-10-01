@@ -6,43 +6,8 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.models import AcaoAdmin, Usuario
-from app.schemas.admin import DadosAdmin
-from app.services.admin import criar_administrador
+from tests.api.conftest import USUARIOS
 from tests.conftest import SENHA_PADRAO, RelogioFixo
-
-USUARIOS = "/api/v1/admin/usuarios"
-
-
-@pytest.fixture
-def admin(db: Session, relogio: RelogioFixo) -> Usuario:
-    usuario, _ = criar_administrador(
-        db,
-        DadosAdmin(nome="Admin", email="admin@exemplo.com", telefone="11987654321", cargo="Adm"),
-        relogio.agora,
-    )
-    # Troca inicial já feita, para os testes irem direto às rotas.
-    db.execute(
-        update(Usuario).where(Usuario.id == usuario.id).values(troca_senha_obrigatoria=False)
-    )
-    db.commit()
-    return usuario
-
-
-@pytest.fixture
-def cliente_admin(
-    client: TestClient, admin: Usuario, logar: Callable[[TestClient, Usuario], str]
-) -> TestClient:
-    logar(client, admin)
-    return client
-
-
-@pytest.fixture
-def usuarios(criar_usuario: Callable[..., Usuario], relogio: RelogioFixo) -> dict[str, Usuario]:
-    caio = criar_usuario(email="caio@exemplo.com", nome="Caio Dias")
-    relogio.avancar(minutes=1)
-    ana = criar_usuario(email="ana@exemplo.com", nome="Ana Souza", cargo="Dev")
-    bia = criar_usuario(email="bia@exemplo.com", nome="Bia Lima")
-    return {"ana": ana, "bia": bia, "caio": caio}
 
 
 def reset(cliente: TestClient, usuario_id: int):
@@ -120,7 +85,7 @@ def test_lista_so_nome_email_e_criacao_em_ordem_alfabetica(
     assert resposta.status_code == 200
     corpo = resposta.json()
     assert [u["nome"] for u in corpo] == ["Ana Souza", "Bia Lima", "Caio Dias"]
-    assert all(set(u) == {"id", "nome", "email", "criado_em"} for u in corpo)
+    assert all(set(u) == {"id", "nome", "email", "criado_em", "ativo"} for u in corpo)
     assert corpo[0]["id"] == usuarios["ana"].id
 
 
@@ -240,4 +205,40 @@ def test_reset_nao_derruba_a_sessao_do_admin(
 
 def test_rotas_de_admin_sao_so_estas(client: TestClient) -> None:
     rotas = [p for p in client.get("/openapi.json").json()["paths"] if "/admin" in p]
-    assert sorted(rotas) == [USUARIOS, f"{USUARIOS}/{{usuario_id}}/reset-senha"]
+    assert sorted(rotas) == [
+        "/api/v1/admin/resumo",
+        USUARIOS,
+        f"{USUARIOS}/{{usuario_id}}/desativar",
+        f"{USUARIOS}/{{usuario_id}}/reativar",
+        f"{USUARIOS}/{{usuario_id}}/reset-senha",
+    ]
+
+
+# --- Conta do administrador vem do .env -------------------------------------------------------
+
+
+def test_admin_nao_troca_a_senha_pela_api(cliente_admin: TestClient) -> None:
+    troca = {"senha_atual": "segredoAdmin1", "nova_senha": "novaSenha123"}
+
+    resposta = cliente_admin.put("/api/v1/me/senha", json=troca)
+
+    assert resposta.status_code == 403
+    assert resposta.json()["erro"]["codigo"] == "conta_gerenciada_no_servidor"
+
+
+def test_admin_nao_edita_o_perfil_pela_api(cliente_admin: TestClient, admin: Usuario) -> None:
+    resposta = cliente_admin.patch("/api/v1/me", json={"nome": "Outro"})
+
+    assert resposta.status_code == 403
+    assert resposta.json()["erro"]["codigo"] == "conta_gerenciada_no_servidor"
+
+
+def test_admin_entra_com_a_senha_do_env(
+    admin: Usuario, novo_client: Callable[[], TestClient]
+) -> None:
+    login = {"email": "admin@exemplo.com", "senha": "segredoAdmin1"}
+
+    resposta = novo_client().post("/api/v1/auth/login", json=login)
+
+    assert resposta.status_code == 200
+    assert resposta.json()["troca_senha_obrigatoria"] is False

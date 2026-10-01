@@ -9,13 +9,23 @@ from app.domain.login import calcular_bloqueio
 from app.domain.usuario import MAX_EMAIL, validar_data_nascimento
 from app.erros import MENSAGEM_VALIDACAO, ErroApi
 from app.models import Sessao, TentativaLogin, Usuario
-from app.models.usuario import PAPEL_USUARIO
+from app.models.usuario import PAPEL_ADMIN, PAPEL_USUARIO
 from app.schemas.usuario import CadastroIn
 from app.services.categoria import criar_categorias_iniciais
 from app.services.senha import HASH_FICTICIO, hash_senha, precisa_rehash, verificar_senha
 from app.services.sessao import criar_sessao, encerrar_outras_sessoes, encerrar_sessao
 
 RETENCAO_FALHAS = timedelta(hours=24)
+
+
+def checar_conta_editavel(usuario: Usuario) -> None:
+    """Nome, e-mail e senha do administrador vêm do .env, que sempre vence."""
+    if usuario.papel == PAPEL_ADMIN:
+        raise ErroApi(
+            403,
+            "conta_gerenciada_no_servidor",
+            "Os dados do administrador são definidos na configuração do servidor (.env).",
+        )
 
 
 def checar_data_nascimento(data: date | None, hoje: date) -> None:
@@ -86,7 +96,14 @@ def entrar(db: Session, email_informado: str, senha: str, agora: datetime) -> tu
         raise ErroApi(401, "credenciais_invalidas", "E-mail ou senha inválidos.")
 
     db.execute(delete(TentativaLogin).where(TentativaLogin.email_normalizado == email))
-    if precisa_rehash(usuario.senha_hash):
+    if not usuario.ativo:
+        # Só depois da senha conferir, para não revelar a situação de contas alheias.
+        db.commit()
+        raise ErroApi(
+            403, "conta_desativada", "Esta conta está desativada. Fale com o administrador."
+        )
+    # O hash do administrador é o do .env; regravá-lo derrubaria as sessões no próximo início.
+    if usuario.papel != PAPEL_ADMIN and precisa_rehash(usuario.senha_hash):
         usuario.senha_hash = hash_senha(senha)
     token = criar_sessao(db, usuario, agora)
     db.commit()
@@ -107,6 +124,7 @@ def trocar_senha(
     agora: datetime,
 ) -> None:
     """Troca a senha, conclui a troca obrigatória e derruba as outras sessões."""
+    checar_conta_editavel(usuario)
     if not verificar_senha(usuario.senha_hash, senha_atual):
         raise ErroApi(400, "senha_atual_incorreta", "Senha atual incorreta.")
     if nova_senha == senha_atual:

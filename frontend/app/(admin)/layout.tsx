@@ -1,3 +1,4 @@
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { AdminShell } from "@/components/layout/admin-shell"
@@ -9,5 +10,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/">) {
   if (trocaObrigatoria) redirect("/trocar-senha")
   if (!usuario) redirect("/entrar")
   if (usuario.papel !== "admin") redirect("/")
-  return <AdminShell usuario={usuario}>{children}</AdminShell>
+  const menuAberto = (await cookies()).get("sidebar_state")?.value !== "false"
+  return (
+    <AdminShell usuario={usuario} menuAberto={menuAberto}>
+      {children}
+    </AdminShell>
+  )
 }

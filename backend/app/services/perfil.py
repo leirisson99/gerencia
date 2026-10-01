@@ -9,7 +9,7 @@ from app.erros import ErroApi
 from app.models import Categoria, Lancamento, Servico, Usuario
 from app.models.lancamento import STATUS_PREVISTO
 from app.schemas.usuario import PerfilIn
-from app.services.auth import checar_data_nascimento
+from app.services.auth import checar_conta_editavel, checar_data_nascimento
 from app.services.ciclo import datas_de_salario, travar_escritas
 from app.services.lancamento import menor_data_dos_outros
 
@@ -81,6 +81,7 @@ def _checar_troca_tipo_renda(db: Session, usuario: Usuario, novo: str, hoje: dat
 def atualizar_perfil(
     db: Session, usuario: Usuario, dados: PerfilIn, agora: datetime, hoje: date
 ) -> Usuario:
+    checar_conta_editavel(usuario)
     enviados = dados.model_fields_set
     if not enviados:
         return usuario

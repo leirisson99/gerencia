@@ -1,25 +1,25 @@
 <!--
 Sync Impact Report
-- Version change: 4.2.0 → 4.3.0 (MINOR: tipo de renda e serviços a receber, pedido pelo
-  usuário em 2026-09-30)
+- Version change: 5.1.0 → 5.2.0 (MINOR: mais contagens globais no painel do administrador,
+  pedido pelo usuário em 2026-10-01)
 - Modified principles:
-  - II. Ciclo Aberto pelo Salário Lançado → II. Ciclo Derivado do Tipo de Renda: `clt` e
-    `clt_prestador` mantêm o ciclo pelo salário; `prestador` usa o mês do calendário e não
-    exige salário para lançar; troca de `prestador` para os outros só com todos os
-    lançamentos cobertos por ciclo de salário
-  - IV. API com Contratos Tipados: remove "o escopo atual é só o backend"
-  - V. Contas de Usuário e Isolamento de Dados: serviços entram na lista de dados
-    financeiros por usuário
-  - VI. Escopo P0 e Simplicidade: "Serviço a receber" com situação derivada, só para
-    `prestador` e `clt_prestador`
+  - V. Contas de Usuário e Isolamento de Dados: as contagens do administrador passam a
+    incluir cadastros por mês, contas ativas em 7 e 30 dias, contas com lançamento, uso de
+    cada funcionalidade, lançamentos importados × manuais e contas por tipo de renda;
+    o último acesso de cada conta passa a ser guardado só para essa contagem
 - Added sections: nenhuma
 - Removed sections: nenhuma
-- Stack: frontend (Next.js + shadcn/ui) em escopo desde 2026-09-28 (TODO herdado resolvido)
 - Templates: nenhuma alteração
 - Follow-up TODOs:
-  - CLAUDE.md: glossário (Prestador, Serviço), modelo de dados, regras de cálculo e escopo
-  - Specs 012-prestador-ciclo-mensal e 013-servicos-a-receber
+  - CLAUDE.md: modelo de dados (`usuario.ultimo_acesso_em`)
+  - Spec 014-painel-admin-v2 (US4)
 - Histórico:
+  - 5.0.0 → 5.1.0: lembretes por push no PWA (feature 015). Decisão registrada: o Briefing
+    pede 2 ciclos de uso real antes de qualquer item P1; lembretes são P1 e o usuário decidiu
+    seguir mesmo assim.
+  - 4.3.0 → 5.0.0: administrador vê situação das contas, desativa/reativa e vê contagens
+    globais de uso (feature 014)
+  - 4.2.0 → 4.3.0: tipo de renda e serviços a receber (features 012 e 013)
   - 4.1.0 → 4.2.0: depósito da cartela fora do saldo (`conta_no_saldo = False`)
   - 4.0.1 → 4.1.0: importação de extrato de conta (OFX, CSV ou PDF) com prévia confirmada;
     fatura de cartão nunca importada; salário importado abre ciclo (feature 011)
@@ -143,12 +143,12 @@ O sistema roda na web e é multiusuário: qualquer pessoa pode se cadastrar.
   devolvidas pela API.
 - Todo endpoint, exceto saúde (health), cadastro e login, MUST exigir usuário autenticado.
 - Todo dado financeiro (configuração, categorias, lançamentos, recorrências, dívidas,
-  cartelas, casas, serviços a receber) MUST pertencer a um usuário, e toda consulta MUST ser filtrada pelo
-  usuário autenticado. Acessar dado de outro usuário MUST retornar 404, e isso MUST ter
+  cartelas, casas, serviços a receber), assim como lembretes e inscrições de push, MUST
+  pertencer a um usuário, e toda consulta MUST ser filtrada pelo usuário autenticado. Acessar dado de outro usuário MUST retornar 404, e isso MUST ter
   teste.
 - Dados pessoais do cadastro (nome, e-mail, telefone, etc.) MUST ser visíveis só ao próprio
   usuário, com a única exceção do papel de administrador descrita abaixo.
-- Segredos (credenciais de banco, chaves de token) MUST vir de variáveis de ambiente e
+- Segredos (credenciais de banco, chaves de token, chaves VAPID de push) MUST vir de variáveis de ambiente e
   MUST NOT ser versionados.
 - Logs MUST NOT conter senhas, tokens, dados pessoais ou valores e descrições de
   lançamentos.
@@ -157,12 +157,20 @@ O sistema roda na web e é multiusuário: qualquer pessoa pode se cadastrar.
 - Administrador:
   - MUST NOT ser criado pelo cadastro público; só por comando no servidor ou configuração
     de deploy.
-  - Pode ver apenas nome, e-mail e data de criação das contas, e MUST NOT ter acesso a dados
-    financeiros nem aos demais dados pessoais (telefone, cargo, data de nascimento).
-  - A única ação administrativa permitida é resetar senha: o sistema gera uma senha
-    temporária aleatória, exibida uma única vez ao administrador, encerra as sessões do
-    usuário e obriga a troca de senha no próximo login. O administrador MUST NOT escolher a
-    senha de outro usuário.
+  - Pode ver apenas nome, e-mail, data de criação e situação (ativa ou desativada) das
+    contas, e MUST NOT ter acesso a dados financeiros de um usuário nem aos demais dados
+    pessoais (telefone, cargo, data de nascimento).
+  - Pode ver contagens globais de uso, somadas entre todos os usuários: contas (total,
+    cadastros por mês, ativas em 7 e 30 dias, com pelo menos um lançamento e por tipo de
+    renda), lançamentos (importados e manuais), entradas e saídas por mês, contas que usam
+    cada funcionalidade e dívidas por forma de pagamento. Essas contagens MUST NOT trazer
+    valores em reais nem ser quebradas por usuário. O último acesso de cada conta é guardado
+    só para contar as contas ativas e MUST NOT ser exibido por conta.
+  - As ações administrativas permitidas são:
+    - resetar senha: o sistema gera uma senha temporária aleatória, exibida uma única vez ao
+      administrador, encerra as sessões do usuário e obriga a troca de senha no próximo
+      login. O administrador MUST NOT escolher a senha de outro usuário;
+    - desativar conta: encerra as sessões e recusa o login, sem apagar dados; e reativar.
   - Toda ação administrativa MUST ser registrada (quem, o quê, em quem, quando).
 
 **Rationale**: dados financeiros e pessoais de várias pessoas no mesmo banco tornam o
@@ -183,6 +191,20 @@ vazamento entre usuários o pior modo de falha possível do sistema.
   "Salário") existe só para `prestador` e `clt_prestador`. Ele gera uma entrada prevista
   que vira realizada quando o usuário marca o recebimento. Sua situação (a receber,
   atrasado, recebido) MUST ser derivada do lançamento e da data, nunca armazenada.
+- Lembretes têm três origens:
+  - contas a pagar: saídas previstas com `conta_no_saldo = True` e data até hoje + 3 dias,
+    incluindo as atrasadas;
+  - valores a receber: entradas previstas na mesma janela;
+  - lembretes livres: texto e data criados pelo usuário.
+  Contas a pagar e valores a receber MUST ser derivados dos lançamentos previstos, nunca
+  armazenados; só o lembrete livre tem tabela própria.
+- O envio é um resumo diário por usuário, por Web Push (VAPID), para os aparelhos que ele
+  inscreveu, por volta das 8h em `America/Sao_Paulo` e no máximo uma vez por dia. O envio
+  MUST ser disparado por um comando agendado (cron) do próprio código, nunca dentro de uma
+  requisição da API.
+- A notificação MUST NOT conter valores em reais, descrições de lançamentos nem nomes de
+  pessoas ou clientes: só contagens e texto genérico. Os detalhes ficam na página de
+  lembretes, atrás do login.
 - Camadas: `api/routes/` só valida e chama `services/`; `services/` lê e grava no banco e
   chama `domain/`; regra de negócio MUST NOT ficar em rotas nem em services.
 - Um único serviço (monólito). Filas, caches ou serviços extras MUST ser justificados no
@@ -206,6 +228,8 @@ isso atrasa o MVP.
   ser em inglês.
 - **Frontend**: Next.js + shadcn/ui, em escopo desde 2026-09-28; consome só a API e segue
   o Princípio I (dinheiro em centavos `int`, formatado em reais só na exibição).
+- **Notificações**: Web Push com VAPID, enviado pelo backend com `pywebpush`; o frontend
+  registra um service worker para receber e abrir as notificações.
 
 ## Fluxo de Desenvolvimento
 
@@ -236,4 +260,4 @@ isso atrasa o MVP.
 - Toda revisão MUST verificar conformidade com os princípios. Violações só são aceitas com
   justificativa registrada na seção "Complexity Tracking" do plano da feature.
 
-**Version**: 4.3.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-30
+**Version**: 5.2.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-01

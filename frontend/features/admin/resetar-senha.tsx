@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { CheckIcon, CopyIcon, KeyRoundIcon, Loader2Icon } from "lucide-react"
+import { CheckIcon, CopyIcon, Loader2Icon } from "lucide-react"
 
 import { ErroForm } from "@/components/forms/erro-form"
 import {
@@ -12,7 +12,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import {
@@ -29,11 +28,18 @@ import type { UsuarioAdmin } from "@/lib/api/types"
 import { MENSAGEM_GENERICA } from "@/lib/forms"
 
 /**
- * Confirma o reset e mostra a senha temporária uma única vez.
- * A senha só existe no estado deste componente e é apagada ao fechar.
+ * Confirma o reset e mostra a senha temporária uma única vez. Quem abre é o menu de ações da
+ * conta; a senha só existe no estado deste componente e é apagada ao fechar.
  */
-export function ResetarSenha({ usuario }: { usuario: Pick<UsuarioAdmin, "id" | "nome" | "email"> }) {
-  const [confirmando, setConfirmando] = useState(false)
+export function DialogResetarSenha({
+  usuario,
+  aberto,
+  aoMudarAberto,
+}: {
+  usuario: Pick<UsuarioAdmin, "id" | "nome" | "email">
+  aberto: boolean
+  aoMudarAberto: (aberto: boolean) => void
+}) {
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [senha, setSenha] = useState<string | null>(null)
@@ -44,7 +50,7 @@ export function ResetarSenha({ usuario }: { usuario: Pick<UsuarioAdmin, "id" | "
     setEnviando(true)
     try {
       const { senha_temporaria } = await resetarSenha(usuario.id)
-      setConfirmando(false)
+      aoMudarAberto(false)
       setSenha(senha_temporaria)
     } catch (e) {
       setErro(e instanceof ApiError ? e.message : MENSAGEM_GENERICA)
@@ -71,18 +77,12 @@ export function ResetarSenha({ usuario }: { usuario: Pick<UsuarioAdmin, "id" | "
   return (
     <>
       <AlertDialog
-        open={confirmando}
+        open={aberto}
         onOpenChange={(abrir) => {
-          setConfirmando(abrir)
+          aoMudarAberto(abrir)
           if (!abrir) setErro(null)
         }}
       >
-        <AlertDialogTrigger asChild>
-          <Button variant="outline" size="sm" aria-label={`Resetar senha de ${usuario.nome}`}>
-            <KeyRoundIcon aria-hidden />
-            Resetar senha
-          </Button>
-        </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Resetar a senha de {usuario.nome}?</AlertDialogTitle>
