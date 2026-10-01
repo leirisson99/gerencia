@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2Icon, UserCheckIcon, UserXIcon } from "lucide-react"
+import { Loader2Icon } from "lucide-react"
 import { toast } from "sonner"
 
 import { ErroForm } from "@/components/forms/erro-form"
@@ -14,7 +14,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { desativarConta, reativarConta } from "@/lib/api/admin"
@@ -22,10 +21,17 @@ import { ApiError } from "@/lib/api/client"
 import type { UsuarioAdmin } from "@/lib/api/types"
 import { MENSAGEM_GENERICA } from "@/lib/forms"
 
-/** Desativa (com confirmação) ou reativa a conta e recarrega a lista. */
-export function AlternarSituacao({ usuario }: { usuario: UsuarioAdmin }) {
+/** Confirma desativar ou reativar a conta e recarrega a lista. Quem abre é o menu de ações. */
+export function DialogSituacao({
+  usuario,
+  aberto,
+  aoMudarAberto,
+}: {
+  usuario: UsuarioAdmin
+  aberto: boolean
+  aoMudarAberto: (aberto: boolean) => void
+}) {
   const router = useRouter()
-  const [aberto, setAberto] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const desativar = usuario.ativo
@@ -35,7 +41,7 @@ export function AlternarSituacao({ usuario }: { usuario: UsuarioAdmin }) {
     setEnviando(true)
     try {
       await (desativar ? desativarConta(usuario.id) : reativarConta(usuario.id))
-      setAberto(false)
+      aoMudarAberto(false)
       toast.success(desativar ? `Conta de ${usuario.nome} desativada.` : `Conta de ${usuario.nome} reativada.`)
       router.refresh()
     } catch (e) {
@@ -49,20 +55,10 @@ export function AlternarSituacao({ usuario }: { usuario: UsuarioAdmin }) {
     <AlertDialog
       open={aberto}
       onOpenChange={(abrir) => {
-        setAberto(abrir)
+        aoMudarAberto(abrir)
         if (!abrir) setErro(null)
       }}
     >
-      <AlertDialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          aria-label={`${desativar ? "Desativar" : "Reativar"} a conta de ${usuario.nome}`}
-        >
-          {desativar ? <UserXIcon aria-hidden /> : <UserCheckIcon aria-hidden />}
-          {desativar ? "Desativar" : "Reativar"}
-        </Button>
-      </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>

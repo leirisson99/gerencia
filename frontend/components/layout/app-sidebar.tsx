@@ -144,7 +144,14 @@ export function AppSidebar({ usuario }: { usuario: Pick<Usuario, "nome" | "email
   )
 }
 
-function MenuUsuario({ usuario }: { usuario: Pick<Usuario, "nome" | "email"> }) {
+/** Rodapé do menu: quem está logado, o link da própria conta e sair. Usado também no admin. */
+export function MenuUsuario({
+  usuario,
+  conta = { titulo: "Perfil", href: "/perfil" },
+}: {
+  usuario: Pick<Usuario, "nome" | "email">
+  conta?: { titulo: string; href: string }
+}) {
   const { isMobile } = useSidebar()
   const aoSair = useSair()
 
@@ -177,9 +184,9 @@ function MenuUsuario({ usuario }: { usuario: Pick<Usuario, "nome" | "email"> }) 
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/perfil">
+              <Link href={conta.href}>
                 <UserIcon aria-hidden />
-                Perfil
+                {conta.titulo}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={aoSair}>
