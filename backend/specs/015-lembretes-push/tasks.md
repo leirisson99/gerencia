@@ -174,7 +174,7 @@ mais o resumo nesse aparelho.
 **Independent Test**: criar "renovar seguro" para depois de amanhã, vê-lo em "a vencer" e no
 resumo, concluir e vê-lo sair.
 
-- [ ] T029 [US4] Testes de API em backend/tests/api/test_lembretes.py, escritos antes e começando no vermelho:
+- [X] T029 [US4] Testes de API em backend/tests/api/test_lembretes.py, escritos antes e começando no vermelho:
   - Criar → 201 com `concluido: false`.
   - Validações 422: `texto` vazio, só com espaços ou com mais de 200 caracteres; `data` ausente; campo extra.
   - Listar `/lembretes/livres` por data e id, incluindo concluídos e futuros.
@@ -182,12 +182,12 @@ resumo, concluir e vê-lo sair.
   - `DELETE` → 204.
   - Lembrete livre não concluído aparece em `GET /lembretes` com `origem: "livre"` (atrasado ou a vencer); fora da janela ou concluído não aparece.
   - Outro usuário → 404 em `PATCH` e `DELETE`.
-- [ ] T030 [US4] Adicionar a backend/app/schemas/lembrete.py: `LembreteLivreIn` (`texto` "obrigatório, até 200 caracteres", aparado com `limpar_texto`, e `data: date`, com `extra="forbid"`), `LembreteLivrePatch` (`texto?`, `data?`, `concluido?: bool`, sem `null`) e `LembreteLivreOut` (`id`, `texto`, `data`, `concluido`, `concluido_em`, `criado_em`).
-- [ ] T031 [US4] Em backend/app/services/lembrete.py, criar `criar_livre`, `listar_livres`, `editar_livre` (que define `concluido_em` com `relogio.agora_utc()`) e `excluir_livre`, com 404 `nao_encontrado` "Lembrete não encontrado." para lembrete de outro usuário. Incluir os livres pendentes da janela em `listar_lembretes`.
-- [ ] T032 [US4] Criar as rotas `GET` e `POST /api/v1/lembretes/livres`, `PATCH` e `DELETE /api/v1/lembretes/livres/{id}` em backend/app/api/routes/lembretes.py.
-- [ ] T033 [US4] Incluir os livres pendentes da janela na contagem de `enviar_lembretes_do_dia` (origem `livre`) em backend/app/services/envio_lembrete.py, com o caso correspondente em backend/tests/services/test_envio_lembrete.py: só um lembrete livre a vencer gera "1 lembrete até …", e o texto do lembrete não aparece.
-- [ ] T034 [P] [US4] No frontend, criar os tipos `LembreteLivreIn` e `LembreteLivrePatch` em frontend/lib/api/types.ts, as funções `criarLembreteLivre`, `editarLembreteLivre` e `excluirLembreteLivre` em frontend/lib/api/lembretes.ts, e `listarLembretesLivres()` em frontend/lib/api/server.ts.
-- [ ] T035 [US4] Criar frontend/features/lembretes/dialog-lembrete-livre.tsx, com texto (máximo 200) e data, no padrão de `dialog-recorrencia.tsx`, incluindo o botão de excluir com `AlertDialog`. Na lista, adicionar:
+- [X] T030 [US4] Adicionar a backend/app/schemas/lembrete.py: `LembreteLivreIn` (`texto` "obrigatório, até 200 caracteres", aparado com `limpar_texto`, e `data: date`, com `extra="forbid"`), `LembreteLivrePatch` (`texto?`, `data?`, `concluido?: bool`, sem `null`) e `LembreteLivreOut` (`id`, `texto`, `data`, `concluido`, `concluido_em`, `criado_em`).
+- [X] T031 [US4] Em backend/app/services/lembrete.py, criar `criar_livre`, `listar_livres`, `editar_livre` (que define `concluido_em` com `relogio.agora_utc()`) e `excluir_livre`, com 404 `nao_encontrado` "Lembrete não encontrado." para lembrete de outro usuário. Incluir os livres pendentes da janela em `listar_lembretes`.
+- [X] T032 [US4] Criar as rotas `GET` e `POST /api/v1/lembretes/livres`, `PATCH` e `DELETE /api/v1/lembretes/livres/{id}` em backend/app/api/routes/lembretes.py.
+- [X] T033 [US4] Incluir os livres pendentes da janela na contagem de `enviar_lembretes_do_dia` (origem `livre`) em backend/app/services/envio_lembrete.py, com o caso correspondente em backend/tests/services/test_envio_lembrete.py: só um lembrete livre a vencer gera "1 lembrete até …", e o texto do lembrete não aparece.
+- [X] T034 [P] [US4] No frontend, criar os tipos `LembreteLivreIn` e `LembreteLivrePatch` em frontend/lib/api/types.ts, as funções `criarLembreteLivre`, `editarLembreteLivre` e `excluirLembreteLivre` em frontend/lib/api/lembretes.ts, e `listarLembretesLivres()` em frontend/lib/api/server.ts.
+- [X] T035 [US4] Criar frontend/features/lembretes/dialog-lembrete-livre.tsx, com texto (máximo 200) e data, no padrão de `dialog-recorrencia.tsx`, incluindo o botão de excluir com `AlertDialog`. Na lista, adicionar:
   - o botão "Novo lembrete";
   - na janela, os livres com o botão "Concluir";
   - a seção "Próximos lembretes" (futuros fora da janela);

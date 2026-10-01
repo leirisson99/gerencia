@@ -10,6 +10,7 @@ import type {
   Ciclo,
   Divida,
   Lancamento,
+  LembreteLivre,
   LembretesOut,
   Recorrencia,
   ResumoAdmin,
@@ -135,6 +136,11 @@ export function listarServicos() {
 /** Contas e valores atrasados e a vencer até hoje + 3 dias, calculados na hora. */
 export function obterLembretes() {
   return buscar<LembretesOut>("/lembretes")
+}
+
+/** Todos os lembretes livres, inclusive concluídos e futuros, por data. */
+export function listarLembretesLivres() {
+  return buscar<LembreteLivre[]>("/lembretes/livres")
 }
 
 export function listarCartelas() {

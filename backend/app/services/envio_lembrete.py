@@ -15,7 +15,11 @@ from sqlalchemy.orm import Session
 from app.domain.lembrete import contar, situacao, texto_resumo
 from app.models import EnvioLembrete, InscricaoPush, Usuario
 from app.models.usuario import PAPEL_USUARIO
-from app.services.lembrete import origem_do_lancamento, pendencias_de_lancamento
+from app.services.lembrete import (
+    livres_pendentes,
+    origem_do_lancamento,
+    pendencias_de_lancamento,
+)
 
 URL_LEMBRETES = "/lembretes"
 
@@ -44,6 +48,10 @@ def _payload(db: Session, usuario_id: int, hoje: date) -> dict[str, Any] | None:
         sit = situacao(lancamento.data, hoje)
         if sit is not None:
             itens.append((origem_do_lancamento(lancamento), sit))
+    for livre in livres_pendentes(db, usuario_id, hoje):
+        sit = situacao(livre.data, hoje)
+        if sit is not None:
+            itens.append(("livre", sit))
     mensagem = texto_resumo(contar(itens), hoje)
     if mensagem is None:
         return None

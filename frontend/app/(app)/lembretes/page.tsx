@@ -2,14 +2,21 @@ import type { Metadata } from "next"
 
 import { PageHeader } from "@/components/layout/page-header"
 import { ListaLembretes } from "@/features/lembretes/lista-lembretes"
-import { listarCategorias, obterLembretes, obterSugestaoSalario } from "@/lib/api/server"
+import { NovoLembrete } from "@/features/lembretes/lista-livres"
+import {
+  listarCategorias,
+  listarLembretesLivres,
+  obterLembretes,
+  obterSugestaoSalario,
+} from "@/lib/api/server"
 
 export const metadata: Metadata = { title: "Lembretes" }
 
-/** O que vence nos próximos 3 dias e o que já passou da data. Destino das notificações. */
+/** O que vence nos próximos 3 dias, o que já passou da data e os lembretes livres. */
 export default async function LembretesPage() {
-  const [lembretes, categorias, sugestaoSalario] = await Promise.all([
+  const [lembretes, livres, categorias, sugestaoSalario] = await Promise.all([
     obterLembretes(),
+    listarLembretesLivres(),
     listarCategorias({ incluirInativas: true }),
     obterSugestaoSalario(),
   ])
@@ -17,10 +24,14 @@ export default async function LembretesPage() {
     <>
       <PageHeader
         titulo="Lembretes"
-        descricao="Contas a pagar e valores a receber previstos que já passaram da data ou vencem nos próximos 3 dias."
+        descricao="Contas a pagar, valores a receber e lembretes que já passaram da data ou vencem nos próximos 3 dias."
       />
+      <div className="mb-6 flex justify-end">
+        <NovoLembrete />
+      </div>
       <ListaLembretes
         lembretes={lembretes}
+        livres={livres}
         categorias={categorias}
         sugestaoSalario={sugestaoSalario}
       />

@@ -391,6 +391,12 @@ export type LembreteLivre = {
   criado_em: string
 }
 
+/** Texto obrigatório (até 200 caracteres) e data, passada ou futura. */
+export type LembreteLivreIn = { texto: string; data: string }
+
+/** Edição parcial; `concluido` marca ou desfaz a conclusão. */
+export type LembreteLivrePatch = Partial<LembreteLivreIn> & { concluido?: boolean }
+
 export type ItemLembrete = {
   origem: OrigemLembrete
   situacao: SituacaoLembrete

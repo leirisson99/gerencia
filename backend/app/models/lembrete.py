@@ -25,6 +25,10 @@ class Lembrete(Base):
     concluido_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
+    @property
+    def concluido(self) -> bool:
+        return self.concluido_em is not None
+
 
 class InscricaoPush(Base):
     """Aparelho autorizado a receber o resumo. O endpoint identifica o aparelho e é único."""

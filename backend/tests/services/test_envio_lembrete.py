@@ -287,3 +287,50 @@ def test_cada_usuario_recebe_o_proprio_resumo(
         "https://push.exemplo/bia-1": "2 contas a pagar até sábado.",
     }
     assert relatorio.usuarios == relatorio.enviados == 2
+
+
+def livre(db: Session, usuario: Usuario, data: date, concluido: bool = False) -> None:
+    from datetime import UTC, datetime
+
+    from app.models import Lembrete
+
+    db.add(
+        Lembrete(
+            usuario_id=usuario.id,
+            texto="Renovar o seguro do carro da Ana",
+            data=data,
+            concluido_em=datetime(2026, 10, 1, tzinfo=UTC) if concluido else None,
+        )
+    )
+    db.flush()
+
+
+def test_lembrete_livre_conta_no_resumo_sem_o_texto(
+    db: Session, novo_usuario: Callable[..., Usuario], enviador: EnviadorFalso
+) -> None:
+    # T033, FR-010: o texto do lembrete livre nunca vai na notificação
+    ana = novo_usuario()
+    livre(db, ana, date(2026, 10, 16))
+    livre(db, ana, date(2026, 10, 13))
+    livre(db, ana, date(2026, 10, 15), concluido=True)
+    livre(db, ana, date(2026, 10, 18))
+    inscrever(db, ana)
+
+    enviar_lembretes_do_dia(db, HOJE, enviador)
+
+    ((_, payload),) = enviador.enviados
+    assert payload["corpo"] == "2 lembretes até sábado (1 atrasado)."
+    assert "seguro" not in str(payload).lower()
+
+
+def test_so_lembrete_concluido_nao_envia(
+    db: Session, novo_usuario: Callable[..., Usuario], enviador: EnviadorFalso
+) -> None:
+    ana = novo_usuario()
+    livre(db, ana, HOJE, concluido=True)
+    inscrever(db, ana)
+
+    relatorio = enviar_lembretes_do_dia(db, HOJE, enviador)
+
+    assert enviador.enviados == []
+    assert relatorio.sem_pendencias == 1
