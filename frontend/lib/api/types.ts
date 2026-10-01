@@ -208,9 +208,22 @@ export type UsuarioAdmin = {
   nome: string
   email: string
   criado_em: string
+  ativo: boolean
 }
 
 export type SenhaTemporaria = { senha_temporaria: string }
+
+export type SituacaoConta = "ativos" | "desativados"
+
+/** Espelha app/schemas/admin.py: só contagens globais, nunca valores nem usuários. */
+export type ResumoAdmin = {
+  contas: { total: number; ativas: number; desativadas: number }
+  lancamentos: { total: number; realizados: number; previstos: number }
+  /** Últimos 12 meses, do mais antigo ao atual; `mes` em `AAAA-MM`. Só realizados. */
+  por_mes: { mes: string; entradas: number; saidas: number }[]
+  /** As quatro formas, da mais usada à menos. */
+  dividas_por_forma: { forma: FormaPagamento; quantidade: number }[]
+}
 
 // Espelham app/schemas/cartela.py.
 

@@ -11,8 +11,10 @@ import type {
   Divida,
   Lancamento,
   Recorrencia,
+  ResumoAdmin,
   ResumoCiclo,
   Servico,
+  SituacaoConta,
   SugestaoSalario,
   TipoRenda,
   Usuario,
@@ -111,9 +113,17 @@ export async function obterDivida(id: number): Promise<Divida | null> {
 }
 
 /** Contas de usuário comum em ordem alfabética; `busca` filtra nome ou e-mail. Só para o admin. */
-export function listarUsuariosAdmin(busca?: string) {
-  const query = busca ? `?busca=${encodeURIComponent(busca)}` : ""
+export function listarUsuariosAdmin(busca?: string, situacao?: SituacaoConta) {
+  const params = new URLSearchParams()
+  if (busca) params.set("busca", busca)
+  if (situacao) params.set("situacao", situacao)
+  const query = params.size ? `?${params}` : ""
   return buscar<UsuarioAdmin[]>(`/admin/usuarios${query}`)
+}
+
+/** Contagens globais de uso do sistema. Só para o admin. */
+export function obterResumoAdmin() {
+  return buscar<ResumoAdmin>("/admin/resumo")
 }
 
 /** Por data prevista. Só para `prestador` e `clt_prestador`; os outros recebem 403. */
