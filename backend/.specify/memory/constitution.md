@@ -1,25 +1,20 @@
 <!--
 Sync Impact Report
-- Version change: 4.2.0 → 4.3.0 (MINOR: tipo de renda e serviços a receber, pedido pelo
+- Version change: 4.3.0 → 5.0.0 (MAJOR: redefine o papel de administrador, pedido pelo
   usuário em 2026-09-30)
 - Modified principles:
-  - II. Ciclo Aberto pelo Salário Lançado → II. Ciclo Derivado do Tipo de Renda: `clt` e
-    `clt_prestador` mantêm o ciclo pelo salário; `prestador` usa o mês do calendário e não
-    exige salário para lançar; troca de `prestador` para os outros só com todos os
-    lançamentos cobertos por ciclo de salário
-  - IV. API com Contratos Tipados: remove "o escopo atual é só o backend"
-  - V. Contas de Usuário e Isolamento de Dados: serviços entram na lista de dados
-    financeiros por usuário
-  - VI. Escopo P0 e Simplicidade: "Serviço a receber" com situação derivada, só para
-    `prestador` e `clt_prestador`
+  - V. Contas de Usuário e Isolamento de Dados: o administrador passa a ver se a conta está
+    ativa, a desativar e reativar contas e a ver contagens globais de uso (contas,
+    lançamentos, entradas × saídas por mês, dívidas por forma de pagamento), sem valores
+    em reais e sem nada por usuário
 - Added sections: nenhuma
 - Removed sections: nenhuma
-- Stack: frontend (Next.js + shadcn/ui) em escopo desde 2026-09-28 (TODO herdado resolvido)
 - Templates: nenhuma alteração
 - Follow-up TODOs:
-  - CLAUDE.md: glossário (Prestador, Serviço), modelo de dados, regras de cálculo e escopo
-  - Specs 012-prestador-ciclo-mensal e 013-servicos-a-receber
+  - CLAUDE.md: glossário (Administrador), modelo de dados (`usuario.ativo`)
+  - Spec 014-painel-admin-v2
 - Histórico:
+  - 4.2.0 → 4.3.0: tipo de renda e serviços a receber (features 012 e 013)
   - 4.1.0 → 4.2.0: depósito da cartela fora do saldo (`conta_no_saldo = False`)
   - 4.0.1 → 4.1.0: importação de extrato de conta (OFX, CSV ou PDF) com prévia confirmada;
     fatura de cartão nunca importada; salário importado abre ciclo (feature 011)
@@ -157,12 +152,17 @@ O sistema roda na web e é multiusuário: qualquer pessoa pode se cadastrar.
 - Administrador:
   - MUST NOT ser criado pelo cadastro público; só por comando no servidor ou configuração
     de deploy.
-  - Pode ver apenas nome, e-mail e data de criação das contas, e MUST NOT ter acesso a dados
-    financeiros nem aos demais dados pessoais (telefone, cargo, data de nascimento).
-  - A única ação administrativa permitida é resetar senha: o sistema gera uma senha
-    temporária aleatória, exibida uma única vez ao administrador, encerra as sessões do
-    usuário e obriga a troca de senha no próximo login. O administrador MUST NOT escolher a
-    senha de outro usuário.
+  - Pode ver apenas nome, e-mail, data de criação e situação (ativa ou desativada) das
+    contas, e MUST NOT ter acesso a dados financeiros de um usuário nem aos demais dados
+    pessoais (telefone, cargo, data de nascimento).
+  - Pode ver contagens globais de uso, somadas entre todos os usuários: contas, lançamentos,
+    entradas e saídas por mês e dívidas por forma de pagamento. Essas contagens MUST NOT
+    trazer valores em reais nem ser quebradas por usuário.
+  - As ações administrativas permitidas são:
+    - resetar senha: o sistema gera uma senha temporária aleatória, exibida uma única vez ao
+      administrador, encerra as sessões do usuário e obriga a troca de senha no próximo
+      login. O administrador MUST NOT escolher a senha de outro usuário;
+    - desativar conta: encerra as sessões e recusa o login, sem apagar dados; e reativar.
   - Toda ação administrativa MUST ser registrada (quem, o quê, em quem, quando).
 
 **Rationale**: dados financeiros e pessoais de várias pessoas no mesmo banco tornam o
@@ -236,4 +236,4 @@ isso atrasa o MVP.
 - Toda revisão MUST verificar conformidade com os princípios. Violações só são aceitas com
   justificativa registrada na seção "Complexity Tracking" do plano da feature.
 
-**Version**: 4.3.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-30
+**Version**: 5.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-30

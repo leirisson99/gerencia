@@ -8,7 +8,7 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo**: abe
 
 - **Escopo:** backend (API FastAPI) e frontend (Next.js + shadcn/ui, em `../frontend`, desde 2026-09-28). Regras e critérios precisam ser verificáveis pela API.
 - Multiusuário na web: qualquer pessoa pode se cadastrar; cada usuário só vê os próprios dados.
-- Login com e-mail e senha. Um único administrador, que só pode resetar senhas.
+- Login com e-mail e senha. Um único administrador, que reseta senhas, desativa e reativa contas e vê contagens globais de uso (sem valores e sem nada por usuário).
 - Problema central: não saber para onde o dinheiro vai.
 - Tudo é lançado manualmente no MVP, inclusive o salário, que abre o ciclo de quem é CLT.
 - Três tipos de renda: `clt`, `prestador` e `clt_prestador` (escolhido no cadastro, editável no perfil).
@@ -42,13 +42,13 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo**: abe
 | Cartela | Meta de poupança dividida em casas sequenciais (base × 1…N) + casa de ajuste |
 | Casa | Um depósito da cartela. Livre ou depositada |
 | Importação | Extrato de conta (OFX, CSV ou PDF) lido numa prévia; só as linhas que o usuário confirma viram lançamentos, com as mesmas regras do lançamento manual |
-| Administrador | Papel criado só no servidor; vê nome, e-mail e data de criação das contas e só reseta senha |
+| Administrador | Papel criado só no servidor; vê nome, e-mail, data de criação e situação das contas e contagens globais de uso; reseta senha, desativa e reativa contas |
 
 ## Modelo de dados
 
 | Tabela | Campos principais |
 | --- | --- |
-| `usuario` | nome, email (único), senha_hash, telefone, cargo, data_nascimento (opcional), papel (`usuario` / `admin`), tipo_renda (`clt` / `prestador` / `clt_prestador`), troca_senha_obrigatoria, criado_em |
+| `usuario` | nome, email (único), senha_hash, telefone, cargo, data_nascimento (opcional), papel (`usuario` / `admin`), tipo_renda (`clt` / `prestador` / `clt_prestador`), troca_senha_obrigatoria, ativo, criado_em |
 | `categoria` | usuario_id, nome (único por usuário, sem diferenciar maiúsculas), tipo (`entrada` / `saida`), ativa, sistema. "Salário" e "Poupança" são de sistema e protegidas |
 | `recorrencia` | usuario_id, categoria_id, descricao, valor, tipo, dia, ativa |
 | `divida` | usuario_id, categoria_id, descricao, pessoa, direcao, valor_total, parcelas, forma_pagamento, dia_vencimento, data_inicio |
