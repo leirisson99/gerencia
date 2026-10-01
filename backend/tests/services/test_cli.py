@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from app import cli
@@ -72,3 +74,62 @@ def test_gerar_chaves_vapid_gera_par_novo_a_cada_vez(capsys: pytest.CaptureFixtu
     primeira = capsys.readouterr().out
     cli.main(["gerar-chaves-vapid"])
     assert capsys.readouterr().out != primeira
+
+
+def _settings(**vapid: str | None) -> Any:
+    from app.config import Settings
+
+    # Valores explícitos: o .env de desenvolvimento pode ter chaves de verdade.
+    vazio: dict[str, str | None] = dict.fromkeys(
+        ("vapid_chave_publica", "vapid_chave_privada", "vapid_contato")
+    )
+    return Settings(database_url="postgresql+psycopg://x@localhost/x", **{**vazio, **vapid})
+
+
+def test_enviar_lembretes_sem_chaves_vapid_falha(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(cli, "get_settings", lambda: _settings())
+
+    assert cli.main(["enviar-lembretes"]) == 1
+    assert "VAPID" in capsys.readouterr().err
+
+
+def test_enviar_lembretes_imprime_so_contagens(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from contextlib import nullcontext
+    from datetime import date
+
+    from py_vapid import Vapid
+    from py_vapid.utils import b64urlencode
+
+    from app.services.envio_lembrete import Relatorio
+
+    vapid = Vapid()
+    vapid.generate_keys()
+    privada = b64urlencode(vapid.private_key.private_numbers().private_value.to_bytes(32, "big"))
+    monkeypatch.setattr(
+        cli,
+        "get_settings",
+        lambda: _settings(
+            vapid_chave_publica="publica",
+            vapid_chave_privada=privada,
+            vapid_contato="mailto:admin@exemplo.com",
+        ),
+    )
+    monkeypatch.setattr(cli, "SessionLocal", lambda: nullcontext("db"))
+    chamadas: list[tuple[Any, date]] = []
+
+    def enviar(db: Any, hoje: date, enviador: Any) -> Relatorio:
+        chamadas.append((db, hoje))
+        return Relatorio(usuarios=3, enviados=1, sem_pendencias=1, ja_enviados=1, removidos=2)
+
+    monkeypatch.setattr(cli, "enviar_lembretes_do_dia", enviar)
+
+    assert cli.main(["enviar-lembretes"]) == 0
+
+    assert chamadas == [("db", cli.Relogio().hoje_sp())]
+    assert capsys.readouterr().out.strip() == (
+        "usuarios=3 enviados=1 sem_pendencias=1 ja_enviados=1 removidos=2 falhas=0"
+    )

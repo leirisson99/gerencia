@@ -3,6 +3,7 @@
 Uso:
   uv run python -m app.cli hash-senha          # gera o ADMIN_SENHA_HASH do .env
   uv run python -m app.cli gerar-chaves-vapid  # gera as chaves do push (VAPID_*) do .env
+  uv run python -m app.cli enviar-lembretes    # envia o resumo do dia (cron, 8h de São Paulo)
   uv run python -m app.cli testar-login EMAIL  # entra na API pedindo a senha (--api URL)
 """
 
@@ -20,7 +21,11 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from py_vapid import Vapid
 from py_vapid.utils import b64urlencode
 
+from app.config import get_settings
+from app.db import SessionLocal
 from app.domain.usuario import validar_senha
+from app.relogio import Relogio
+from app.services.envio_lembrete import enviar_lembretes_do_dia
 from app.services.senha import hash_senha
 
 
@@ -51,6 +56,28 @@ def _gerar_chaves_vapid(_: argparse.Namespace) -> int:
     print("Copie as linhas abaixo para o .env (a privada é segredo) e reinicie a API:")
     print(f"VAPID_CHAVE_PUBLICA={b64urlencode(publica)}")
     print(f"VAPID_CHAVE_PRIVADA={b64urlencode(privada)}")
+    return 0
+
+
+def _enviar_lembretes(_: argparse.Namespace) -> int:
+    """Resumo do dia por push. A saída só tem contagens: nada de endpoints, valores ou textos."""
+    from app.push import EnviadorWebPush
+
+    settings = get_settings()
+    if not (settings.vapid_chave_privada and settings.vapid_contato):
+        print(
+            "Push desligado: configure VAPID_CHAVE_PRIVADA e VAPID_CONTATO no .env.",
+            file=sys.stderr,
+        )
+        return 1
+
+    enviador = EnviadorWebPush(settings.vapid_chave_privada, settings.vapid_contato)
+    with SessionLocal() as db:
+        r = enviar_lembretes_do_dia(db, Relogio().hoje_sp(), enviador)
+    print(
+        f"usuarios={r.usuarios} enviados={r.enviados} sem_pendencias={r.sem_pendencias} "
+        f"ja_enviados={r.ja_enviados} removidos={r.removidos} falhas={r.falhas}"
+    )
     return 0
 
 
@@ -102,6 +129,9 @@ def main(argv: list[str] | None = None) -> int:
 
     vapid = comandos.add_parser("gerar-chaves-vapid", help="gera o par de chaves do push")
     vapid.set_defaults(executar=_gerar_chaves_vapid)
+
+    lembretes = comandos.add_parser("enviar-lembretes", help="envia o resumo do dia por push")
+    lembretes.set_defaults(executar=_enviar_lembretes)
 
     testar = comandos.add_parser("testar-login", help="entra na API com e-mail e senha")
     testar.add_argument("email")
