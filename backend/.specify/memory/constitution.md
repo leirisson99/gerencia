@@ -1,19 +1,24 @@
 <!--
 Sync Impact Report
-- Version change: 4.3.0 → 5.0.0 (MAJOR: redefine o papel de administrador, pedido pelo
-  usuário em 2026-09-30)
+- Version change: 5.0.0 → 5.1.0 (MINOR: lembretes por push no PWA entram no escopo, pedido
+  pelo usuário em 2026-10-01)
 - Modified principles:
-  - V. Contas de Usuário e Isolamento de Dados: o administrador passa a ver se a conta está
-    ativa, a desativar e reativar contas e a ver contagens globais de uso (contas,
-    lançamentos, entradas × saídas por mês, dívidas por forma de pagamento), sem valores
-    em reais e sem nada por usuário
-- Added sections: nenhuma
+  - V. Contas de Usuário e Isolamento de Dados: lembretes e inscrições de push pertencem ao
+    usuário; chaves VAPID entre os segredos
+  - VI. Escopo P0 e Simplicidade: regras de lembretes (origens, janela de 3 dias, derivação,
+    resumo diário sem valores nem nomes, envio por comando agendado)
+- Added sections: nenhuma (Stack ganhou o item "Notificações")
 - Removed sections: nenhuma
 - Templates: nenhuma alteração
 - Follow-up TODOs:
-  - CLAUDE.md: glossário (Administrador), modelo de dados (`usuario.ativo`)
-  - Spec 014-painel-admin-v2
+  - CLAUDE.md: glossário (Lembrete, Inscrição de push) e modelo de dados (`lembrete`,
+    `inscricao_push`, `envio_lembrete`)
+  - Spec 015 (lembretes) via /speckit-specify
+- Decisão registrada: o Briefing pede 2 ciclos de uso real antes de qualquer item P1;
+  lembretes são P1 e o usuário decidiu seguir mesmo assim.
 - Histórico:
+  - 4.3.0 → 5.0.0: administrador vê situação das contas, desativa/reativa e vê contagens
+    globais de uso (feature 014)
   - 4.2.0 → 4.3.0: tipo de renda e serviços a receber (features 012 e 013)
   - 4.1.0 → 4.2.0: depósito da cartela fora do saldo (`conta_no_saldo = False`)
   - 4.0.1 → 4.1.0: importação de extrato de conta (OFX, CSV ou PDF) com prévia confirmada;
@@ -138,12 +143,12 @@ O sistema roda na web e é multiusuário: qualquer pessoa pode se cadastrar.
   devolvidas pela API.
 - Todo endpoint, exceto saúde (health), cadastro e login, MUST exigir usuário autenticado.
 - Todo dado financeiro (configuração, categorias, lançamentos, recorrências, dívidas,
-  cartelas, casas, serviços a receber) MUST pertencer a um usuário, e toda consulta MUST ser filtrada pelo
-  usuário autenticado. Acessar dado de outro usuário MUST retornar 404, e isso MUST ter
+  cartelas, casas, serviços a receber), assim como lembretes e inscrições de push, MUST
+  pertencer a um usuário, e toda consulta MUST ser filtrada pelo usuário autenticado. Acessar dado de outro usuário MUST retornar 404, e isso MUST ter
   teste.
 - Dados pessoais do cadastro (nome, e-mail, telefone, etc.) MUST ser visíveis só ao próprio
   usuário, com a única exceção do papel de administrador descrita abaixo.
-- Segredos (credenciais de banco, chaves de token) MUST vir de variáveis de ambiente e
+- Segredos (credenciais de banco, chaves de token, chaves VAPID de push) MUST vir de variáveis de ambiente e
   MUST NOT ser versionados.
 - Logs MUST NOT conter senhas, tokens, dados pessoais ou valores e descrições de
   lançamentos.
@@ -183,6 +188,20 @@ vazamento entre usuários o pior modo de falha possível do sistema.
   "Salário") existe só para `prestador` e `clt_prestador`. Ele gera uma entrada prevista
   que vira realizada quando o usuário marca o recebimento. Sua situação (a receber,
   atrasado, recebido) MUST ser derivada do lançamento e da data, nunca armazenada.
+- Lembretes têm três origens:
+  - contas a pagar: saídas previstas com `conta_no_saldo = True` e data até hoje + 3 dias,
+    incluindo as atrasadas;
+  - valores a receber: entradas previstas na mesma janela;
+  - lembretes livres: texto e data criados pelo usuário.
+  Contas a pagar e valores a receber MUST ser derivados dos lançamentos previstos, nunca
+  armazenados; só o lembrete livre tem tabela própria.
+- O envio é um resumo diário por usuário, por Web Push (VAPID), para os aparelhos que ele
+  inscreveu, por volta das 8h em `America/Sao_Paulo` e no máximo uma vez por dia. O envio
+  MUST ser disparado por um comando agendado (cron) do próprio código, nunca dentro de uma
+  requisição da API.
+- A notificação MUST NOT conter valores em reais, descrições de lançamentos nem nomes de
+  pessoas ou clientes: só contagens e texto genérico. Os detalhes ficam na página de
+  lembretes, atrás do login.
 - Camadas: `api/routes/` só valida e chama `services/`; `services/` lê e grava no banco e
   chama `domain/`; regra de negócio MUST NOT ficar em rotas nem em services.
 - Um único serviço (monólito). Filas, caches ou serviços extras MUST ser justificados no
@@ -206,6 +225,8 @@ isso atrasa o MVP.
   ser em inglês.
 - **Frontend**: Next.js + shadcn/ui, em escopo desde 2026-09-28; consome só a API e segue
   o Princípio I (dinheiro em centavos `int`, formatado em reais só na exibição).
+- **Notificações**: Web Push com VAPID, enviado pelo backend com `pywebpush`; o frontend
+  registra um service worker para receber e abrir as notificações.
 
 ## Fluxo de Desenvolvimento
 
@@ -236,4 +257,4 @@ isso atrasa o MVP.
 - Toda revisão MUST verificar conformidade com os princípios. Violações só são aceitas com
   justificativa registrada na seção "Complexity Tracking" do plano da feature.
 
-**Version**: 5.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-30
+**Version**: 5.1.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-01
