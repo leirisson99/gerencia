@@ -19,6 +19,7 @@ from app.models.cartela import Cartela, Casa  # noqa: E402
 from app.models.categoria import Categoria  # noqa: E402
 from app.models.divida import Divida  # noqa: E402
 from app.models.lancamento import Lancamento  # noqa: E402
+from app.models.lembrete import EnvioLembrete, InscricaoPush, Lembrete  # noqa: E402
 from app.models.recorrencia import Recorrencia  # noqa: E402
 from app.models.servico import Servico  # noqa: E402
 from app.models.sessao import Sessao  # noqa: E402
@@ -32,7 +33,10 @@ __all__ = [
     "Casa",
     "Categoria",
     "Divida",
+    "EnvioLembrete",
+    "InscricaoPush",
     "Lancamento",
+    "Lembrete",
     "Recorrencia",
     "Servico",
     "Sessao",

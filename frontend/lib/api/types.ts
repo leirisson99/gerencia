@@ -357,3 +357,39 @@ export type ServicoPatch = Partial<ServicoIn>
 
 /** `valor` ausente: recebeu o valor combinado. A data não pode ser futura. */
 export type RecebimentoIn = { data: string; valor?: number }
+
+// Espelham app/schemas/lembrete.py. Contas e valores vêm dos lançamentos previstos, na hora.
+
+/** Conta a pagar (saída prevista), valor a receber (entrada prevista) ou lembrete livre. */
+export type OrigemLembrete = "conta" | "valor" | "livre"
+/** Atrasado: antes de hoje. A vencer: de hoje até hoje + 3 dias. */
+export type SituacaoLembrete = "atrasado" | "a_vencer"
+
+export type LembreteLivre = {
+  id: number
+  texto: string
+  /** ISO `YYYY-MM-DD` */
+  data: string
+  concluido: boolean
+  concluido_em: string | null
+  criado_em: string
+}
+
+export type ItemLembrete = {
+  origem: OrigemLembrete
+  situacao: SituacaoLembrete
+  /** ISO `YYYY-MM-DD` */
+  data: string
+  /** Em "conta" e "valor". */
+  lancamento: Lancamento | null
+  /** Em "livre". */
+  lembrete: LembreteLivre | null
+}
+
+export type LembretesOut = {
+  hoje: string
+  /** Último dia da janela "a vencer", inclusive. */
+  limite: string
+  atrasados: ItemLembrete[]
+  a_vencer: ItemLembrete[]
+}

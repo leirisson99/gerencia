@@ -10,6 +10,7 @@ import type {
   Ciclo,
   Divida,
   Lancamento,
+  LembretesOut,
   Recorrencia,
   ResumoAdmin,
   ResumoCiclo,
@@ -129,6 +130,11 @@ export function obterResumoAdmin() {
 /** Por data prevista. Só para `prestador` e `clt_prestador`; os outros recebem 403. */
 export function listarServicos() {
   return buscar<Servico[]>("/servicos")
+}
+
+/** Contas e valores atrasados e a vencer até hoje + 3 dias, calculados na hora. */
+export function obterLembretes() {
+  return buscar<LembretesOut>("/lembretes")
 }
 
 export function listarCartelas() {
