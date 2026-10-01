@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-30
 
-**Status**: Draft
+**Status**: Implementada (2026-10-01)
 
 **Input**: "preciso saber a quantidade de usuarios cadastrados, listar os usuarios, desativar
 usuario, total de movimentações, grafico de movimentações por tipo, tipo de pagamento mais

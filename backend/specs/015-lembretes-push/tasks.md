@@ -197,7 +197,7 @@ resumo, concluir e vê-lo sair.
 
 - [X] T036 [P] Conferir que nenhum log do envio, das rotas de push ou do CLI imprime endpoint, chaves, valores ou textos, com grep em backend/app/services/envio_lembrete.py, backend/app/push.py e backend/app/cli.py.
 - [X] T037 Rodar `uv run pytest`, `uv run ruff check .` e `uv run ruff format --check .` em `backend/`, e `npm run lint` e `npm run build` em `frontend/`.
-- [ ] T038 Validar ponta a ponta os cenários 1 a 9 de quickstart.md em `http://localhost` (backend atual, frontend em dev).
+- [x] T038 Validar ponta a ponta os cenários 1 a 9 de quickstart.md em `http://localhost` (backend atual, frontend em dev).
   - Feito em 2026-10-01: cenários 1, 2, 5, 8 e 9 pela API e pela página, e o comando de envio
     com as chaves reais. Pendente: 3, 4, 6 e 7, que exigem clicar em "Ativar" e aceitar a
     permissão no navegador.
