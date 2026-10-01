@@ -54,10 +54,23 @@ npm run lint && npm run build
 9. **Isolamento**: com outra conta, `PATCH /api/v1/lembretes/livres/{id}` num lembrete da
    primeira conta retorna 404.
 
-## Agendamento em produção
+## Produção (Easypanel)
 
-O cron do servidor deve rodar às 11:00 UTC, que é 8h em São Paulo:
+1. **Chaves:** gere um par só para produção com `uv run python -m app.cli gerar-chaves-vapid`.
+   No serviço da API, em **Environment**, cadastre `VAPID_CHAVE_PUBLICA`,
+   `VAPID_CHAVE_PRIVADA` e `VAPID_CONTATO`. Gere uma vez só: trocar as chaves obriga todo mundo a
+   ativar as notificações de novo.
+2. **Serviço `lembretes`:** crie um novo serviço de app no mesmo projeto, com o mesmo
+   repositório e a mesma branch da API.
+   - Build: Dockerfile `backend/Dockerfile.cron`, com a raiz do repositório como contexto (igual
+     à API).
+   - Environment: as mesmas `DATABASE_URL` e `VAPID_*` da API.
+   - Sem domínio e sem porta: o serviço não recebe requisições.
+3. **Deploy:** faça o deploy da API primeiro, porque ela aplica as migrações, e depois o do
+   `lembretes`.
+4. **Conferir:** nos logs do `lembretes`, o supercronic mostra a execução das 11:00 UTC (8h em
+   São Paulo) e a linha de contagens (`usuarios=… enviados=…`). Para testar fora do horário, use
+   o console do serviço e rode `python -m app.cli enviar-lembretes`.
 
-```cron
-0 11 * * * cd /caminho/do/deploy && docker compose exec -T api python -m app.cli enviar-lembretes
-```
+O agendamento fica em `backend/crontab`. O comando não reenvia no mesmo dia, então rodar mais
+de uma vez é seguro.

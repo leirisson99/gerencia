@@ -195,11 +195,14 @@ resumo, concluir e vê-lo sair.
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T036 [P] Conferir que nenhum log do envio, das rotas de push ou do CLI imprime endpoint, chaves, valores ou textos, com grep em backend/app/services/envio_lembrete.py, backend/app/push.py e backend/app/cli.py.
-- [ ] T037 Rodar `uv run pytest`, `uv run ruff check .` e `uv run ruff format --check .` em `backend/`, e `npm run lint` e `npm run build` em `frontend/`.
+- [X] T036 [P] Conferir que nenhum log do envio, das rotas de push ou do CLI imprime endpoint, chaves, valores ou textos, com grep em backend/app/services/envio_lembrete.py, backend/app/push.py e backend/app/cli.py.
+- [X] T037 Rodar `uv run pytest`, `uv run ruff check .` e `uv run ruff format --check .` em `backend/`, e `npm run lint` e `npm run build` em `frontend/`.
 - [ ] T038 Validar ponta a ponta os cenários 1 a 9 de quickstart.md em `http://localhost` (backend atual, frontend em dev).
-- [ ] T039 Marcar o status da spec como implementada em specs/015-lembretes-push/spec.md e conferir o CLAUDE.md (glossário e modelo de dados já atualizados).
-- [ ] T040 Criar backend/Dockerfile.cron para o serviço `lembretes` do Easypanel: mesma base e build do backend/Dockerfile (código e `.venv`), com o binário do supercronic instalado e um crontab `CRON_TZ=America/Sao_Paulo` / `0 8 * * * python -m app.cli enviar-lembretes`; `CMD ["supercronic", "/app/crontab"]`, sem rodar migrações nem a API. Documentar em quickstart.md, na seção de produção, como criar o serviço no Easypanel (mesmo repositório, Dockerfile `backend/Dockerfile.cron`, mesmas variáveis `DATABASE_URL` e `VAPID_*`) e trocar o exemplo de cron do servidor por ele
+  - Feito em 2026-10-01: cenários 1, 2, 5, 8 e 9 pela API e pela página, e o comando de envio
+    com as chaves reais. Pendente: 3, 4, 6 e 7, que exigem clicar em "Ativar" e aceitar a
+    permissão no navegador.
+- [X] T039 Marcar o status da spec como implementada em specs/015-lembretes-push/spec.md e conferir o CLAUDE.md (glossário e modelo de dados já atualizados).
+- [X] T040 Criar backend/Dockerfile.cron para o serviço `lembretes` do Easypanel: mesma base e build do backend/Dockerfile (código e `.venv`), com o binário do supercronic instalado e um crontab `CRON_TZ=America/Sao_Paulo` / `0 8 * * * python -m app.cli enviar-lembretes`; `CMD ["supercronic", "/app/crontab"]`, sem rodar migrações nem a API. Documentar em quickstart.md, na seção de produção, como criar o serviço no Easypanel (mesmo repositório, Dockerfile `backend/Dockerfile.cron`, mesmas variáveis `DATABASE_URL` e `VAPID_*`) e trocar o exemplo de cron do servidor por ele
 
 ## Dependencies
 

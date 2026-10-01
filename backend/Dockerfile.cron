@@ -1,0 +1,38 @@
+# syntax=docker/dockerfile:1
+# Serviço `lembretes`: roda o envio diário do resumo por push (supercronic), sem a API.
+# Contexto de build: a raiz do repositório (docker build -f backend/Dockerfile.cron .).
+# Precisa das mesmas variáveis da API: DATABASE_URL e VAPID_*.
+
+FROM python:3.12-slim AS build
+COPY --from=ghcr.io/astral-sh/uv:0.8 /uv /bin/uv
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never
+WORKDIR /app
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN uv sync --locked --no-dev
+
+# Binário oficial do supercronic (cron feito para containers), conferido pelo sha256.
+FROM scratch AS supercronic-amd64
+ADD --chmod=755 --checksum=sha256:a53ae236602c7338aba3fbaff40bda6300eae3b9fedb8261eb06cfe3724430c1 \
+    https://github.com/aptible/supercronic/releases/download/v0.2.49/supercronic-linux-amd64 /supercronic
+
+FROM scratch AS supercronic-arm64
+ADD --chmod=755 --checksum=sha256:02aa0cb229ba09050cba6638059dadb9eedc2276632ea43d6a57a2f8c1629dd5 \
+    https://github.com/aptible/supercronic/releases/download/v0.2.49/supercronic-linux-arm64 /supercronic
+
+# TARGETARCH vem do BuildKit (amd64 ou arm64).
+FROM supercronic-${TARGETARCH} AS supercronic
+
+FROM python:3.12-slim AS runtime
+RUN useradd --create-home --uid 1000 app
+WORKDIR /app
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1
+COPY --from=supercronic /supercronic /usr/local/bin/supercronic
+COPY --from=build /app/.venv ./.venv
+COPY backend/app ./app
+COPY backend/crontab ./crontab
+USER app
+# Sem migrações aqui: quem aplica é o serviço da API, ao subir.
+CMD ["supercronic", "-passthrough-logs", "/app/crontab"]

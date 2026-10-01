@@ -1,0 +1,8 @@
+# Contexto é a raiz do repositório: só entra o que o Dockerfile.cron usa (nunca o .env).
+*
+!backend/pyproject.toml
+!backend/uv.lock
+!backend/app/
+!backend/crontab
+**/__pycache__
+**/*.pyc

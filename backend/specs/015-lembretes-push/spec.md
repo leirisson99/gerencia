@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-01
 
-**Status**: Draft
+**Status**: Implementada (2026-10-01)
 
 **Input**: Pedido explícito do usuário em 2026-10-01: ser avisado no celular do que vence, sem
 precisar abrir o app. Decisões do usuário: notificação push pelo app instalado (PWA); avisar
