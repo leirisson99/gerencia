@@ -1,8 +1,6 @@
 import Link from "next/link"
 import { cn } from "cn"
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
   HandCoinsIcon,
   PiggyBankIcon,
   RepeatIcon,
@@ -11,11 +9,14 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
+import type { Categoria } from "@/lib/api/types"
 import { formatarCentavos } from "@/lib/format"
+import { Movimento } from "./movimento"
 
 /**
  * Cartão do topo do dashboard no celular: saldo do ciclo (ou do mês) em destaque, com entradas e saídas logo
- * abaixo. Fundo invertido (preto no tema claro, branco no escuro) para ser o primeiro olhar.
+ * abaixo. Fundo invertido (preto no tema claro, branco no escuro) para ser o primeiro olhar. Tocar em
+ * entradas ou saídas abre o lançamento daquele tipo.
  */
 export function SaldoDestaque({
   saldo,
@@ -25,6 +26,8 @@ export function SaldoDestaque({
   diaDoCiclo,
   nome = "ciclo",
   guardado,
+  categorias,
+  sugestaoSalario,
 }: {
   saldo: number
   entradas: number
@@ -35,6 +38,8 @@ export function SaldoDestaque({
   nome?: "ciclo" | "mês"
   /** Total guardado nas cartelas. */
   guardado?: number
+  categorias: Categoria[]
+  sugestaoSalario: number | null
 }) {
   return (
     <section
@@ -55,8 +60,18 @@ export function SaldoDestaque({
       </p>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
-        <Movimento titulo="Entradas" valor={entradas} icone={ArrowDownIcon} />
-        <Movimento titulo="Saídas" valor={saidas} icone={ArrowUpIcon} saida />
+        <Movimento
+          tipo="entrada"
+          valor={entradas}
+          categorias={categorias}
+          sugestaoSalario={sugestaoSalario}
+        />
+        <Movimento
+          tipo="saida"
+          valor={saidas}
+          categorias={categorias}
+          sugestaoSalario={sugestaoSalario}
+        />
       </div>
 
       {guardado !== undefined && (
@@ -75,38 +90,6 @@ export function SaldoDestaque({
         </Link>
       )}
     </section>
-  )
-}
-
-function Movimento({
-  titulo,
-  valor,
-  icone: Icone,
-  saida = false,
-}: {
-  titulo: string
-  valor: number
-  icone: LucideIcon
-  saida?: boolean
-}) {
-  return (
-    <div className="relative overflow-hidden rounded-2xl bg-primary-foreground/10 p-3">
-      <Icone
-        aria-hidden
-        className="absolute -right-3 -bottom-3 size-16 opacity-10"
-        strokeWidth={2.5}
-      />
-      <span
-        aria-hidden
-        className="flex size-7 items-center justify-center rounded-full bg-primary-foreground text-primary"
-      >
-        <Icone className="size-4" />
-      </span>
-      <p className="mt-3 text-xs opacity-70">{titulo}</p>
-      <p className={cn("valor font-semibold", saida && "text-saida")}>
-        {formatarCentavos(valor)}
-      </p>
-    </div>
   )
 }
 
