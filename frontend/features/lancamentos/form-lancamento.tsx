@@ -13,7 +13,13 @@ import { ErroForm } from "@/components/forms/erro-form"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { criarLancamento, editarLancamento } from "@/lib/api/lancamentos"
-import type { Categoria, Lancamento, LancamentoComAviso, LancamentoIn } from "@/lib/api/types"
+import type {
+  Categoria,
+  Lancamento,
+  LancamentoComAviso,
+  LancamentoIn,
+  TipoLancamento,
+} from "@/lib/api/types"
 import { acharSalario, eSalario } from "@/lib/categorias"
 import { VALOR_MAXIMO, hojeSaoPaulo } from "@/lib/format"
 import { aplicarErroApi } from "@/lib/forms"
@@ -45,6 +51,8 @@ type Props = {
   lancamento?: Lancamento
   /** Categoria já escolhida ao abrir um lançamento novo. */
   categoriaInicial?: Categoria
+  /** Mostra só categorias de entrada ou de saída (atalhos do celular). */
+  tipo?: TipoLancamento
   aoConcluir: (lancamento: LancamentoComAviso) => void
 }
 
@@ -53,6 +61,7 @@ export function FormLancamento({
   sugestaoSalario,
   lancamento,
   categoriaInicial,
+  tipo,
   aoConcluir,
 }: Props) {
   const [erroGeral, setErroGeral] = useState<string | null>(null)
@@ -173,6 +182,7 @@ export function FormLancamento({
           render={({ field }) => (
             <CampoCategoria
               categorias={categorias}
+              tipo={tipo}
               name={field.name}
               ref={field.ref}
               value={field.value}
