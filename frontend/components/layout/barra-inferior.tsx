@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "cn"
 import {
+  ArrowUpIcon,
   HouseIcon,
   ListIcon,
   MenuIcon,
@@ -15,7 +16,9 @@ import {
 
 import { useSidebar } from "@/components/ui/sidebar"
 import { DialogLancamento } from "@/features/lancamentos/dialog-lancamento"
+import { useTipoRenda } from "@/features/tipo-renda/contexto"
 import type { Categoria } from "@/lib/api/types"
+import { ehPrestador } from "@/lib/tipo-renda"
 
 type Props = {
   categorias: Categoria[]
@@ -27,13 +30,17 @@ function ativo(href: string, pathname: string) {
 }
 
 /**
- * Navegação de app no celular: quatro destinos e o botão central de lançar, que é a ação mais
- * frequente. "Mais" abre o menu lateral com o resto das páginas. Some a partir de md.
+ * Navegação de app no celular: quatro destinos e o botão central de lançar uma saída, que é a ação
+ * mais frequente. "Mais" abre o menu lateral com o resto das páginas. Some a partir de md.
  */
 export function BarraInferior({ categorias, sugestaoSalario }: Props) {
   const pathname = usePathname()
   const { setOpenMobile } = useSidebar()
   const [lancando, setLancando] = useState(false)
+  // Sem nenhum salário ainda não há ciclo e a API recusa saídas: o botão abre o lançamento
+  // completo para o salário aparecer. A sugestão só é nula quando nunca houve salário.
+  const semCiclo = !ehPrestador(useTipoRenda()) && sugestaoSalario === null
+  const Icone = semCiclo ? PlusIcon : ArrowUpIcon
 
   return (
     <>
@@ -53,10 +60,10 @@ export function BarraInferior({ categorias, sugestaoSalario }: Props) {
             <button
               type="button"
               onClick={() => setLancando(true)}
-              aria-label="Novo lançamento"
+              aria-label={semCiclo ? "Novo lançamento" : "Nova saída"}
               className="-mt-8 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              <PlusIcon className="size-6" aria-hidden />
+              <Icone className="size-6" aria-hidden />
             </button>
           </li>
           <ItemBarra
@@ -83,6 +90,7 @@ export function BarraInferior({ categorias, sugestaoSalario }: Props) {
         aoMudar={setLancando}
         categorias={categorias}
         sugestaoSalario={sugestaoSalario}
+        tipo={semCiclo ? undefined : "saida"}
       />
     </>
   )

@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import type { Categoria, Lancamento, LancamentoComAviso } from "@/lib/api/types"
+import type { Categoria, Lancamento, LancamentoComAviso, TipoLancamento } from "@/lib/api/types"
 import { formatarData } from "@/lib/format"
 import { mostrarAvisoLimite } from "./aviso-limite"
 import { FormLancamento } from "./form-lancamento"
@@ -24,6 +24,8 @@ type Props = {
   /** Presente ao editar. */
   lancamento?: Lancamento
   categoriaInicial?: Categoria
+  /** Lançamento novo só de entrada ou só de saída: filtra as categorias e ajusta o título. */
+  tipo?: TipoLancamento
   /** Ações extras abaixo do formulário (ex.: excluir). */
   rodape?: ReactNode
 }
@@ -36,9 +38,17 @@ export function DialogLancamento({
   sugestaoSalario,
   lancamento,
   categoriaInicial,
+  tipo,
   rodape,
 }: Props) {
   const router = useRouter()
+  const titulo = lancamento
+    ? "Editar lançamento"
+    : tipo === "entrada"
+      ? "Nova entrada"
+      : tipo === "saida"
+        ? "Nova saída"
+        : "Novo lançamento"
 
   function aoConcluir(salvo: LancamentoComAviso) {
     aoMudar(false)
@@ -53,9 +63,10 @@ export function DialogLancamento({
     <Dialog open={aberto} onOpenChange={aoMudar}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 sm:max-w-md">
         <DialogHeader className="mb-2">
-          <DialogTitle className="text-xl">{lancamento ? "Editar lançamento" : "Novo lançamento"}</DialogTitle>
+          <DialogTitle className="text-xl">{titulo}</DialogTitle>
           <DialogDescription>
-            Só valor, categoria e data são obrigatórios. Entrada ou saída vem da categoria.
+            Só valor, categoria e data são obrigatórios.
+            {!tipo && " Entrada ou saída vem da categoria."}
           </DialogDescription>
         </DialogHeader>
         {/* Monta de novo a cada abertura para começar sem valores e erros antigos. */}
@@ -65,6 +76,7 @@ export function DialogLancamento({
             sugestaoSalario={sugestaoSalario}
             lancamento={lancamento}
             categoriaInicial={categoriaInicial}
+            tipo={tipo}
             aoConcluir={aoConcluir}
           />
         )}

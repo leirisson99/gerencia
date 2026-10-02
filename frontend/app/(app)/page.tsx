@@ -145,6 +145,8 @@ export default async function DashboardPage() {
           diaDoCiclo={diaDoCiclo}
           nome={nome}
           guardado={guardado}
+          categorias={categorias}
+          sugestaoSalario={sugestaoSalario}
         />
         <Atalhos className="mt-6" />
       </div>
