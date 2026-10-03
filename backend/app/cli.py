@@ -4,6 +4,7 @@ Uso:
   uv run python -m app.cli hash-senha          # gera o ADMIN_SENHA_HASH do .env
   uv run python -m app.cli gerar-chaves-vapid  # gera as chaves do push (VAPID_*) do .env
   uv run python -m app.cli enviar-lembretes    # envia o resumo do dia (cron, 8h de São Paulo)
+  uv run python -m app.cli limpar-eventos      # apaga eventos de uso com mais de 12 meses (cron)
   uv run python -m app.cli testar-login EMAIL  # entra na API pedindo a senha (--api URL)
   uv run python -m app.cli popular-demo        # cria as contas de demonstração (--api URL,
                                                # --so ana|carlos, --sufixo v04; senha em DEMO_SENHA)
@@ -30,6 +31,7 @@ from app.demo import PERSONAS, ErroDemo
 from app.domain.usuario import validar_senha
 from app.relogio import Relogio
 from app.services.envio_lembrete import enviar_lembretes_do_dia
+from app.services.evento_uso import limpar_antigos
 from app.services.senha import hash_senha
 
 
@@ -82,6 +84,14 @@ def _enviar_lembretes(_: argparse.Namespace) -> int:
         f"usuarios={r.usuarios} enviados={r.enviados} sem_pendencias={r.sem_pendencias} "
         f"ja_enviados={r.ja_enviados} removidos={r.removidos} falhas={r.falhas}"
     )
+    return 0
+
+
+def _limpar_eventos(_: argparse.Namespace) -> int:
+    """Retenção dos eventos de uso. A saída é só a contagem."""
+    with SessionLocal() as db:
+        removidos = limpar_antigos(db, Relogio().agora_utc())
+    print(f"removidos={removidos}")
     return 0
 
 
@@ -172,6 +182,9 @@ def main(argv: list[str] | None = None) -> int:
 
     lembretes = comandos.add_parser("enviar-lembretes", help="envia o resumo do dia por push")
     lembretes.set_defaults(executar=_enviar_lembretes)
+
+    limpar = comandos.add_parser("limpar-eventos", help="apaga eventos de uso antigos")
+    limpar.set_defaults(executar=_limpar_eventos)
 
     testar = comandos.add_parser("testar-login", help="entra na API com e-mail e senha")
     testar.add_argument("email")
