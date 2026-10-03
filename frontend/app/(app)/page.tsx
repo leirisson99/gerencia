@@ -13,6 +13,7 @@ import { saldoDiaADia, totaisPorPeriodo } from "@/features/dashboard/series"
 import { ListaLancamentos } from "@/features/lancamentos/lista-lancamentos"
 import { NovoLancamento } from "@/features/lancamentos/novo-lancamento"
 import { TotaisPorCategoria } from "@/features/resumo/totais-por-categoria"
+import { DialogRetirada } from "@/features/retiradas/dialog-retirada"
 import {
   listarCartelas,
   listarCategorias,
@@ -24,9 +25,10 @@ import {
   obterTipoRenda,
 } from "@/lib/api/server"
 import type { ResumoCiclo } from "@/lib/api/types"
+import { obterCarteira } from "@/lib/carteira"
 import { acharSalario } from "@/lib/categorias"
 import { diasEntre, formatarCentavos, hojeSaoPaulo } from "@/lib/format"
-import { ehPrestador, nomeCiclo } from "@/lib/tipo-renda"
+import { cicloPeloMes, nomeCiclo } from "@/lib/tipo-renda"
 
 export const metadata: Metadata = { title: "Dashboard" }
 
@@ -67,14 +69,16 @@ async function resumosAte(atual: ResumoCiclo, quantos: number): Promise<ResumoCi
  * Para o prestador o ciclo é o mês, que sempre existe.
  */
 export default async function DashboardPage() {
-  const [ciclo, categorias, sugestaoSalario, tipoRenda] = await Promise.all([
+  const [ciclo, categorias, sugestaoSalario, tipoRenda, carteira] = await Promise.all([
     obterCiclo(),
     listarCategorias(),
     obterSugestaoSalario(),
     obterTipoRenda(),
+    obterCarteira(),
   ])
-  const mensal = ehPrestador(tipoRenda)
-  const nome = nomeCiclo(tipoRenda)
+  // A PJ conta sempre pelo mês, como o prestador.
+  const mensal = cicloPeloMes(tipoRenda, carteira)
+  const nome = mensal ? "mês" : nomeCiclo(tipoRenda)
 
   if (!ciclo) {
     return (
@@ -132,7 +136,10 @@ export default async function DashboardPage() {
             {tituloCiclo(ciclo, mensal)} · {periodo}
           </p>
         </div>
-        <NovoLancamento categorias={categorias} sugestaoSalario={sugestaoSalario} />
+        <div className="flex flex-wrap gap-2">
+          <DialogRetirada />
+          <NovoLancamento categorias={categorias} sugestaoSalario={sugestaoSalario} />
+        </div>
       </div>
 
       {/* Celular: saldo em destaque e atalhos, no lugar da grade de blocos. */}

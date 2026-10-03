@@ -27,6 +27,12 @@ import type {
 
 const API_URL = process.env.API_URL ?? "http://localhost:8000"
 
+/** Acrescenta `?carteira=pj` quando a PJ está aberta; a PF é o padrão da API. */
+async function naCarteira(caminho: string): Promise<string> {
+  const { obterCarteira } = await import("../carteira")
+  return (await obterCarteira()) === "pj" ? `${caminho}?carteira=pj` : caminho
+}
+
 /** GET na API a partir do servidor, repassando o cookie do navegador. */
 async function buscar<T>(caminho: string): Promise<T> {
   const jar = await cookies()
@@ -69,7 +75,7 @@ export async function obterTipoRenda(): Promise<TipoRenda> {
  */
 export async function obterCiclo(data?: string): Promise<Ciclo | null> {
   try {
-    return await buscar<Ciclo>(`/ciclos/${data ?? "atual"}`)
+    return await buscar<Ciclo>(await naCarteira(`/ciclos/${data ?? "atual"}`))
   } catch (erro) {
     if (erro instanceof ApiError && (erro.codigo === "sem_ciclo" || erro.status === 422)) {
       return null
@@ -79,13 +85,13 @@ export async function obterCiclo(data?: string): Promise<Ciclo | null> {
 }
 
 /** Lançamentos do ciclo que começa em `inicio`, ordenados por data. */
-export function listarLancamentosDoCiclo(inicio: string) {
-  return buscar<Lancamento[]>(`/ciclos/${inicio}/lancamentos`)
+export async function listarLancamentosDoCiclo(inicio: string) {
+  return buscar<Lancamento[]>(await naCarteira(`/ciclos/${inicio}/lancamentos`))
 }
 
 /** Entradas, saídas, saldo e totais por categoria do ciclo que começa em `inicio`. */
-export function obterResumo(inicio: string) {
-  return buscar<ResumoCiclo>(`/ciclos/${inicio}/resumo`)
+export async function obterResumo(inicio: string) {
+  return buscar<ResumoCiclo>(await naCarteira(`/ciclos/${inicio}/resumo`))
 }
 
 /** Só as ativas, a menos que peça as inativas (tela de categorias). */
@@ -97,9 +103,10 @@ export async function obterSugestaoSalario() {
   return (await buscar<SugestaoSalario>("/salarios/sugestao")).valor
 }
 
-/** Todas as recorrências, ativas e inativas, por dia e descrição. */
-export function listarRecorrencias() {
-  return buscar<Recorrencia[]>("/recorrencias")
+/** Recorrências da carteira aberta, ativas e inativas, por dia e descrição. */
+export async function listarRecorrencias() {
+  const { obterCarteira } = await import("../carteira")
+  return buscar<Recorrencia[]>(`/recorrencias?carteira=${await obterCarteira()}`)
 }
 
 export function listarDividas() {

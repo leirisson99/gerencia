@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { FieldGroup } from "@/components/ui/field"
+import { useCarteira } from "@/features/carteira/contexto"
 import { criarRecorrencia, editarRecorrencia } from "@/lib/api/recorrencias"
 import type { Categoria, Recorrencia, RecorrenciaIn } from "@/lib/api/types"
 import { VALOR_MAXIMO } from "@/lib/format"
@@ -95,9 +96,11 @@ function FormRecorrencia({
   })
   const { errors, isSubmitting, isDirty } = form.formState
 
+  const { carteira } = useCarteira()
+
   async function enviar(valores: Valores) {
     setErroGeral(null)
-    const dados: RecorrenciaIn = {
+    const dados: Omit<RecorrenciaIn, "carteira"> = {
       descricao: valores.descricao,
       valor: valores.valor,
       categoria_id: Number(valores.categoria_id),
@@ -108,7 +111,7 @@ function FormRecorrencia({
         await editarRecorrencia(recorrencia.id, dados)
         toast.success("Recorrência salva. Vale a partir do próximo ciclo.")
       } else {
-        await criarRecorrencia(dados)
+        await criarRecorrencia({ ...dados, carteira })
         toast.success("Recorrência criada. Ela gera um previsto em cada ciclo.")
       }
       aoConcluir()

@@ -3,6 +3,9 @@
 /** Define a regra do ciclo (salário ou mês do calendário) e o acesso a Serviços. */
 export type TipoRenda = "clt" | "prestador" | "clt_prestador"
 
+/** De quem é o dinheiro: a pessoa (PF) ou a empresa dela (PJ). */
+export type Carteira = "pf" | "pj"
+
 export type Usuario = {
   id: number
   nome: string
@@ -15,6 +18,8 @@ export type Usuario = {
   /** Só o do próprio usuário. O administrador tem área própria e não vê dados financeiros. */
   papel: "usuario" | "admin"
   tipo_renda: TipoRenda
+  /** Carteira PJ ligada ("Tenho CNPJ"). */
+  tem_pj: boolean
   criado_em: string
 }
 
@@ -34,7 +39,9 @@ export type LoginIn = {
   senha: string
 }
 
-export type PerfilIn = Partial<Pick<Usuario, "nome" | "telefone" | "cargo" | "data_nascimento" | "tipo_renda">>
+export type PerfilIn = Partial<
+  Pick<Usuario, "nome" | "telefone" | "cargo" | "data_nascimento" | "tipo_renda" | "tem_pj">
+>
 
 export type TrocaSenhaIn = {
   senha_atual: string
@@ -81,6 +88,7 @@ export type Lancamento = {
   descricao: string | null
   status: StatusLancamento
   conta_no_saldo: boolean
+  carteira: Carteira
   abre_ciclo: boolean
   /** Previsto gerado por uma recorrência. */
   recorrencia_id: number | null
@@ -93,6 +101,8 @@ export type Lancamento = {
   importado: boolean
   /** Entrada de um serviço: valor, status, categoria e data mudam só pelo serviço. */
   servico_id: number | null
+  /** Lado de uma retirada da PJ para a PF: muda só pela retirada. */
+  retirada_id: number | null
   criado_em: string
 }
 
@@ -103,6 +113,8 @@ export type LancamentoIn = {
   data: string
   descricao?: string | null
   status?: StatusLancamento
+  /** Ausente = PF. */
+  carteira?: Carteira
 }
 
 export type LancamentoPatch = Partial<LancamentoIn>
@@ -168,13 +180,17 @@ export type Recorrencia = {
   /** Dia do mês, 1 a 31 */
   dia: number
   ativa: boolean
+  carteira: Carteira
 }
 
 /** O tipo vem da categoria; "Salário" não é aceita. */
-export type RecorrenciaIn = Pick<Recorrencia, "descricao" | "valor" | "categoria_id" | "dia">
+export type RecorrenciaIn = Pick<Recorrencia, "descricao" | "valor" | "categoria_id" | "dia"> & {
+  /** Ausente = PF. Não muda depois de criada. */
+  carteira?: Carteira
+}
 
 /** Vale para os próximos ciclos. */
-export type RecorrenciaPatch = Partial<RecorrenciaIn & Pick<Recorrencia, "ativa">>
+export type RecorrenciaPatch = Partial<Omit<RecorrenciaIn, "carteira"> & Pick<Recorrencia, "ativa">>
 
 export type Direcao = "devo" | "me_devem"
 export type FormaPagamento = "pix" | "boleto" | "cartao" | "dinheiro"
@@ -402,6 +418,8 @@ export type ItemLembrete = {
   situacao: SituacaoLembrete
   /** ISO `YYYY-MM-DD` */
   data: string
+  /** Lembrete livre é sempre da PF. */
+  carteira: Carteira
   /** Em "conta" e "valor". */
   lancamento: Lancamento | null
   /** Em "livre". */
@@ -444,6 +462,9 @@ export type TipoEvento =
   | "lembrete_excluido"
   | "push_ativado"
   | "push_removido"
+  | "retirada_feita"
+  | "retirada_editada"
+  | "retirada_excluida"
 
 /** Quantos registros a conta tem em cada funcionalidade; nunca valores. */
 export type ContagensConta = {
@@ -460,6 +481,7 @@ export type ContagensConta = {
   servicos: number
   lembretes: number
   aparelhos_push: number
+  retiradas: number
 }
 
 export type AcaoAdmin = {
@@ -484,3 +506,17 @@ export type PaginaEventos = {
   /** Valor de `antes` para a próxima página; `null` quando acabou. */
   proximo: number | null
 }
+
+/** Dinheiro da PJ para a PF: dona dos dois lançamentos (saída na PJ, entrada na PF). */
+export type Retirada = {
+  id: number
+  /** ISO `YYYY-MM-DD` */
+  data: string
+  /** Centavos */
+  valor: number
+  descricao: string | null
+  lancamento_pj_id: number
+  lancamento_pf_id: number
+}
+
+export type RetiradaIn = Pick<Retirada, "valor" | "data"> & { descricao?: string | null }

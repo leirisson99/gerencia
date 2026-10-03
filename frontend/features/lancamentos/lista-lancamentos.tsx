@@ -6,6 +6,8 @@ import { cn } from "cn"
 import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { useCarteira } from "@/features/carteira/contexto"
+import { DialogRetirada, retiradaDoLancamento, type RetiradaEditada } from "@/features/retiradas/dialog-retirada"
 import { useTipoRenda } from "@/features/tipo-renda/contexto"
 import type { Categoria, Lancamento } from "@/lib/api/types"
 import { formatarCentavos, formatarDiaMes } from "@/lib/format"
@@ -44,6 +46,10 @@ export function ListaLancamentos({
   const [editando, setEditando] = useState<Lancamento | null>(null)
   const nomes = new Map(categorias.map((c) => [c.id, c.nome]))
   const comServicos = temServicos(useTipoRenda())
+  const { carteira } = useCarteira()
+  // Lado de retirada abre a retirada, não o lançamento (a API recusa mudar só um lado).
+  const [retirada, setRetirada] = useState<RetiradaEditada | null>(null)
+  const [retiradaAberta, setRetiradaAberta] = useState(false)
   const [paginaPedida, setPagina] = useState(0)
   const totalPaginas = porPagina ? Math.max(1, Math.ceil(lancamentos.length / porPagina)) : 1
   // Se a lista encolher (previsto confirmado, lançamento excluído), fica na última página que existe.
@@ -67,6 +73,9 @@ export function ListaLancamentos({
             l.parcela_num != null && `parcela ${l.parcela_num}`,
             l.cartela_id != null && "cartela",
             l.servico_id != null && "serviço",
+            l.retirada_id != null && "retirada",
+            // Nos lembretes as duas carteiras aparecem juntas: marca a que não está aberta.
+            l.carteira !== carteira && l.carteira.toUpperCase(),
             previsto && "previsto",
           ].filter(Boolean)
           return (
@@ -74,6 +83,12 @@ export function ListaLancamentos({
               <button
                 type="button"
                 onClick={() => {
+                  const daRetirada = retiradaDoLancamento(l)
+                  if (daRetirada) {
+                    setRetirada(daRetirada)
+                    setRetiradaAberta(true)
+                    return
+                  }
                   setEditando(l)
                   setAberto(true)
                 }}
@@ -165,6 +180,10 @@ export function ListaLancamentos({
             </Button>
           </span>
         </nav>
+      )}
+
+      {retirada && (
+        <DialogRetirada retirada={retirada} aberto={retiradaAberta} aoMudar={setRetiradaAberta} />
       )}
 
       <DialogLancamento

@@ -11,3 +11,11 @@ export function eSalario(categoria: Pick<Categoria, "nome" | "sistema">): boolea
 export function acharSalario(categorias: Categoria[]): Categoria | undefined {
   return categorias.find(eSalario)
 }
+
+// Espelha CATEGORIAS_PJ de backend/app/domain/categoria.py: os dois lados de cada retirada.
+const NOMES_RETIRADA = ["Retirada para PF", "Pró-labore e lucros"]
+
+/** Categoria de sistema usada só pela retirada da PJ; não aparece nos lançamentos à mão. */
+export function eDeRetirada(categoria: Pick<Categoria, "nome" | "sistema">): boolean {
+  return categoria.sistema && NOMES_RETIRADA.includes(categoria.nome)
+}

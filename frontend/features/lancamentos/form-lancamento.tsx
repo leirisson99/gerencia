@@ -23,7 +23,8 @@ import type {
 import { acharSalario, eSalario } from "@/lib/categorias"
 import { VALOR_MAXIMO, hojeSaoPaulo } from "@/lib/format"
 import { aplicarErroApi } from "@/lib/forms"
-import { ehPrestador, temServicos } from "@/lib/tipo-renda"
+import { cicloPeloMes, temServicos } from "@/lib/tipo-renda"
+import { useCarteira } from "@/features/carteira/contexto"
 import { useTipoRenda } from "@/features/tipo-renda/contexto"
 
 const MAX_DESCRICAO = 200
@@ -75,8 +76,12 @@ export function FormLancamento({
   // Como na API, a trava só vale enquanto o tipo de renda dá acesso a serviços.
   const tipoRenda = useTipoRenda()
   const eServico = lancamento?.servico_id != null && temServicos(tipoRenda)
+  // Lançamento novo vai para a carteira aberta; ao editar, fica na dele.
+  const { carteira: carteiraAberta } = useCarteira()
+  const carteira = lancamento?.carteira ?? carteiraAberta
   // Para o prestador, Salário é uma entrada comum: pode ser prevista e ter data futura.
-  const salarioAbreCiclo = !ehPrestador(tipoRenda)
+  // Na PJ não há salário (a API recusa): o dinheiro vai à PF pela retirada.
+  const salarioAbreCiclo = !cicloPeloMes(tipoRenda, carteira)
 
   const form = useForm<Valores>({
     resolver: zodResolver(esquema),
@@ -128,7 +133,7 @@ export function FormLancamento({
       status: valores.previsto ? "previsto" : "realizado",
     }
     try {
-      if (!lancamento) return aoConcluir(await criarLancamento(dados))
+      if (!lancamento) return aoConcluir(await criarLancamento({ ...dados, carteira }))
       const { categoria_id, ...semCategoria } = dados
       const mudancas = eServico
         ? { descricao: dados.descricao }
@@ -183,6 +188,7 @@ export function FormLancamento({
             <CampoCategoria
               categorias={categorias}
               tipo={tipo}
+              semSalario={carteira === "pj"}
               name={field.name}
               ref={field.ref}
               value={field.value}

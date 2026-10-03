@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import type { Categoria, TipoLancamento } from "@/lib/api/types"
-import { eSalario } from "@/lib/categorias"
+import { eDeRetirada, eSalario } from "@/lib/categorias"
 
 type Props = {
   categorias: Categoria[]
@@ -54,7 +54,10 @@ export function CampoCategoria({
   semSalario,
 }: Props) {
   const id = useId()
-  const visiveis = categorias.filter((c) => (!tipo || c.tipo === tipo) && !(semSalario && eSalario(c)))
+  // As categorias da retirada (PJ) só são usadas pela própria retirada.
+  const visiveis = categorias.filter(
+    (c) => (!tipo || c.tipo === tipo) && !(semSalario && eSalario(c)) && !eDeRetirada(c)
+  )
   const descritoPor = [descricao && !erro && `${id}-descricao`, erro && `${id}-erro`]
     .filter(Boolean)
     .join(" ")
