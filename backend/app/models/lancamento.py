@@ -21,6 +21,7 @@ from app.domain.usuario import ciclo_pelo_mes
 from app.models import Base
 from app.models.cartela import Casa
 from app.models.categoria import Categoria
+from app.models.retirada import Retirada
 from app.models.servico import Servico
 from app.models.usuario import Usuario
 
@@ -34,7 +35,8 @@ class Lancamento(Base):
         CheckConstraint("valor > 0", name="valor_positivo"),
         CheckConstraint("tipo IN ('entrada', 'saida')", name="tipo"),
         CheckConstraint("status IN ('previsto', 'realizado')", name="status"),
-        Index("ix_lancamento_usuario_data", "usuario_id", "data"),
+        CheckConstraint("carteira IN ('pf', 'pj')", name="carteira"),
+        Index("ix_lancamento_usuario_carteira_data", "usuario_id", "carteira", "data"),
         Index("ix_lancamento_usuario_categoria_data", "usuario_id", "categoria_id", "data"),
         Index("ix_lancamento_recorrencia_data", "recorrencia_id", "data"),
         CheckConstraint("(divida_id IS NULL) = (parcela_num IS NULL)", name="parcela"),
@@ -64,6 +66,7 @@ class Lancamento(Base):
         String(9), default=STATUS_REALIZADO, server_default=STATUS_REALIZADO
     )
     conta_no_saldo: Mapped[bool] = mapped_column(default=True, server_default=true())
+    carteira: Mapped[str] = mapped_column(String(2), default="pf", server_default="pf")
     recorrencia_id: Mapped[int | None] = mapped_column(
         BigInteger, ForeignKey("recorrencia.id", ondelete="RESTRICT")
     )
@@ -95,6 +98,14 @@ class Lancamento(Base):
         .scalar_subquery()
     )
 
+    # Retirada da PJ para a PF de que este lançamento é um dos lados (feature 019), ou None.
+    retirada_id: Mapped[int | None] = column_property(
+        select(Retirada.id)
+        .where((Retirada.lancamento_pj_id == id) | (Retirada.lancamento_pf_id == id))
+        .correlate_except(Retirada)
+        .scalar_subquery()
+    )
+
     # Tipo de renda do dono: para o prestador, "Salário" não abre ciclo.
     tipo_renda_usuario: Mapped[str] = column_property(
         select(Usuario.tipo_renda)
@@ -112,5 +123,5 @@ class Lancamento(Base):
         return (
             self.categoria.e_salario
             and self.status == STATUS_REALIZADO
-            and not ciclo_pelo_mes(self.tipo_renda_usuario)
+            and not ciclo_pelo_mes(self.tipo_renda_usuario, self.carteira)
         )

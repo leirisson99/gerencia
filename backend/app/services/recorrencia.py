@@ -6,13 +6,18 @@ from sqlalchemy.orm import Session
 
 from app.domain.ciclo import Ciclo, ciclo_mensal
 from app.domain.recorrencia import data_prevista
-from app.domain.usuario import ciclo_pelo_mes
+from app.domain.usuario import CARTEIRA_PADRAO, Carteira, ciclo_pelo_mes
 from app.erros import MENSAGEM_VALIDACAO, ErroApi
 from app.models import Categoria, Lancamento, Recorrencia
 from app.models.lancamento import STATUS_PREVISTO
 from app.schemas.recorrencia import RecorrenciaIn, RecorrenciaPatch
 from app.services.categoria import obter_categoria_ativa
-from app.services.ciclo import ciclo_atual_do_usuario, tipo_renda_do_usuario, travar_escritas
+from app.services.ciclo import (
+    ciclo_atual_do_usuario,
+    exigir_carteira,
+    tipo_renda_do_usuario,
+    travar_escritas,
+)
 from app.services.evento_uso import registrar
 
 
@@ -28,13 +33,15 @@ def _categoria_de_recorrencia(db: Session, usuario_id: int, categoria_id: int) -
     return categoria
 
 
-def listar_recorrencias(db: Session, usuario_id: int) -> list[Recorrencia]:
+def listar_recorrencias(
+    db: Session, usuario_id: int, carteira: Carteira | None = None
+) -> list[Recorrencia]:
+    """Todas, ou só as de uma carteira."""
+    consulta = select(Recorrencia).where(Recorrencia.usuario_id == usuario_id)
+    if carteira is not None:
+        consulta = consulta.where(Recorrencia.carteira == carteira)
     return list(
-        db.scalars(
-            select(Recorrencia)
-            .where(Recorrencia.usuario_id == usuario_id)
-            .order_by(Recorrencia.dia, Recorrencia.descricao, Recorrencia.id)
-        )
+        db.scalars(consulta.order_by(Recorrencia.dia, Recorrencia.descricao, Recorrencia.id))
     )
 
 
@@ -55,14 +62,19 @@ def gerar_previstos(
     ciclo: Ciclo,
     agora: datetime,
     recorrencias: Iterable[Recorrencia] | None = None,
+    carteira: Carteira = CARTEIRA_PADRAO,
 ) -> None:
-    """Um previsto por recorrência ativa no ciclo; não repete o que já foi gerado."""
+    """Um previsto por recorrência ativa da carteira no ciclo; não repete o que já foi gerado."""
     if recorrencias is None:
         recorrencias = db.scalars(
-            select(Recorrencia).where(Recorrencia.usuario_id == usuario_id, Recorrencia.ativa)
+            select(Recorrencia).where(
+                Recorrencia.usuario_id == usuario_id,
+                Recorrencia.ativa,
+                Recorrencia.carteira == carteira,
+            )
         ).all()
     for recorrencia in recorrencias:
-        if not recorrencia.ativa:
+        if not recorrencia.ativa or recorrencia.carteira != carteira:
             continue
         no_ciclo = [Lancamento.recorrencia_id == recorrencia.id, Lancamento.data >= ciclo.inicio]
         if ciclo.fim is not None:
@@ -79,19 +91,23 @@ def gerar_previstos(
                 descricao=recorrencia.descricao,
                 status=STATUS_PREVISTO,
                 recorrencia_id=recorrencia.id,
+                carteira=recorrencia.carteira,
                 criado_em=agora,
                 atualizado_em=agora,
             )
         )
 
 
-def garantir_previstos_do_mes(db: Session, usuario_id: int, hoje: date, agora: datetime) -> None:
-    """No ciclo pelo mês (prestador), nenhum lançamento abre o mês: os previstos do mês atual
-    são gerados quando o usuário o consulta. Idempotente; não faz nada no ciclo pelo salário."""
-    if not ciclo_pelo_mes(tipo_renda_do_usuario(db, usuario_id)):
+def garantir_previstos_do_mes(
+    db: Session, usuario_id: int, hoje: date, agora: datetime, carteira: Carteira = CARTEIRA_PADRAO
+) -> None:
+    """No ciclo pelo mês (PJ e prestador), nenhum lançamento abre o mês: os previstos do mês
+    atual são gerados quando o usuário o consulta. Idempotente; não faz nada no ciclo pelo
+    salário."""
+    if not ciclo_pelo_mes(tipo_renda_do_usuario(db, usuario_id), carteira):
         return
     travar_escritas(db, usuario_id)
-    gerar_previstos(db, usuario_id, ciclo_mensal(hoje, hoje, None), agora)
+    gerar_previstos(db, usuario_id, ciclo_mensal(hoje, hoje, None), agora, carteira=carteira)
     db.commit()
 
 
@@ -99,6 +115,7 @@ def criar_recorrencia(
     db: Session, usuario_id: int, dados: RecorrenciaIn, agora: datetime, hoje: date
 ) -> Recorrencia:
     travar_escritas(db, usuario_id)
+    exigir_carteira(db, usuario_id, dados.carteira)
     categoria = _categoria_de_recorrencia(db, usuario_id, dados.categoria_id)
     recorrencia = Recorrencia(
         usuario_id=usuario_id,
@@ -107,14 +124,15 @@ def criar_recorrencia(
         valor=dados.valor,
         tipo=categoria.tipo,
         dia=dados.dia,
+        carteira=dados.carteira,
         criado_em=agora,
     )
     db.add(recorrencia)
     db.flush()
     # Com ciclo aberto, o previsto deste ciclo já aparece.
-    ciclo = ciclo_atual_do_usuario(db, usuario_id, hoje)
+    ciclo = ciclo_atual_do_usuario(db, usuario_id, hoje, dados.carteira)
     if ciclo is not None:
-        gerar_previstos(db, usuario_id, ciclo, agora, [recorrencia])
+        gerar_previstos(db, usuario_id, ciclo, agora, [recorrencia], carteira=dados.carteira)
     registrar(db, usuario_id, "recorrencia_criada")
     db.commit()
     return recorrencia

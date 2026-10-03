@@ -350,3 +350,24 @@ def test_lembrete_livre_de_outro_usuario_nao_e_encontrado(
     assert resposta.json()["erro"]["codigo"] == "nao_encontrado"
     assert client.get(LIVRES).json() == []
     assert lembretes(client)["a_vencer"] == []
+
+
+def test_lembretes_juntam_as_carteiras_com_a_marca(
+    client: TestClient, conta: Conta, db: Session
+) -> None:
+    """Spec 019, US4: contas da PF e da PJ na mesma lista, cada uma com sua carteira."""
+    assert client.patch("/api/v1/me", json={"tem_pj": True}).status_code == 200
+    lancar(client, conta, "2026-10-11")
+    lancar(client, conta, "2026-10-11", categoria="Outros", carteira="pj")
+    assert (
+        client.post(f"{URL}/livres", json={"texto": "Ligar", "data": "2026-10-11"}).status_code
+        == 201
+    )
+
+    itens = client.get(URL).json()["a_vencer"]
+
+    assert sorted((i["origem"], i["carteira"]) for i in itens) == [
+        ("conta", "pf"),
+        ("conta", "pj"),
+        ("livre", "pf"),
+    ]

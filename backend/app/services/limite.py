@@ -7,23 +7,33 @@ from sqlalchemy.orm import Session
 
 from app.domain.limite import piorou, situacao
 from app.domain.saldo import Movimento, resumir
+from app.domain.usuario import CARTEIRA_PADRAO, Carteira
 from app.models import Categoria, Lancamento
 from app.schemas.lancamento import AvisoLimiteOut
 from app.services.ciclo import ciclo_da_data_do_usuario
 
 
 def usado_no_ciclo(
-    db: Session, usuario_id: int, categoria: Categoria, data: date, hoje: date
+    db: Session,
+    usuario_id: int,
+    categoria: Categoria,
+    data: date,
+    hoje: date,
+    carteira: Carteira = CARTEIRA_PADRAO,
 ) -> int | None:
-    """Gasto que conta no saldo, na categoria, no ciclo da data. `None` se não há o que medir."""
+    """Gasto que conta no saldo, na categoria, no ciclo da data, só na carteira.
+
+    `None` se não há o que medir.
+    """
     if categoria.limite is None or categoria.tipo != "saida":
         return None
-    ciclo = ciclo_da_data_do_usuario(db, usuario_id, data, hoje)
+    ciclo = ciclo_da_data_do_usuario(db, usuario_id, data, hoje, carteira)
     if ciclo is None:
         return None
     consulta = select(Lancamento).where(
         Lancamento.usuario_id == usuario_id,
         Lancamento.categoria_id == categoria.id,
+        Lancamento.carteira == carteira,
         Lancamento.data >= ciclo.inicio,
     )
     if ciclo.fim is not None:

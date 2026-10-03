@@ -4,6 +4,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator
 
 from app.domain.limite import Situacao
+from app.domain.usuario import Carteira
 
 VALOR_MAXIMO = 99_999_999_999  # R$ 999.999.999,99
 MAX_DESCRICAO = 200
@@ -32,6 +33,7 @@ class LancamentoIn(BaseModel):
     data: date
     descricao: str | None = None
     status: Status = "realizado"
+    carteira: Carteira = "pf"  # opcional: ausente é a PF (constituição 7.0.0)
 
     @field_validator("descricao")
     @classmethod
@@ -49,8 +51,9 @@ class LancamentoPatch(BaseModel):
     data: date | None = None
     descricao: str | None = None
     status: Status | None = None
+    carteira: Carteira | None = None
 
-    @field_validator("valor", "categoria_id", "data", "status")
+    @field_validator("valor", "categoria_id", "data", "status", "carteira")
     @classmethod
     def _sem_null(cls, valor: object) -> object:
         # Validadores só rodam para campos enviados; null explícito chega aqui como None.
@@ -75,12 +78,14 @@ class LancamentoOut(BaseModel):
     descricao: str | None
     status: str
     conta_no_saldo: bool
+    carteira: Carteira
     abre_ciclo: bool
     recorrencia_id: int | None
     divida_id: int | None
     parcela_num: int | None
     cartela_id: int | None
     servico_id: int | None
+    retirada_id: int | None  # lado de uma retirada: muda só pela retirada (feature 019)
     importado: bool  # veio de extrato (feature 011)
     criado_em: datetime
 

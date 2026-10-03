@@ -43,6 +43,9 @@ TipoEvento = Literal[
     "lembrete_excluido",
     "push_ativado",
     "push_removido",
+    "retirada_feita",
+    "retirada_editada",
+    "retirada_excluida",
 ]
 TIPOS_EVENTO: tuple[str, ...] = get_args(TipoEvento)
 

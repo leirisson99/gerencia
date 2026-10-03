@@ -46,6 +46,8 @@ class Usuario(Base):
     troca_senha_obrigatoria: Mapped[bool] = mapped_column(default=False, server_default=false())
     # Conta desativada pelo administrador: não entra, mas mantém os dados.
     ativo: Mapped[bool] = mapped_column(default=True, server_default=true())
+    # Carteira PJ ligada ("Tenho CNPJ"); só para prestador e clt_prestador.
+    tem_pj: Mapped[bool] = mapped_column(default=False, server_default=false())
     # Só para contar contas ativas no painel do admin; gravado no máximo uma vez por dia.
     ultimo_acesso_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

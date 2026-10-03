@@ -22,6 +22,7 @@ from app.models.evento_uso import EventoUso  # noqa: E402
 from app.models.lancamento import Lancamento  # noqa: E402
 from app.models.lembrete import EnvioLembrete, InscricaoPush, Lembrete  # noqa: E402
 from app.models.recorrencia import Recorrencia  # noqa: E402
+from app.models.retirada import Retirada  # noqa: E402
 from app.models.servico import Servico  # noqa: E402
 from app.models.sessao import Sessao  # noqa: E402
 from app.models.tentativa_login import TentativaLogin  # noqa: E402
@@ -40,6 +41,7 @@ __all__ = [
     "Lancamento",
     "Lembrete",
     "Recorrencia",
+    "Retirada",
     "Servico",
     "Sessao",
     "TentativaLogin",

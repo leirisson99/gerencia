@@ -3,7 +3,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.domain.lembrete import Origem, Situacao
-from app.domain.usuario import limpar_texto
+from app.domain.usuario import Carteira, limpar_texto
 from app.schemas.lancamento import LancamentoOut
 
 MAX_TEXTO = 200
@@ -61,6 +61,7 @@ class ItemLembrete(BaseModel):
     origem: Origem
     situacao: Situacao
     data: date
+    carteira: Carteira = "pf"  # do lançamento; lembrete livre é da pessoa
     lancamento: LancamentoOut | None = None  # em "conta" e "valor"
     lembrete: LembreteLivreOut | None = None  # em "livre"
 
