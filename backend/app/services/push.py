@@ -6,6 +6,7 @@ from app.config import Settings
 from app.erros import ErroApi
 from app.models import InscricaoPush
 from app.schemas.push import InscricaoIn
+from app.services.evento_uso import registrar
 
 
 def _indisponivel() -> ErroApi:
@@ -43,6 +44,7 @@ def inscrever(db: Session, usuario_id: int, dados: InscricaoIn, settings: Settin
             set_={k: valores[k] for k in ("usuario_id", "p256dh", "auth")},
         )
     )
+    registrar(db, usuario_id, "push_ativado")
     db.commit()
 
 
@@ -55,4 +57,5 @@ def remover_inscricao(db: Session, usuario_id: int, endpoint: str) -> None:
     ).all()
     if not removidas:
         raise ErroApi(404, "nao_encontrado", "Aparelho não encontrado.")
+    registrar(db, usuario_id, "push_removido")
     db.commit()

@@ -78,6 +78,22 @@ export function formatarDataDeInstante(iso: string): string {
   return dataSaoPaulo.format(new Date(iso))
 }
 
+const horaSaoPaulo = new Intl.DateTimeFormat("pt-BR", {
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "America/Sao_Paulo",
+})
+
+/** Instante ISO (UTC) → hora em São Paulo: `2026-10-02T12:10:00Z` → `09:10`. */
+export function formatarHoraDeInstante(iso: string): string {
+  return horaSaoPaulo.format(new Date(iso))
+}
+
+/** Instante ISO (UTC) → `02/10/2026 às 09:10`, no fuso de São Paulo. */
+export function formatarDataHoraDeInstante(iso: string): string {
+  return `${formatarDataDeInstante(iso)} às ${formatarHoraDeInstante(iso)}`
+}
+
 const nomeMes = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" })
 const diaLongo = new Intl.DateTimeFormat("pt-BR", {
   weekday: "long",

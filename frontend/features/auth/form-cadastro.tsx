@@ -6,6 +6,7 @@ import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 
+import { AvisoUsoAdmin } from "@/components/forms/aviso-uso-admin"
 import { BotaoEnviar } from "@/components/forms/botao-enviar"
 import { Campo } from "@/components/forms/campo"
 import { CampoSenha } from "@/components/forms/campo-senha"
@@ -117,6 +118,7 @@ export function FormCadastro() {
           erro={errors.senha?.message}
           {...form.register("senha")}
         />
+        <AvisoUsoAdmin />
         <ErroForm mensagem={erroGeral} />
         <BotaoEnviar enviando={isSubmitting} size="lg" className="w-full">
           Criar conta

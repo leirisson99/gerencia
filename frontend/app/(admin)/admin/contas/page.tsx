@@ -47,7 +47,7 @@ export default async function AdminContasPage({ searchParams }: PageProps<"/admi
     <>
       <PageHeader
         titulo="Contas"
-        descricao="Resete a senha de quem pediu ajuda para entrar e desative ou reative o acesso. Dados financeiros não aparecem aqui."
+        descricao="Abra uma conta para ver o uso dela, resete a senha de quem pediu ajuda e desative ou reative o acesso. Valores e dados financeiros não aparecem aqui."
       />
 
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

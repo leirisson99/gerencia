@@ -3,36 +3,52 @@ from typing import Any, Literal
 
 from sqlalchemy import Date, cast, delete, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
+from app.domain.atividade import EVENTOS_POR_PAGINA, fatiar_pagina, precisa_registrar_visita
 from app.domain.painel import ranking_formas, serie_mensal, ultimos_meses
 from app.erros import ErroApi
 from app.models import (
     AcaoAdmin,
     Cartela,
+    Casa,
     Divida,
+    EventoUso,
+    InscricaoPush,
     Lancamento,
+    Lembrete,
     Recorrencia,
     Servico,
     Sessao,
     Usuario,
 )
-from app.models.acao_admin import ACAO_DESATIVAR_CONTA, ACAO_REATIVAR_CONTA, ACAO_RESET_SENHA
+from app.models.acao_admin import (
+    ACAO_DESATIVAR_CONTA,
+    ACAO_REATIVAR_CONTA,
+    ACAO_RESET_SENHA,
+    ACAO_VER_ATIVIDADE,
+)
 from app.models.lancamento import STATUS_REALIZADO
 from app.models.usuario import PAPEL_ADMIN, PAPEL_USUARIO
 from app.relogio import SAO_PAULO
 from app.schemas.admin import (
+    AcaoAdminOut,
     CadastrosMesOut,
+    ContagensContaOut,
     ContasOut,
     DadosAdmin,
+    DetalheContaOut,
     EngajamentoOut,
+    EventoUsoOut,
     FormaOut,
     LancamentosOut,
     MesOut,
+    PaginaEventosOut,
     ResumoAdminOut,
     SituacaoConta,
     TiposRendaOut,
     UsoFuncionalidadeOut,
+    UsuarioAdminOut,
 )
 from app.services.senha import gerar_senha_temporaria, hash_senha
 
@@ -278,4 +294,112 @@ def obter_resumo(db: Session, agora: datetime) -> ResumoAdminOut:
             prestador=tipos.get("prestador", 0),
             clt_prestador=tipos.get("clt_prestador", 0),
         ),
+    )
+
+
+MAX_ACOES_NO_DETALHE = 50
+
+
+def _registrar_visita(db: Session, admin: Usuario, usuario: Usuario, agora: datetime) -> None:
+    """Ver a atividade é ação administrativa; uma visita vale por 30 minutos."""
+    ultima = db.scalar(
+        select(func.max(AcaoAdmin.ocorrida_em)).where(
+            AcaoAdmin.admin_id == admin.id,
+            AcaoAdmin.usuario_alvo_id == usuario.id,
+            AcaoAdmin.acao == ACAO_VER_ATIVIDADE,
+        )
+    )
+    if precisa_registrar_visita(ultima, agora):
+        _registrar(db, admin, ACAO_VER_ATIVIDADE, usuario, agora)
+    db.commit()
+
+
+def _contagens(db: Session, usuario_id: int) -> ContagensContaOut:
+    """Quantos registros a conta tem por funcionalidade, numa consulta só."""
+
+    def contar(modelo: Any, *filtros: Any) -> Any:
+        return select(func.count()).select_from(modelo).where(*filtros).scalar_subquery()
+
+    do_usuario = Lancamento.usuario_id == usuario_id
+    importado = Lancamento.id_externo.is_not(None)
+    gerado = or_(
+        Lancamento.recorrencia_id.is_not(None),
+        Lancamento.divida_id.is_not(None),
+        Lancamento.id.in_(select(Casa.lancamento_id).where(Casa.lancamento_id.is_not(None))),
+        Lancamento.id.in_(select(Servico.lancamento_id)),
+    )
+    linha = db.execute(
+        select(
+            contar(Lancamento, do_usuario, ~importado, ~gerado),
+            contar(Lancamento, do_usuario, importado),
+            contar(Lancamento, do_usuario, ~importado, gerado),
+            contar(
+                EventoUso,
+                EventoUso.usuario_id == usuario_id,
+                EventoUso.tipo == "extrato_importado",
+            ),
+            contar(Recorrencia, Recorrencia.usuario_id == usuario_id),
+            contar(Divida, Divida.usuario_id == usuario_id),
+            contar(Cartela, Cartela.usuario_id == usuario_id),
+            contar(
+                Casa,
+                Casa.depositado_em.is_not(None),
+                Casa.cartela_id.in_(select(Cartela.id).where(Cartela.usuario_id == usuario_id)),
+            ),
+            contar(Servico, Servico.usuario_id == usuario_id),
+            contar(Lembrete, Lembrete.usuario_id == usuario_id),
+            contar(InscricaoPush, InscricaoPush.usuario_id == usuario_id),
+        )
+    ).one()
+    return ContagensContaOut(**dict(zip(ContagensContaOut.model_fields, linha, strict=True)))
+
+
+def obter_detalhe(
+    db: Session, admin: Usuario, usuario_id: int, agora: datetime, dias_sessao: int
+) -> DetalheContaOut:
+    """O uso da conta sem o conteúdo: acesso, sessões, contagens e ações do administrador."""
+    usuario = _conta_alvo(db, usuario_id)
+    _registrar_visita(db, admin, usuario, agora)
+
+    sessoes = db.scalar(
+        select(func.count()).where(
+            Sessao.usuario_id == usuario.id,
+            Sessao.ultimo_uso_em > agora - timedelta(days=dias_sessao),
+        )
+    )
+    quem = aliased(Usuario)
+    acoes = db.execute(
+        select(AcaoAdmin.acao, AcaoAdmin.ocorrida_em, quem.nome)
+        .join(quem, quem.id == AcaoAdmin.admin_id)
+        .where(AcaoAdmin.usuario_alvo_id == usuario.id)
+        .order_by(AcaoAdmin.ocorrida_em.desc(), AcaoAdmin.id.desc())
+        .limit(MAX_ACOES_NO_DETALHE)
+    ).all()
+    return DetalheContaOut(
+        conta=UsuarioAdminOut.model_validate(usuario),
+        ultimo_acesso_em=usuario.ultimo_acesso_em,
+        sessoes_abertas=sessoes or 0,
+        contagens=_contagens(db, usuario.id),
+        acoes_admin=[
+            AcaoAdminOut(acao=acao, ocorrida_em=quando, admin_nome=nome)
+            for acao, quando, nome in acoes
+        ],
+    )
+
+
+def listar_eventos(
+    db: Session, admin: Usuario, usuario_id: int, antes: int | None, agora: datetime
+) -> PaginaEventosOut:
+    """Linha do tempo do mais recente ao mais antigo, paginada pelo id do evento."""
+    usuario = _conta_alvo(db, usuario_id)
+    _registrar_visita(db, admin, usuario, agora)
+
+    consulta = select(EventoUso).where(EventoUso.usuario_id == usuario.id)
+    if antes is not None:
+        consulta = consulta.where(EventoUso.id < antes)
+    eventos = list(db.scalars(consulta.order_by(EventoUso.id.desc()).limit(EVENTOS_POR_PAGINA + 1)))
+    pagina, tem_mais = fatiar_pagina(eventos, EVENTOS_POR_PAGINA)
+    return PaginaEventosOut(
+        itens=[EventoUsoOut.model_validate(evento) for evento in pagina],
+        proximo=pagina[-1].id if tem_mais else None,
     )

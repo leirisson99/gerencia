@@ -12,6 +12,7 @@ from app.schemas.divida import DividaIn, DividaOut
 from app.schemas.lancamento import LancamentoOut
 from app.services.categoria import obter_categoria_ativa
 from app.services.ciclo import travar_escritas
+from app.services.evento_uso import registrar
 from app.services.lancamento import verificar_novos_lancamentos
 
 
@@ -60,6 +61,7 @@ def criar_divida(db: Session, usuario_id: int, dados: DividaIn, agora: datetime)
                 atualizado_em=agora,
             )
         )
+    registrar(db, usuario_id, "divida_criada")
     db.commit()
     return _saida(db, divida)
 

@@ -13,6 +13,7 @@ from app.models.lancamento import STATUS_PREVISTO
 from app.schemas.recorrencia import RecorrenciaIn, RecorrenciaPatch
 from app.services.categoria import obter_categoria_ativa
 from app.services.ciclo import ciclo_atual_do_usuario, tipo_renda_do_usuario, travar_escritas
+from app.services.evento_uso import registrar
 
 
 def _categoria_de_recorrencia(db: Session, usuario_id: int, categoria_id: int) -> Categoria:
@@ -114,6 +115,7 @@ def criar_recorrencia(
     ciclo = ciclo_atual_do_usuario(db, usuario_id, hoje)
     if ciclo is not None:
         gerar_previstos(db, usuario_id, ciclo, agora, [recorrencia])
+    registrar(db, usuario_id, "recorrencia_criada")
     db.commit()
     return recorrencia
 
@@ -135,5 +137,6 @@ def editar_recorrencia(
         recorrencia.dia = dados.dia
     if dados.ativa is not None:
         recorrencia.ativa = dados.ativa
+    registrar(db, usuario_id, "recorrencia_editada")
     db.commit()
     return recorrencia

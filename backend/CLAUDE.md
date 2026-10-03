@@ -8,7 +8,7 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo**: abe
 
 - **Escopo:** backend (API FastAPI) e frontend (Next.js + shadcn/ui, em `../frontend`, desde 2026-09-28). Regras e critérios precisam ser verificáveis pela API.
 - Multiusuário na web: qualquer pessoa pode se cadastrar; cada usuário só vê os próprios dados.
-- Login com e-mail e senha. Um único administrador, que reseta senhas, desativa e reativa contas e vê contagens globais de uso (sem valores e sem nada por usuário).
+- Login com e-mail e senha. Um único administrador, que reseta senhas, desativa e reativa contas vê contagens globais de uso e o uso de cada conta, sem valores nem conteúdo.
 - Problema central: não saber para onde o dinheiro vai.
 - Tudo é lançado manualmente no MVP, inclusive o salário, que abre o ciclo de quem é CLT.
 - Três tipos de renda: `clt`, `prestador` e `clt_prestador` (escolhido no cadastro, editável no perfil).
@@ -44,7 +44,8 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo**: abe
 | Importação | Extrato de conta (OFX, CSV ou PDF) lido numa prévia; só as linhas que o usuário confirma viram lançamentos, com as mesmas regras do lançamento manual |
 | Lembrete | Aviso do que vence: contas a pagar e valores a receber (derivados dos previstos, janela de hoje + 3 dias, inclui atrasados) ou lembrete livre (texto e data, criado pelo usuário) |
 | Inscrição de push | Aparelho que o usuário autorizou a receber notificações (Web Push, VAPID). Recebe um resumo diário sem valores nem nomes |
-| Administrador | Papel criado só no servidor; vê nome, e-mail, data de criação e situação das contas e contagens globais de uso; reseta senha, desativa e reativa contas |
+| Administrador | Papel criado só no servidor; vê nome, e-mail, data de criação e situação das contas, contagens globais de uso e o uso de cada conta sem valores nem conteúdo; reseta senha, desativa e reativa contas |
+| Evento de uso | Ação bem-sucedida de uma conta, guardada só com usuário, tipo e data e hora; o administrador vê no detalhe da conta, sem conteúdo. Retenção de 12 meses |
 
 ## Modelo de dados
 
@@ -60,8 +61,9 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo**: abe
 | `servico` | usuario_id, categoria_id, cliente, descricao, valor, data_prevista, lancamento_id, criado_em |
 | `lembrete` | usuario_id, texto, data, concluido_em, criado_em (só lembretes livres; contas e valores são derivados) |
 | `inscricao_push` | usuario_id, endpoint (único), p256dh, auth, criado_em |
+| `evento_uso` | usuario_id, tipo (lista fechada), ocorrido_em: só isso, nunca o conteúdo da ação |
 | `envio_lembrete` | usuario_id, dia (único por usuário): garante no máximo um resumo por dia |
-| `sessao`, `tentativa_login`, `acao_admin` | sessão em cookie, bloqueio de login e auditoria do administrador |
+| `sessao`, `tentativa_login`, `acao_admin` | sessão em cookie, bloqueio de login e auditoria do administrador (inclui `ver_atividade`) |
 
 Todos os campos de valor são `int` em centavos. Não existe tabela de configuração de pagamento. A `forma_pagamento` fica na dívida, não no lançamento. Specs de cada feature em `specs/`.
 

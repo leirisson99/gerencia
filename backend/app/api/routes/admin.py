@@ -1,9 +1,25 @@
-from fastapi import APIRouter
+from typing import Annotated
 
-from app.api.deps import AdministradorDep, Db, RelogioDep
-from app.schemas.admin import ResumoAdminOut, SenhaTemporariaOut, SituacaoConta, UsuarioAdminOut
+from fastapi import APIRouter, Query
+
+from app.api.deps import AdministradorDep, Db, RelogioDep, SettingsDep
+from app.schemas.admin import (
+    DetalheContaOut,
+    PaginaEventosOut,
+    ResumoAdminOut,
+    SenhaTemporariaOut,
+    SituacaoConta,
+    UsuarioAdminOut,
+)
 from app.schemas.erro import ErroOut
-from app.services.admin import definir_ativo, listar_usuarios, obter_resumo, resetar_senha
+from app.services.admin import (
+    definir_ativo,
+    listar_eventos,
+    listar_usuarios,
+    obter_detalhe,
+    obter_resumo,
+    resetar_senha,
+)
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -24,6 +40,26 @@ def usuarios(
     situacao: SituacaoConta | None = None,
 ) -> list[UsuarioAdminOut]:
     return [UsuarioAdminOut.model_validate(u) for u in listar_usuarios(db, busca, situacao)]
+
+
+@router.get("/usuarios/{usuario_id}", responses=ALVO)
+def detalhe(
+    usuario_id: int, admin: AdministradorDep, db: Db, relogio: RelogioDep, settings: SettingsDep
+) -> DetalheContaOut:
+    return obter_detalhe(
+        db, admin, usuario_id, relogio.agora_utc(), settings.sessao_dias_inatividade
+    )
+
+
+@router.get("/usuarios/{usuario_id}/eventos", responses=ALVO)
+def eventos(
+    usuario_id: int,
+    admin: AdministradorDep,
+    db: Db,
+    relogio: RelogioDep,
+    antes: Annotated[int | None, Query(gt=0)] = None,
+) -> PaginaEventosOut:
+    return listar_eventos(db, admin, usuario_id, antes, relogio.agora_utc())
 
 
 @router.post("/usuarios/{usuario_id}/reset-senha", responses=ALVO)

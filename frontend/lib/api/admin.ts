@@ -1,5 +1,5 @@
 import { requisitar } from "./client"
-import type { SenhaTemporaria, UsuarioAdmin } from "./types"
+import type { PaginaEventos, SenhaTemporaria, UsuarioAdmin } from "./types"
 
 /** Gera uma senha temporária, encerra as sessões da pessoa e obriga a troca no próximo login. */
 export function resetarSenha(usuarioId: number) {
@@ -13,4 +13,9 @@ export function desativarConta(usuarioId: number) {
 
 export function reativarConta(usuarioId: number) {
   return requisitar<UsuarioAdmin>(`/admin/usuarios/${usuarioId}/reativar`, { metodo: "POST" })
+}
+
+/** Próxima página da linha do tempo de uma conta (eventos com id menor que `antes`). */
+export function listarEventosConta(usuarioId: number, antes: number) {
+  return requisitar<PaginaEventos>(`/admin/usuarios/${usuarioId}/eventos?antes=${antes}`)
 }

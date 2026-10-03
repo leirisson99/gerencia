@@ -1,8 +1,25 @@
+import Link from "next/link"
 import { cn } from "cn"
 
 import type { UsuarioAdmin } from "@/lib/api/types"
 import { formatarDataDeInstante } from "@/lib/format"
 import { AcoesConta } from "./acoes-conta"
+
+/** Nome que abre o detalhe da conta (uso sem conteúdo, spec 018). */
+function LinkConta({ usuario, className }: { usuario: UsuarioAdmin; className?: string }) {
+  return (
+    <Link
+      href={`/admin/contas/${usuario.id}`}
+      className={cn(
+        "underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        !usuario.ativo && "text-muted-foreground",
+        className
+      )}
+    >
+      {usuario.nome}
+    </Link>
+  )
+}
 
 function Situacao({ ativo }: { ativo: boolean }) {
   return ativo ? (
@@ -32,7 +49,9 @@ export function ListaContas({ usuarios }: { usuarios: UsuarioAdmin[] }) {
         <tbody>
           {usuarios.map((u) => (
             <tr key={u.id} className="border-b">
-              <td className={cn("py-3 pr-4", !u.ativo && "text-muted-foreground")}>{u.nome}</td>
+              <td className="py-3 pr-4">
+                <LinkConta usuario={u} />
+              </td>
               <td className="py-3 pr-4 text-muted-foreground">{u.email}</td>
               <td className="valor py-3 pr-4 text-muted-foreground">{formatarDataDeInstante(u.criado_em)}</td>
               <td className="py-3 pr-4">
@@ -50,7 +69,9 @@ export function ListaContas({ usuarios }: { usuarios: UsuarioAdmin[] }) {
         {usuarios.map((u) => (
           <li key={u.id} className="flex items-start gap-3 rounded-2xl border p-4">
             <div className="min-w-0 flex-1">
-              <p className={cn("truncate font-medium", !u.ativo && "text-muted-foreground")}>{u.nome}</p>
+              <p className="truncate font-medium">
+                <LinkConta usuario={u} />
+              </p>
               <p className="truncate text-sm text-muted-foreground">{u.email}</p>
               <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                 <span className="valor">Criada em {formatarDataDeInstante(u.criado_em)}</span>

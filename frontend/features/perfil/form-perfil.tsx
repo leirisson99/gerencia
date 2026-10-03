@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { AvisoUsoAdmin } from "@/components/forms/aviso-uso-admin"
 import { BotaoEnviar } from "@/components/forms/botao-enviar"
 import { Campo } from "@/components/forms/campo"
 import { CampoTipoRenda } from "@/components/forms/campo-tipo-renda"
@@ -125,6 +126,7 @@ export function FormPerfil({ usuario }: { usuario: Usuario }) {
             />
           )}
         />
+        <AvisoUsoAdmin />
         <ErroForm mensagem={erroGeral} />
         <div>
           <BotaoEnviar enviando={isSubmitting} disabled={!isDirty}>

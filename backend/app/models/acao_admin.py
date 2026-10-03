@@ -8,6 +8,7 @@ from app.models import Base
 ACAO_RESET_SENHA = "reset_senha"
 ACAO_DESATIVAR_CONTA = "desativar_conta"
 ACAO_REATIVAR_CONTA = "reativar_conta"
+ACAO_VER_ATIVIDADE = "ver_atividade"
 
 
 class AcaoAdmin(Base):
@@ -16,7 +17,8 @@ class AcaoAdmin(Base):
     __tablename__ = "acao_admin"
     __table_args__ = (
         CheckConstraint(
-            "acao IN ('reset_senha', 'desativar_conta', 'reativar_conta')", name="acao"
+            "acao IN ('reset_senha', 'desativar_conta', 'reativar_conta', 'ver_atividade')",
+            name="acao",
         ),
     )
 

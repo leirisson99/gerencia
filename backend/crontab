@@ -2,3 +2,6 @@
 # 11:00 UTC = 8h em São Paulo (UTC-3 fixo, sem horário de verão desde 2019).
 # O comando é idempotente no mesmo dia: rodar de novo não reenvia o resumo.
 0 11 * * * python -m app.cli enviar-lembretes
+
+# Retenção dos eventos de uso (spec 018): apaga os de mais de 12 meses. 06:00 UTC = 3h em SP.
+0 6 * * * python -m app.cli limpar-eventos

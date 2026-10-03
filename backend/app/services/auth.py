@@ -12,6 +12,7 @@ from app.models import Sessao, TentativaLogin, Usuario
 from app.models.usuario import PAPEL_ADMIN, PAPEL_USUARIO
 from app.schemas.usuario import CadastroIn
 from app.services.categoria import criar_categorias_iniciais
+from app.services.evento_uso import registrar
 from app.services.senha import HASH_FICTICIO, hash_senha, precisa_rehash, verificar_senha
 from app.services.sessao import criar_sessao, encerrar_outras_sessoes, encerrar_sessao
 
@@ -64,6 +65,7 @@ def cadastrar(db: Session, dados: CadastroIn, agora: datetime, hoje: date) -> tu
 
     criar_categorias_iniciais(db, usuario.id)
     token = criar_sessao(db, usuario, agora)
+    registrar(db, usuario.id, "conta_criada")
     db.commit()
     return usuario, token
 
@@ -106,6 +108,8 @@ def entrar(db: Session, email_informado: str, senha: str, agora: datetime) -> tu
     if usuario.papel != PAPEL_ADMIN and precisa_rehash(usuario.senha_hash):
         usuario.senha_hash = hash_senha(senha)
     token = criar_sessao(db, usuario, agora)
+    if usuario.papel != PAPEL_ADMIN:
+        registrar(db, usuario.id, "login")
     db.commit()
     return usuario, token
 
@@ -138,4 +142,5 @@ def trocar_senha(
     usuario.troca_senha_obrigatoria = False
     usuario.atualizado_em = agora
     encerrar_outras_sessoes(db, usuario.id, sessao_atual.id)
+    registrar(db, usuario.id, "senha_trocada")
     db.commit()

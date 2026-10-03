@@ -16,6 +16,7 @@ from app.services.ciclo import (
     tipo_renda_do_usuario,
     travar_escritas,
 )
+from app.services.evento_uso import registrar
 from app.services.limite import avaliar_aviso, usado_no_ciclo
 from app.services.recorrencia import gerar_previstos
 
@@ -159,6 +160,7 @@ def criar_lancamento(
     aviso = avaliar_aviso(
         categoria, usado_antes, usado_no_ciclo(db, usuario_id, categoria, dados.data, hoje)
     )
+    registrar(db, usuario_id, "lancamento_criado")
     db.commit()
     return lancamento, aviso
 
@@ -248,6 +250,7 @@ def editar_lancamento(
     aviso = avaliar_aviso(
         categoria, usado_antes, usado_no_ciclo(db, usuario_id, categoria, data, hoje)
     )
+    registrar(db, usuario_id, "lancamento_editado")
     db.commit()
     return lancamento, aviso
 
@@ -266,4 +269,5 @@ def excluir_lancamento(db: Session, usuario_id: int, lancamento_id: int) -> None
     if _problema_depois_da_mudanca(db, usuario_id, lancamento.id, None):
         raise _erro_sem_ciclo()
     db.delete(lancamento)
+    registrar(db, usuario_id, "lancamento_excluido")
     db.commit()

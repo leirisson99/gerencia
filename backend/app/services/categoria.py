@@ -7,6 +7,7 @@ from app.domain.limite import limite_permitido
 from app.erros import MENSAGEM_VALIDACAO, ErroApi
 from app.models import Categoria
 from app.schemas.categoria import CategoriaIn, CategoriaPatch
+from app.services.evento_uso import registrar
 
 
 def criar_categorias_iniciais(db: Session, usuario_id: int) -> None:
@@ -78,6 +79,7 @@ def criar_categoria(db: Session, usuario_id: int, dados: CategoriaIn) -> Categor
         usuario_id=usuario_id, nome=dados.nome, tipo=dados.tipo, limite=dados.limite
     )
     db.add(categoria)
+    registrar(db, usuario_id, "categoria_criada")
     _gravar(db)
     return categoria
 
@@ -98,5 +100,6 @@ def editar_categoria(
     if "limite" in dados.model_fields_set:
         _validar_limite(categoria.tipo, dados.limite)
         categoria.limite = dados.limite
+    registrar(db, usuario_id, "categoria_editada")
     _gravar(db)
     return categoria

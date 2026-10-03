@@ -10,6 +10,7 @@ from app.models import Cartela, Casa, Categoria, Lancamento
 from app.models.lancamento import STATUS_REALIZADO
 from app.schemas.cartela import CartelaIn, CartelaOut, CasaOut
 from app.services.ciclo import travar_escritas
+from app.services.evento_uso import registrar
 from app.services.lancamento import verificar_novos_lancamentos
 
 MAX_CASAS = 1_000
@@ -46,6 +47,7 @@ def criar_cartela(db: Session, usuario_id: int, dados: CartelaIn, agora: datetim
                 is_ajuste=casa.is_ajuste,
             )
         )
+    registrar(db, usuario_id, "cartela_criada")
     db.commit()
     return _saida(db, cartela)
 
@@ -135,6 +137,7 @@ def depositar(
     db.flush()
     casa.depositado_em = hoje
     casa.lancamento_id = lancamento.id
+    registrar(db, usuario_id, "deposito_feito")
     db.commit()
     return _saida(db, cartela)
 
@@ -150,5 +153,6 @@ def desfazer_deposito(db: Session, usuario_id: int, cartela_id: int, casa_id: in
     casa.lancamento_id = None
     db.flush()
     db.delete(lancamento)
+    registrar(db, usuario_id, "deposito_desfeito")
     db.commit()
     return _saida(db, cartela)
