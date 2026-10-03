@@ -45,17 +45,20 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo**: abe
 | Lembrete | Aviso do que vence: contas a pagar e valores a receber (derivados dos previstos, janela de hoje + 3 dias, inclui atrasados) ou lembrete livre (texto e data, criado pelo usuário) |
 | Inscrição de push | Aparelho que o usuário autorizou a receber notificações (Web Push, VAPID). Recebe um resumo diário sem valores nem nomes |
 | Administrador | Papel criado só no servidor; vê nome, e-mail, data de criação e situação das contas, contagens globais de uso e o uso de cada conta sem valores nem conteúdo; reseta senha, desativa e reativa contas |
+| Carteira | `pf` (a pessoa) ou `pj` (a empresa da pessoa), atributo de lançamentos e recorrências. PJ opcional para `prestador` e `clt_prestador` ("Tenho CNPJ"), com ciclo sempre pelo mês do calendário |
+| Retirada | Dinheiro da PJ para a PF: gera a saída "Retirada para PF" na PJ e a entrada "Pró-labore e lucros" na PF, presas à retirada (só mudam juntas) |
 | Evento de uso | Ação bem-sucedida de uma conta, guardada só com usuário, tipo e data e hora; o administrador vê no detalhe da conta, sem conteúdo. Retenção de 12 meses |
 
 ## Modelo de dados
 
 | Tabela | Campos principais |
 | --- | --- |
-| `usuario` | nome, email (único), senha_hash, telefone, cargo, data_nascimento (opcional), papel (`usuario` / `admin`), tipo_renda (`clt` / `prestador` / `clt_prestador`), troca_senha_obrigatoria, ativo, ultimo_acesso_em, criado_em |
+| `usuario` | nome, email (único), senha_hash, telefone, cargo, data_nascimento (opcional), papel (`usuario` / `admin`), tipo_renda (`clt` / `prestador` / `clt_prestador`), tem_pj, troca_senha_obrigatoria, ativo, ultimo_acesso_em, criado_em |
 | `categoria` | usuario_id, nome (único por usuário, sem diferenciar maiúsculas), tipo (`entrada` / `saida`), ativa, sistema. "Salário" e "Poupança" são de sistema e protegidas |
-| `recorrencia` | usuario_id, categoria_id, descricao, valor, tipo, dia, ativa |
+| `recorrencia` | usuario_id, categoria_id, descricao, valor, tipo, dia, ativa, carteira |
 | `divida` | usuario_id, categoria_id, descricao, pessoa, direcao, valor_total, parcelas, forma_pagamento, dia_vencimento, data_inicio |
-| `lancamento` | usuario_id, data, valor, tipo, categoria_id, descricao, status, conta_no_saldo, recorrencia_id, divida_id, parcela_num |
+| `lancamento` | usuario_id, data, valor, tipo, categoria_id, descricao, status, conta_no_saldo, carteira (`pf` / `pj`, padrão `pf`), recorrencia_id, divida_id, parcela_num |
+| `retirada` | usuario_id, data, valor, descricao, lancamento_pj_id, lancamento_pf_id |
 | `cartela` | usuario_id, nome, meta, valor_base, criada_em |
 | `casa` | cartela_id, valor, ordem, is_ajuste, depositado_em, lancamento_id |
 | `servico` | usuario_id, categoria_id, cliente, descricao, valor, data_prevista, lancamento_id, criado_em |
@@ -71,6 +74,8 @@ Todos os campos de valor são `int` em centavos. Não existe tabela de configura
 
 - **Ciclo (`clt`, `clt_prestador`):** começa em cada data distinta de salário e termina na véspera da próxima. Antes do primeiro salário, nenhum outro lançamento é aceito.
 - **Ciclo (`prestador`):** mês do calendário que contém a data; não exige salário. Trocar de `prestador` para outro tipo só é aceito se todos os lançamentos ficarem dentro de um ciclo de salário.
+- **Ciclo (carteira PJ):** sempre o mês do calendário, sem exigir salário; não entra na cobertura por salário. "Salário" não é lançado na PJ.
+- **Saldo e gasto são sempre de uma carteira**; nunca se somam PF e PJ.
 - **Saldo do ciclo** = soma das entradas − soma das saídas, considerando só `status = realizado` e `conta_no_saldo = True`.
 - **Gasto por categoria** usa o mesmo filtro, agrupado por `categoria_id`.
 - **Recorrências:** um previsto por recorrência em cada ciclo, na próxima ocorrência do dia a partir do início do ciclo, gerado quando o ciclo abre (no `prestador`, de forma idempotente ao usar o mês).

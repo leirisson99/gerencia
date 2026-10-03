@@ -33,6 +33,7 @@ def test_ve_os_proprios_dados_sem_senha(client: TestClient, logado: Usuario) -> 
         "troca_senha_obrigatoria": False,
         "papel": "usuario",
         "tipo_renda": "clt",
+        "tem_pj": False,
         "criado_em": corpo["criado_em"],
     }
 

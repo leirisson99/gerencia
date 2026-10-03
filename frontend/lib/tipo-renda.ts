@@ -1,4 +1,4 @@
-import type { TipoRenda } from "@/lib/api/types"
+import type { Carteira, TipoRenda } from "@/lib/api/types"
 
 // Espelha backend/app/domain/ciclo.py: o prestador tem ciclo pelo mês do calendário; quem tem
 // salário (clt, clt_prestador) tem ciclo aberto por cada salário lançado.
@@ -30,4 +30,14 @@ export function temServicos(tipo: TipoRenda): boolean {
 /** Como o ciclo aparece nos textos: "ciclo" para quem tem salário, "mês" para o prestador. */
 export function nomeCiclo(tipo: TipoRenda): "ciclo" | "mês" {
   return ehPrestador(tipo) ? "mês" : "ciclo"
+}
+
+/** Espelha ciclo_pelo_mes de backend/app/domain/usuario.py: a PJ conta sempre pelo mês. */
+export function cicloPeloMes(tipo: TipoRenda, carteira: Carteira = "pf"): boolean {
+  return carteira === "pj" || ehPrestador(tipo)
+}
+
+/** Quem pode ligar a carteira PJ ("Tenho CNPJ"). */
+export function podeTerPj(tipo: TipoRenda): boolean {
+  return temServicos(tipo)
 }

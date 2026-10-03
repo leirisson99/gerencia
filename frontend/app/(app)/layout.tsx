@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 
 import { AppShell } from "@/components/layout/app-shell"
 import { listarCategorias, obterSugestaoSalario, obterUsuarioSessao } from "@/lib/api/server"
+import { obterCarteira } from "@/lib/carteira"
 
 /**
  * Área logada: sem sessão vai para /entrar; com troca de senha pendente, para /trocar-senha;
@@ -14,10 +15,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   if (!usuario) redirect("/entrar")
   // O administrador não vê dados financeiros (spec 004, FR-009): tem área própria.
   if (usuario.papel === "admin") redirect("/admin")
-  const [jar, categorias, sugestaoSalario] = await Promise.all([
+  const [jar, categorias, sugestaoSalario, carteira] = await Promise.all([
     cookies(),
     listarCategorias(),
     obterSugestaoSalario(),
+    obterCarteira(),
   ])
   const menuAberto = jar.get("sidebar_state")?.value !== "false"
   return (
@@ -26,6 +28,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       menuAberto={menuAberto}
       categorias={categorias}
       sugestaoSalario={sugestaoSalario}
+      carteira={carteira}
     >
       {children}
     </AppShell>

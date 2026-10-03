@@ -24,6 +24,7 @@ class Recorrencia(Base):
         CheckConstraint("valor > 0", name="valor_positivo"),
         CheckConstraint("tipo IN ('entrada', 'saida')", name="tipo"),
         CheckConstraint("dia BETWEEN 1 AND 31", name="dia"),
+        CheckConstraint("carteira IN ('pf', 'pj')", name="carteira"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
@@ -38,4 +39,5 @@ class Recorrencia(Base):
     tipo: Mapped[str] = mapped_column(String(7))  # copiado da categoria
     dia: Mapped[int] = mapped_column(SmallInteger)
     ativa: Mapped[bool] = mapped_column(default=True, server_default=true())
+    carteira: Mapped[str] = mapped_column(String(2), default="pf", server_default="pf")
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

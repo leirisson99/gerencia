@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.domain.limite import situacao
 from app.domain.saldo import Movimento, resumir
+from app.domain.usuario import CARTEIRA_PADRAO, Carteira
 from app.models import Categoria
 from app.schemas.ciclo import CicloOut
 from app.schemas.resumo import ResumoCicloOut, TotalCategoriaOut
@@ -21,9 +22,12 @@ def _item(categoria_id: int, nome: str, total: int, limite: int | None) -> Total
     )
 
 
-def resumo_do_ciclo(db: Session, usuario_id: int, data: date, hoje: date) -> ResumoCicloOut:
-    ciclo = obter_ciclo_da_data(db, usuario_id, data, hoje)
-    lancamentos = lancamentos_no_ciclo(db, usuario_id, ciclo)
+def resumo_do_ciclo(
+    db: Session, usuario_id: int, data: date, hoje: date, carteira: Carteira = CARTEIRA_PADRAO
+) -> ResumoCicloOut:
+    """Saldo e gasto de uma carteira; nunca soma PF e PJ (constituição 7.0.0)."""
+    ciclo = obter_ciclo_da_data(db, usuario_id, data, hoje, carteira)
+    lancamentos = lancamentos_no_ciclo(db, usuario_id, ciclo, carteira)
     resumo = resumir(
         Movimento(lanc.categoria_id, lanc.tipo, lanc.valor, lanc.status, lanc.conta_no_saldo)
         for lanc in lancamentos

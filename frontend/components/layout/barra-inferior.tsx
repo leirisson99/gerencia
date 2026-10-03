@@ -16,9 +16,10 @@ import {
 
 import { useSidebar } from "@/components/ui/sidebar"
 import { DialogLancamento } from "@/features/lancamentos/dialog-lancamento"
+import { useCarteira } from "@/features/carteira/contexto"
 import { useTipoRenda } from "@/features/tipo-renda/contexto"
 import type { Categoria } from "@/lib/api/types"
-import { ehPrestador } from "@/lib/tipo-renda"
+import { cicloPeloMes } from "@/lib/tipo-renda"
 
 type Props = {
   categorias: Categoria[]
@@ -39,7 +40,8 @@ export function BarraInferior({ categorias, sugestaoSalario }: Props) {
   const [lancando, setLancando] = useState(false)
   // Sem nenhum salário ainda não há ciclo e a API recusa saídas: o botão abre o lançamento
   // completo para o salário aparecer. A sugestão só é nula quando nunca houve salário.
-  const semCiclo = !ehPrestador(useTipoRenda()) && sugestaoSalario === null
+  const { carteira } = useCarteira()
+  const semCiclo = !cicloPeloMes(useTipoRenda(), carteira) && sugestaoSalario === null
   const Icone = semCiclo ? PlusIcon : ArrowUpIcon
 
   return (

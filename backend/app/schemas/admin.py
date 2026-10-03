@@ -111,7 +111,7 @@ class ContagensContaOut(BaseModel):
 
     lancamentos_manuais: int
     lancamentos_importados: int
-    lancamentos_gerados: int  # recorrências, parcelas, depósitos em cartela e serviços
+    lancamentos_gerados: int  # recorrências, parcelas, depósitos, serviços e retiradas
     importacoes: int  # eventos de importação, desde a feature 018
     recorrencias: int
     dividas: int
@@ -120,6 +120,7 @@ class ContagensContaOut(BaseModel):
     servicos: int
     lembretes: int
     aparelhos_push: int
+    retiradas: int  # da PJ para a PF (feature 019)
 
 
 class AcaoAdminOut(BaseModel):

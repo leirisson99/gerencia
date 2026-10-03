@@ -19,6 +19,7 @@ from app.api.routes import (
     me,
     push,
     recorrencias,
+    retiradas,
     servicos,
 )
 from app.config import Settings, get_settings
@@ -93,6 +94,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(cartelas.router)
     app.include_router(importacoes.router)
     app.include_router(servicos.router)
+    app.include_router(retiradas.router)
     app.include_router(lembretes.router)
     app.include_router(push.router)
     app.include_router(admin.router)

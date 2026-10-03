@@ -111,6 +111,7 @@ def _historico_de_categorias(db: Session, usuario_id: int) -> dict[str, tuple[in
         .join(Categoria, Lancamento.categoria_id == Categoria.id)
         .where(
             Lancamento.usuario_id == usuario_id,
+            Lancamento.carteira == "pf",  # a importação grava na PF (fase 1 da 019)
             Lancamento.descricao.is_not(None),
             Categoria.ativa,
         )
@@ -125,10 +126,14 @@ def _historico_de_categorias(db: Session, usuario_id: int) -> dict[str, tuple[in
 def _existentes(
     db: Session, usuario_id: int, linhas: list[LinhaExtrato], ids: list[str]
 ) -> Counter[tuple[date, str, int]]:
-    """Lançamentos do usuário no período do extrato, fora os já importados deste arquivo."""
+    """Lançamentos PF do usuário no período do extrato, fora os já importados deste arquivo.
+
+    A importação grava na PF; um lançamento da PJ não é duplicata do extrato pessoal.
+    """
     datas = [linha.data for linha in linhas]
     consulta = select(Lancamento.data, Lancamento.tipo, Lancamento.valor).where(
         Lancamento.usuario_id == usuario_id,
+        Lancamento.carteira == "pf",
         Lancamento.data >= min(datas),
         Lancamento.data <= max(datas),
         or_(Lancamento.id_externo.is_(None), Lancamento.id_externo.not_in(ids)),

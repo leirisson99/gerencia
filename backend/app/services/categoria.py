@@ -1,8 +1,8 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.domain.categoria import CATEGORIAS_INICIAIS, edicao_permitida
+from app.domain.categoria import CATEGORIAS_INICIAIS, CATEGORIAS_PJ, edicao_permitida
 from app.domain.limite import limite_permitido
 from app.erros import MENSAGEM_VALIDACAO, ErroApi
 from app.models import Categoria
@@ -20,6 +20,33 @@ def criar_categorias_iniciais(db: Session, usuario_id: int) -> None:
                 sistema=inicial.sistema,
             )
         )
+
+
+def garantir_categorias_pj(db: Session, usuario_id: int) -> None:
+    """Os dois lados da retirada. Idempotente; uma categoria com o mesmo nome e tipo vira a de
+    sistema, e com outro tipo impede ligar a PJ."""
+    for inicial in CATEGORIAS_PJ:
+        existente = db.scalar(
+            select(Categoria).where(
+                Categoria.usuario_id == usuario_id,
+                func.lower(Categoria.nome) == inicial.nome.lower(),
+            )
+        )
+        if existente is None:
+            db.add(
+                Categoria(usuario_id=usuario_id, nome=inicial.nome, tipo=inicial.tipo, sistema=True)
+            )
+        elif existente.tipo != inicial.tipo:
+            raise ErroApi(
+                409,
+                "categoria_conflitante",
+                f'Renomeie sua categoria "{existente.nome}" antes de ligar a PJ: '
+                "o nome é usado pelo sistema.",
+            )
+        else:
+            existente.nome = inicial.nome
+            existente.sistema = True
+            existente.ativa = True
 
 
 def listar_categorias(

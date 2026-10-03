@@ -11,6 +11,7 @@ import {
 } from "@/features/ciclo/navegacao-ciclo"
 import { FiltroLancamentos } from "@/features/lancamentos/filtro-lancamentos"
 import { NovoLancamento } from "@/features/lancamentos/novo-lancamento"
+import { DialogRetirada } from "@/features/retiradas/dialog-retirada"
 import {
   listarCategorias,
   listarLancamentosDoCiclo,
@@ -19,9 +20,10 @@ import {
   obterSugestaoSalario,
   obterTipoRenda,
 } from "@/lib/api/server"
+import { obterCarteira } from "@/lib/carteira"
 import { acharSalario } from "@/lib/categorias"
 import { formatarCentavos } from "@/lib/format"
-import { ehPrestador } from "@/lib/tipo-renda"
+import { cicloPeloMes } from "@/lib/tipo-renda"
 
 export const metadata: Metadata = { title: "Lançamentos" }
 
@@ -33,14 +35,16 @@ export default async function LancamentosPage({ searchParams }: PageProps<"/lanc
   const dataCiclo = typeof param === "string" && DATA_ISO.test(param) ? param : undefined
   if (param !== undefined && !dataCiclo) redirect("/lancamentos")
 
-  const [ciclo, categorias, sugestaoSalario, tipoRenda] = await Promise.all([
+  const [ciclo, categorias, sugestaoSalario, tipoRenda, carteira] = await Promise.all([
     obterCiclo(dataCiclo),
     listarCategorias(),
     obterSugestaoSalario(),
     obterTipoRenda(),
+    obterCarteira(),
   ])
   const salario = acharSalario(categorias)
-  const mensal = ehPrestador(tipoRenda)
+  // A PJ conta sempre pelo mês, como o prestador.
+  const mensal = cicloPeloMes(tipoRenda, carteira)
 
   if (!ciclo) {
     // Data fora de qualquer ciclo: volta ao atual, que decide se há ciclo.
@@ -117,6 +121,7 @@ export default async function LancamentosPage({ searchParams }: PageProps<"/lanc
         </div>
         <div className="flex items-center gap-3">
           <NavegacaoCiclo ciclo={ciclo} mensal={mensal} />
+          <DialogRetirada />
           <NovoLancamento categorias={categorias} sugestaoSalario={sugestaoSalario} />
         </div>
       </div>

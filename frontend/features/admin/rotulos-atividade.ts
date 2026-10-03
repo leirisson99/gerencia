@@ -31,6 +31,9 @@ export const ROTULOS_EVENTO: Record<TipoEvento, string> = {
   lembrete_excluido: "Excluiu lembrete",
   push_ativado: "Ativou notificações",
   push_removido: "Desativou notificações",
+  retirada_feita: "Fez retirada da PJ",
+  retirada_editada: "Editou retirada",
+  retirada_excluida: "Excluiu retirada",
 }
 
 export const ROTULOS_ACAO_ADMIN: Record<AcaoAdmin["acao"], string> = {
@@ -53,4 +56,5 @@ export const ROTULOS_CONTAGEM: [keyof ContagensConta, string][] = [
   ["servicos", "Serviços a receber"],
   ["lembretes", "Lembretes"],
   ["aparelhos_push", "Aparelhos com notificação"],
+  ["retiradas", "Retiradas da PJ"],
 ]

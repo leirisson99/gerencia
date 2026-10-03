@@ -77,6 +77,7 @@ def test_cadastro_com_ciclo_aberto_gera_o_previsto(client: TestClient, conta: Co
         "categoria_id": conta.categorias["Moradia"],
         "dia": 10,
         "ativa": True,
+        "carteira": "pf",
     }
     [previsto] = gerados(client, "2026-10-05")
     assert (previsto["data"], previsto["valor"], previsto["status"]) == (

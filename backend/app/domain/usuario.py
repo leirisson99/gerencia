@@ -2,6 +2,7 @@
 
 import re
 from datetime import date
+from typing import Literal
 
 from email_validator import EmailNotValidError, validate_email
 
@@ -17,10 +18,29 @@ TIPO_PRESTADOR = "prestador"
 TIPO_CLT_PRESTADOR = "clt_prestador"
 TIPOS_RENDA = (TIPO_CLT, TIPO_PRESTADOR, TIPO_CLT_PRESTADOR)
 
+Carteira = Literal["pf", "pj"]
+CARTEIRA_PADRAO: Carteira = "pf"
+ProblemaPj = Literal["tipo_sem_pj", "pj_com_dados"]
 
-def ciclo_pelo_mes(tipo_renda: str) -> bool:
-    """Só o prestador usa o mês do calendário; os outros abrem o ciclo pelo salário."""
-    return tipo_renda == TIPO_PRESTADOR
+
+def ciclo_pelo_mes(tipo_renda: str, carteira: str = CARTEIRA_PADRAO) -> bool:
+    """A PJ e o prestador usam o mês do calendário; a PF de quem tem salário abre pelo salário.
+
+    Único ponto que decide a regra do ciclo (constituição 7.0.0, princípio II).
+    """
+    return carteira == "pj" or tipo_renda == TIPO_PRESTADOR
+
+
+def pode_ter_pj(tipo_renda: str) -> bool:
+    """A carteira PJ é de quem presta serviço."""
+    return tipo_renda in (TIPO_PRESTADOR, TIPO_CLT_PRESTADOR)
+
+
+def verificar_pj(tem_pj_novo: bool, tipo_novo: str, tem_dados_pj: bool) -> ProblemaPj | None:
+    """Ligar exige quem presta serviço; desligar (ou ir para `clt`) exige a PJ vazia."""
+    if tem_pj_novo:
+        return None if pode_ter_pj(tipo_novo) else "tipo_sem_pj"
+    return "pj_com_dados" if tem_dados_pj else None
 
 
 def tem_servicos(tipo_renda: str) -> bool:

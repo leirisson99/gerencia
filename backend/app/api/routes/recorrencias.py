@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.deps import AutenticadoDep, Db, RelogioDep
+from app.domain.usuario import Carteira
 from app.schemas.erro import ErroOut
 from app.schemas.recorrencia import RecorrenciaIn, RecorrenciaOut, RecorrenciaPatch
 from app.services.recorrencia import criar_recorrencia, editar_recorrencia, listar_recorrencias
@@ -14,8 +15,10 @@ ERROS_ESCRITA: dict[int | str, dict[str, object]] = {
 
 
 @router.get("")
-def listar(auth: AutenticadoDep, db: Db) -> list[RecorrenciaOut]:
-    return [RecorrenciaOut.model_validate(r) for r in listar_recorrencias(db, auth.usuario.id)]
+def listar(auth: AutenticadoDep, db: Db, carteira: Carteira | None = None) -> list[RecorrenciaOut]:
+    return [
+        RecorrenciaOut.model_validate(r) for r in listar_recorrencias(db, auth.usuario.id, carteira)
+    ]
 
 
 @router.post("", status_code=201, responses=ERROS_ESCRITA)

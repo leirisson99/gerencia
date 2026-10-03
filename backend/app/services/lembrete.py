@@ -63,6 +63,7 @@ def listar_lembretes(db: Session, usuario_id: int, hoje: date) -> LembretesOut:
             origem=origem_do_lancamento(lancamento),
             situacao=sit,
             data=lancamento.data,
+            carteira=lancamento.carteira,
             lancamento=LancamentoOut.model_validate(lancamento),
         )
         for lancamento in pendencias_de_lancamento(db, usuario_id, hoje)

@@ -2,7 +2,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator
 
-from app.domain.usuario import limpar_texto
+from app.domain.usuario import Carteira, limpar_texto
 from app.schemas.lancamento import MAX_DESCRICAO, Valor
 
 Dia = Annotated[StrictInt, Field(ge=1, le=31)]
@@ -17,6 +17,7 @@ class RecorrenciaIn(BaseModel):
     valor: Valor
     categoria_id: StrictInt
     dia: Dia
+    carteira: Carteira = "pf"  # não muda depois de criada
 
     @field_validator("descricao")
     @classmethod
@@ -59,3 +60,4 @@ class RecorrenciaOut(BaseModel):
     categoria_id: int
     dia: int
     ativa: bool
+    carteira: Carteira

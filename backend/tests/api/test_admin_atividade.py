@@ -173,6 +173,7 @@ def test_detalhe_traz_contagens_por_funcionalidade(
         "servicos": 1,
         "lembretes": 1,
         "aparelhos_push": 0,
+        "retiradas": 0,
     }
 
 
@@ -354,3 +355,17 @@ def test_acoes_admin_da_conta(
         "reset_senha",
     ]
     assert {a["admin_nome"] for a in acoes} == {"Admin"}
+
+
+def test_retiradas_contam_no_detalhe(
+    cliente_admin: TestClient, cliente_ana: TestClient, ana: Conta, db: Session
+) -> None:
+    """Spec 019: retiradas entram nas contagens; os dois lados contam como gerados."""
+    ok(cliente_ana.patch("/api/v1/me", json={"tem_pj": True}))
+    ok(cliente_ana.post("/api/v1/retiradas", json={"valor": 10_000, "data": "2026-10-10"}), 201)
+
+    contagens = detalhe(cliente_admin, ana.usuario.id)["contagens"]
+
+    assert contagens["retiradas"] == 1
+    assert contagens["lancamentos_gerados"] == 2
+    assert contagens["lancamentos_manuais"] == 1  # o salário da fixture

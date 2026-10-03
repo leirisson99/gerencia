@@ -1,23 +1,27 @@
 <!--
 Sync Impact Report
-- Version change: 5.3.0 → 6.0.0 (MAJOR: o administrador passa a ver o uso de cada conta,
-  sem conteúdo; remove a garantia de que nada do uso é exibido por usuário. Feature 018,
-  opção B, pedida pelo usuário em 2026-10-02)
+- Version change: 6.0.0 → 7.0.0 (MAJOR: carteiras PF e PJ; o ciclo passa a depender da
+  carteira, além do tipo de renda. Feature 019, item P1 pedido explicitamente pelo usuário
+  em 2026-10-03)
 - Modified principles:
-  - V. Contas de Usuário e Isolamento de Dados: no detalhe de uma conta, o administrador vê
-    último acesso, sessões ativas, contagem de registros por funcionalidade e uma linha do
-    tempo de eventos de uso (tipo de ação e data/hora), sem valores, descrições, categorias
-    nem nomes de pessoas ou clientes. Abrir o detalhe é ação administrativa registrada.
-    O usuário MUST ser informado de que o administrador vê esse uso
+  - I. Integridade Financeira: retirada da PJ para a PF gera dois lançamentos ligados, numa
+    transação, editados e excluídos só juntos; saldo e gasto são sempre de uma carteira
+  - II. Ciclo Derivado do Tipo de Renda e da Carteira: carteira PJ opcional para
+    `prestador` e `clt_prestador`, com ciclo sempre pelo mês do calendário e sem exigir
+    salário; a carteira PF segue as regras de hoje
+  - V. Contas de Usuário e Isolamento de Dados: retiradas entram na lista de dados
+    financeiros do usuário
+  - VI. Escopo P0 e Simplicidade: carteira PJ, recorrências por carteira e retirada (fase 1);
+    sem cálculo de imposto nem visão consolidada
 - Added sections: nenhuma
 - Removed sections: nenhuma
 - Templates: nenhuma alteração
 - Follow-up TODOs:
-  - CLAUDE.md: glossário (Rotina, Evento de uso), modelo de dados (`evento_uso`) e regras
-    de cálculo
+  - CLAUDE.md: glossário (Carteira, Retirada), modelo de dados e regras de cálculo
   - Spec 016-rotinas
-  - Spec 018-atividade-usuario
+  - Spec 019-carteira-pj
 - Histórico:
+  - 5.3.0 → 6.0.0: o administrador vê o uso de cada conta, sem conteúdo (feature 018)
   - 5.2.0 → 5.3.0: módulo de rotinas, feature 016, item P1 pedido explicitamente pelo
     usuário em 2026-10-02. "Sem IA no MVP" continua valendo: o agente de insights (017)
     exigirá outra emenda
@@ -63,13 +67,19 @@ defeito crítico.
   `is_ajuste = True`. A soma das casas MUST ser igual à meta. Depósito numa casa MUST
   gerar um lançamento `saida` na categoria "Poupança" com `conta_no_saldo = False`: o
   dinheiro guardado continua do usuário, então não sai do saldo nem conta como gasto.
+- Saldo e gasto por categoria MUST ser calculados sempre dentro de uma única carteira (PF
+  ou PJ); MUST NOT existir soma entre carteiras com ciclos diferentes.
+- Retirada (pró-labore e lucros) MUST gerar dois lançamentos realizados ligados a ela, de
+  mesmo valor e data: uma saída na carteira PJ, na categoria de sistema "Retirada para PF",
+  e uma entrada na carteira PF, na categoria de sistema "Pró-labore e lucros". Os dois MUST
+  ser editados e excluídos só pela retirada, juntos.
 - Operações que gravam mais de um registro financeiro (ex.: gerar parcelas, depositar em
-  casa) MUST ocorrer numa única transação.
+  casa, registrar retirada) MUST ocorrer numa única transação.
 
 **Rationale**: centavos inteiros eliminam erro de arredondamento; contagem dupla e somas
 que não fecham tornam o saldo inútil para decidir.
 
-### II. Ciclo Derivado do Tipo de Renda
+### II. Ciclo Derivado do Tipo de Renda e da Carteira
 
 Todo usuário tem um tipo de renda (`tipo_renda`), escolhido no cadastro e editável no
 perfil: `clt` (só salário), `prestador` (só presta serviço) ou `clt_prestador` (os dois).
@@ -93,6 +103,17 @@ O tipo de renda define como o ciclo é derivado.
 - A troca de `prestador` para `clt` ou `clt_prestador` MUST ser recusada se deixar algum
   lançamento fora de um ciclo de salário. As demais trocas de tipo recalculam os ciclos
   sem migrar dados.
+- **Carteiras PF e PJ:**
+  - Todo lançamento e toda recorrência pertencem a uma carteira: `pf` (padrão) ou `pj`. A
+    carteira não é campo obrigatório na entrada: ausente, vale `pf`.
+  - A carteira PJ é opcional e só existe para `prestador` e `clt_prestador`, ligada pelo
+    usuário no perfil. Desligá-la, ou trocar para `clt`, MUST ser recusado enquanto houver
+    lançamento, recorrência ou retirada na PJ.
+  - A carteira PF segue as regras de ciclo do tipo de renda descritas acima.
+  - A carteira PJ tem ciclo sempre pelo mês do calendário, não exige salário e não entra na
+    verificação de cobertura por salário. "Salário" MUST NOT ser lançado na PJ: dinheiro da
+    empresa para a pessoa passa pela retirada.
+  - Recorrências da PJ geram o previsto do mês de forma idempotente, como no `prestador`.
 - O sistema MUST NOT prever nem calcular o dia do pagamento (sem dia fixo, dia útil ou
   feriados).
 - O ciclo MUST ser derivado (das datas dos lançamentos que abrem ciclo ou do mês do
@@ -151,7 +172,7 @@ O sistema roda na web e é multiusuário: qualquer pessoa pode se cadastrar.
   devolvidas pela API.
 - Todo endpoint, exceto saúde (health), cadastro e login, MUST exigir usuário autenticado.
 - Todo dado financeiro (configuração, categorias, lançamentos, recorrências, dívidas,
-  cartelas, casas, serviços a receber), assim como lembretes e inscrições de push, MUST
+  cartelas, casas, serviços a receber, retiradas), assim como lembretes e inscrições de push, MUST
   pertencer a um usuário, e toda consulta MUST ser filtrada pelo usuário autenticado. Acessar dado de outro usuário MUST retornar 404, e isso MUST ter
   teste.
 - Dados pessoais do cadastro (nome, e-mail, telefone, etc.) MUST ser visíveis só ao próprio
@@ -209,6 +230,10 @@ vazamento entre usuários o pior modo de falha possível do sistema.
   "Salário") existe só para `prestador` e `clt_prestador`. Ele gera uma entrada prevista
   que vira realizada quando o usuário marca o recebimento. Sua situação (a receber,
   atrasado, recebido) MUST ser derivada do lançamento e da data, nunca armazenada.
+- Carteira PJ (P1, pedido explícito em 2026-10-03), fase 1: carteiras em lançamentos e
+  recorrências, ciclo e saldo por carteira e retirada da PJ para a PF. Dívidas, cartelas,
+  serviços e importação continuam só na PF até nova decisão. O sistema MUST NOT calcular
+  impostos (DAS, IR, INSS): imposto é um gasto lançado ou recorrente como qualquer outro.
 - Lembretes têm três origens:
   - contas a pagar: saídas previstas com `conta_no_saldo = True` e data até hoje + 3 dias,
     incluindo as atrasadas;
@@ -290,4 +315,4 @@ isso atrasa o MVP.
 - Toda revisão MUST verificar conformidade com os princípios. Violações só são aceitas com
   justificativa registrada na seção "Complexity Tracking" do plano da feature.
 
-**Version**: 6.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-02
+**Version**: 7.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-03

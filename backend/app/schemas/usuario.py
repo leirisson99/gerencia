@@ -95,15 +95,17 @@ class PerfilIn(BaseModel):
     data_nascimento: date | None = None
     # A troca é validada no serviço: não pode deixar lançamentos fora de ciclo.
     tipo_renda: TipoRenda | None = None
+    # Carteira PJ ("Tenho CNPJ"); validada no serviço junto com o tipo de renda.
+    tem_pj: bool | None = None
 
     @field_validator("nome")
     @classmethod
     def _nome(cls, valor: str | None) -> str:
         return limpar_texto(_obrigatorio(valor), MAX_NOME)
 
-    @field_validator("tipo_renda")
+    @field_validator("tipo_renda", "tem_pj")
     @classmethod
-    def _tipo_renda(cls, valor: TipoRenda | None) -> TipoRenda:
+    def _sem_null(cls, valor: object) -> object:
         if valor is None:
             raise ValueError("Campo obrigatório.")
         return valor
@@ -139,4 +141,5 @@ class UsuarioOut(BaseModel):
     # Só o papel do próprio usuário; serve para o frontend separar a área do administrador.
     papel: Literal["usuario", "admin"]
     tipo_renda: TipoRenda
+    tem_pj: bool
     criado_em: datetime
