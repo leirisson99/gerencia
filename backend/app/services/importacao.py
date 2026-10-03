@@ -39,6 +39,7 @@ from app.schemas.importacao import (
 )
 from app.schemas.lancamento import MAX_DESCRICAO
 from app.services.ciclo import datas_de_salario, tipo_renda_do_usuario, travar_escritas
+from app.services.evento_uso import registrar
 from app.services.lancamento import erro_de_cobertura, menor_data_dos_outros
 from app.services.pdf import PdfSemTexto, linhas_do_pdf
 from app.services.recorrencia import gerar_previstos
@@ -266,6 +267,7 @@ def confirmar(
         )
         for linha in novas
     ]
+    registrar(db, usuario_id, "extrato_importado")
     db.add_all(lancamentos)
     if ciclo := novo_ciclo_aberto(salarios, salarios_lote):
         gerar_previstos(db, usuario_id, ciclo, agora)

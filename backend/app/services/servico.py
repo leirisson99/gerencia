@@ -10,6 +10,7 @@ from app.models.lancamento import STATUS_PREVISTO, STATUS_REALIZADO
 from app.schemas.servico import RecebimentoIn, ServicoIn, ServicoOut, ServicoPatch
 from app.services.categoria import obter_categoria_ativa
 from app.services.ciclo import travar_escritas
+from app.services.evento_uso import registrar
 from app.services.lancamento import verificar_novos_lancamentos
 
 
@@ -113,6 +114,7 @@ def criar_servico(
         criado_em=agora,
     )
     db.add(servico)
+    registrar(db, usuario_id, "servico_criado")
     db.commit()
     return _saida(servico, lancamento, hoje)
 
@@ -148,6 +150,7 @@ def editar_servico(
         servico.descricao = dados.descricao
     lancamento.descricao = descricao_do_lancamento(servico.cliente, servico.descricao)
     lancamento.atualizado_em = agora
+    registrar(db, usuario_id, "servico_editado")
     db.commit()
     return _saida(servico, lancamento, hoje)
 
@@ -159,6 +162,7 @@ def excluir_servico(db: Session, usuario_id: int, servico_id: int) -> None:
     db.delete(servico)
     db.flush()  # a entrada só sai depois do serviço que a referencia
     db.delete(lancamento)
+    registrar(db, usuario_id, "servico_excluido")
     db.commit()
 
 
@@ -182,6 +186,7 @@ def receber_servico(
     lancamento.data = dados.data
     lancamento.valor = dados.valor if dados.valor is not None else servico.valor
     lancamento.atualizado_em = agora
+    registrar(db, usuario_id, "servico_recebido")
     db.commit()
     return _saida(servico, lancamento, hoje)
 
@@ -200,5 +205,6 @@ def desfazer_recebimento(
     lancamento.data = servico.data_prevista
     lancamento.valor = servico.valor
     lancamento.atualizado_em = agora
+    registrar(db, usuario_id, "recebimento_desfeito")
     db.commit()
     return _saida(servico, lancamento, hoje)

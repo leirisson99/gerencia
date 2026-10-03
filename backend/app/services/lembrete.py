@@ -3,6 +3,7 @@ from datetime import date, datetime
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.domain.atividade import tipo_edicao_lembrete
 from app.domain.lembrete import Origem, limite, situacao
 from app.erros import ErroApi
 from app.models import Lancamento, Lembrete
@@ -15,6 +16,7 @@ from app.schemas.lembrete import (
     LembreteLivrePatch,
     LembretesOut,
 )
+from app.services.evento_uso import registrar
 
 
 def origem_do_lancamento(lancamento: Lancamento) -> Origem:
@@ -110,6 +112,7 @@ def listar_livres(db: Session, usuario_id: int) -> list[Lembrete]:
 def criar_livre(db: Session, usuario_id: int, dados: LembreteLivreIn, agora: datetime) -> Lembrete:
     lembrete = Lembrete(usuario_id=usuario_id, texto=dados.texto, data=dados.data, criado_em=agora)
     db.add(lembrete)
+    registrar(db, usuario_id, "lembrete_criado")
     db.commit()
     return lembrete
 
@@ -118,6 +121,8 @@ def editar_livre(
     db: Session, usuario_id: int, lembrete_id: int, dados: LembreteLivrePatch, agora: datetime
 ) -> Lembrete:
     lembrete = _obter_livre(db, usuario_id, lembrete_id)
+    concluido = lembrete.concluido if dados.concluido is None else dados.concluido
+    registrar(db, usuario_id, tipo_edicao_lembrete(lembrete.concluido, concluido))
     if dados.texto is not None:
         lembrete.texto = dados.texto
     if dados.data is not None:
@@ -130,4 +135,5 @@ def editar_livre(
 
 def excluir_livre(db: Session, usuario_id: int, lembrete_id: int) -> None:
     db.delete(_obter_livre(db, usuario_id, lembrete_id))
+    registrar(db, usuario_id, "lembrete_excluido")
     db.commit()

@@ -11,6 +11,7 @@ from app.models.lancamento import STATUS_PREVISTO
 from app.schemas.usuario import PerfilIn
 from app.services.auth import checar_conta_editavel, checar_data_nascimento
 from app.services.ciclo import datas_de_salario, travar_escritas
+from app.services.evento_uso import registrar
 from app.services.lancamento import menor_data_dos_outros
 
 
@@ -93,5 +94,6 @@ def atualizar_perfil(
     for campo in enviados:
         setattr(usuario, campo, getattr(dados, campo))
     usuario.atualizado_em = agora
+    registrar(db, usuario.id, "perfil_atualizado")
     db.commit()
     return usuario
