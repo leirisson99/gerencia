@@ -208,7 +208,9 @@ def test_rotas_de_admin_sao_so_estas(client: TestClient) -> None:
     assert sorted(rotas) == [
         "/api/v1/admin/resumo",
         USUARIOS,
+        f"{USUARIOS}/{{usuario_id}}",  # uso da conta, sem conteúdo (constituição 6.0.0)
         f"{USUARIOS}/{{usuario_id}}/desativar",
+        f"{USUARIOS}/{{usuario_id}}/eventos",
         f"{USUARIOS}/{{usuario_id}}/reativar",
         f"{USUARIOS}/{{usuario_id}}/reset-senha",
     ]

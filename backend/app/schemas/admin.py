@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.domain.usuario import MAX_NOME, limpar_texto, normalizar_email
+from app.models.evento_uso import TipoEvento
 
 SituacaoConta = Literal["ativos", "desativados"]
 
@@ -103,3 +104,47 @@ class ResumoAdminOut(BaseModel):
     engajamento: EngajamentoOut
     uso_funcionalidades: list[UsoFuncionalidadeOut]
     por_tipo_renda: TiposRendaOut
+
+
+class ContagensContaOut(BaseModel):
+    """Quantos registros a conta tem em cada funcionalidade; nunca valores."""
+
+    lancamentos_manuais: int
+    lancamentos_importados: int
+    lancamentos_gerados: int  # recorrências, parcelas, depósitos em cartela e serviços
+    importacoes: int  # eventos de importação, desde a feature 018
+    recorrencias: int
+    dividas: int
+    cartelas: int
+    depositos: int
+    servicos: int
+    lembretes: int
+    aparelhos_push: int
+
+
+class AcaoAdminOut(BaseModel):
+    acao: Literal["reset_senha", "desativar_conta", "reativar_conta", "ver_atividade"]
+    ocorrida_em: datetime
+    admin_nome: str
+
+
+class DetalheContaOut(BaseModel):
+    """O uso de uma conta, sem conteúdo (constituição 6.0.0, princípio V)."""
+
+    conta: UsuarioAdminOut
+    ultimo_acesso_em: datetime | None
+    sessoes_abertas: int
+    contagens: ContagensContaOut
+    acoes_admin: list[AcaoAdminOut]
+
+
+class EventoUsoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    tipo: TipoEvento
+    ocorrido_em: datetime
+
+
+class PaginaEventosOut(BaseModel):
+    itens: list[EventoUsoOut]
+    proximo: int | None  # valor de `antes` para a página seguinte
