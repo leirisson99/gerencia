@@ -18,6 +18,7 @@ from app.models import (
     Lancamento,
     Lembrete,
     Recorrencia,
+    Retirada,
     Servico,
     Sessao,
     Usuario,
@@ -327,6 +328,8 @@ def _contagens(db: Session, usuario_id: int) -> ContagensContaOut:
         Lancamento.divida_id.is_not(None),
         Lancamento.id.in_(select(Casa.lancamento_id).where(Casa.lancamento_id.is_not(None))),
         Lancamento.id.in_(select(Servico.lancamento_id)),
+        Lancamento.id.in_(select(Retirada.lancamento_pj_id)),
+        Lancamento.id.in_(select(Retirada.lancamento_pf_id)),
     )
     linha = db.execute(
         select(
@@ -349,6 +352,7 @@ def _contagens(db: Session, usuario_id: int) -> ContagensContaOut:
             contar(Servico, Servico.usuario_id == usuario_id),
             contar(Lembrete, Lembrete.usuario_id == usuario_id),
             contar(InscricaoPush, InscricaoPush.usuario_id == usuario_id),
+            contar(Retirada, Retirada.usuario_id == usuario_id),
         )
     ).one()
     return ContagensContaOut(**dict(zip(ContagensContaOut.model_fields, linha, strict=True)))
