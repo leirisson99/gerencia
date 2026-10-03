@@ -415,3 +415,72 @@ export type LembretesOut = {
   atrasados: ItemLembrete[]
   a_vencer: ItemLembrete[]
 }
+
+export type TipoEvento =
+  | "conta_criada"
+  | "login"
+  | "senha_trocada"
+  | "perfil_atualizado"
+  | "lancamento_criado"
+  | "lancamento_editado"
+  | "lancamento_excluido"
+  | "extrato_importado"
+  | "categoria_criada"
+  | "categoria_editada"
+  | "recorrencia_criada"
+  | "recorrencia_editada"
+  | "divida_criada"
+  | "cartela_criada"
+  | "deposito_feito"
+  | "deposito_desfeito"
+  | "servico_criado"
+  | "servico_editado"
+  | "servico_excluido"
+  | "servico_recebido"
+  | "recebimento_desfeito"
+  | "lembrete_criado"
+  | "lembrete_editado"
+  | "lembrete_concluido"
+  | "lembrete_excluido"
+  | "push_ativado"
+  | "push_removido"
+
+/** Quantos registros a conta tem em cada funcionalidade; nunca valores. */
+export type ContagensConta = {
+  lancamentos_manuais: number
+  lancamentos_importados: number
+  /** Recorrências, parcelas, depósitos em cartela e serviços. */
+  lancamentos_gerados: number
+  /** Contadas pelos eventos, desde a entrada da atividade no painel. */
+  importacoes: number
+  recorrencias: number
+  dividas: number
+  cartelas: number
+  depositos: number
+  servicos: number
+  lembretes: number
+  aparelhos_push: number
+}
+
+export type AcaoAdmin = {
+  acao: "reset_senha" | "desativar_conta" | "reativar_conta" | "ver_atividade"
+  ocorrida_em: string
+  admin_nome: string
+}
+
+/** O uso de uma conta, sem conteúdo: o que o administrador vê ao abrir a conta. */
+export type DetalheConta = {
+  conta: UsuarioAdmin
+  ultimo_acesso_em: string | null
+  sessoes_abertas: number
+  contagens: ContagensConta
+  acoes_admin: AcaoAdmin[]
+}
+
+export type EventoUso = { tipo: TipoEvento; ocorrido_em: string }
+
+export type PaginaEventos = {
+  itens: EventoUso[]
+  /** Valor de `antes` para a próxima página; `null` quando acabou. */
+  proximo: number | null
+}

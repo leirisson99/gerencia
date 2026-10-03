@@ -8,10 +8,12 @@ import type {
   Cartela,
   Categoria,
   Ciclo,
+  DetalheConta,
   Divida,
   Lancamento,
   LembreteLivre,
   LembretesOut,
+  PaginaEventos,
   Recorrencia,
   ResumoAdmin,
   ResumoCiclo,
@@ -121,6 +123,23 @@ export function listarUsuariosAdmin(busca?: string, situacao?: SituacaoConta) {
   if (situacao) params.set("situacao", situacao)
   const query = params.size ? `?${params}` : ""
   return buscar<UsuarioAdmin[]>(`/admin/usuarios${query}`)
+}
+
+/**
+ * O uso de uma conta, sem conteúdo, e a primeira página da linha do tempo. Só para o admin;
+ * `null` se a conta não existe. Em sequência: a visita é registrada uma vez só.
+ */
+export async function obterAtividadeConta(
+  id: number
+): Promise<{ detalhe: DetalheConta; eventos: PaginaEventos } | null> {
+  try {
+    const detalhe = await buscar<DetalheConta>(`/admin/usuarios/${id}`)
+    const eventos = await buscar<PaginaEventos>(`/admin/usuarios/${id}/eventos`)
+    return { detalhe, eventos }
+  } catch (erro) {
+    if (erro instanceof ApiError && erro.status === 404) return null
+    throw erro
+  }
 }
 
 /** Contagens globais de uso do sistema. Só para o admin. */
