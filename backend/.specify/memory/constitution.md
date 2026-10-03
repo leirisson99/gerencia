@@ -1,19 +1,27 @@
 <!--
 Sync Impact Report
-- Version change: 5.1.0 → 5.2.0 (MINOR: mais contagens globais no painel do administrador,
-  pedido pelo usuário em 2026-10-01)
+- Version change: 5.3.0 → 6.0.0 (MAJOR: o administrador passa a ver o uso de cada conta,
+  sem conteúdo; remove a garantia de que nada do uso é exibido por usuário. Feature 018,
+  opção B, pedida pelo usuário em 2026-10-02)
 - Modified principles:
-  - V. Contas de Usuário e Isolamento de Dados: as contagens do administrador passam a
-    incluir cadastros por mês, contas ativas em 7 e 30 dias, contas com lançamento, uso de
-    cada funcionalidade, lançamentos importados × manuais e contas por tipo de renda;
-    o último acesso de cada conta passa a ser guardado só para essa contagem
+  - V. Contas de Usuário e Isolamento de Dados: no detalhe de uma conta, o administrador vê
+    último acesso, sessões ativas, contagem de registros por funcionalidade e uma linha do
+    tempo de eventos de uso (tipo de ação e data/hora), sem valores, descrições, categorias
+    nem nomes de pessoas ou clientes. Abrir o detalhe é ação administrativa registrada.
+    O usuário MUST ser informado de que o administrador vê esse uso
 - Added sections: nenhuma
 - Removed sections: nenhuma
 - Templates: nenhuma alteração
 - Follow-up TODOs:
-  - CLAUDE.md: modelo de dados (`usuario.ultimo_acesso_em`)
-  - Spec 014-painel-admin-v2 (US4)
+  - CLAUDE.md: glossário (Rotina, Evento de uso), modelo de dados (`evento_uso`) e regras
+    de cálculo
+  - Spec 016-rotinas
+  - Spec 018-atividade-usuario
 - Histórico:
+  - 5.2.0 → 5.3.0: módulo de rotinas, feature 016, item P1 pedido explicitamente pelo
+    usuário em 2026-10-02. "Sem IA no MVP" continua valendo: o agente de insights (017)
+    exigirá outra emenda
+  - 5.1.0 → 5.2.0: mais contagens globais no painel do administrador (feature 014, US4)
   - 5.0.0 → 5.1.0: lembretes por push no PWA (feature 015). Decisão registrada: o Briefing
     pede 2 ciclos de uso real antes de qualquer item P1; lembretes são P1 e o usuário decidiu
     seguir mesmo assim.
@@ -157,15 +165,25 @@ O sistema roda na web e é multiusuário: qualquer pessoa pode se cadastrar.
 - Administrador:
   - MUST NOT ser criado pelo cadastro público; só por comando no servidor ou configuração
     de deploy.
-  - Pode ver apenas nome, e-mail, data de criação e situação (ativa ou desativada) das
-    contas, e MUST NOT ter acesso a dados financeiros de um usuário nem aos demais dados
-    pessoais (telefone, cargo, data de nascimento).
+  - Pode ver nome, e-mail, data de criação e situação (ativa ou desativada) das contas,
+    além do uso sem conteúdo descrito abaixo, e MUST NOT ter acesso a dados financeiros de
+    um usuário nem aos demais dados pessoais (telefone, cargo, data de nascimento).
   - Pode ver contagens globais de uso, somadas entre todos os usuários: contas (total,
     cadastros por mês, ativas em 7 e 30 dias, com pelo menos um lançamento e por tipo de
     renda), lançamentos (importados e manuais), entradas e saídas por mês, contas que usam
     cada funcionalidade e dívidas por forma de pagamento. Essas contagens MUST NOT trazer
-    valores em reais nem ser quebradas por usuário. O último acesso de cada conta é guardado
-    só para contar as contas ativas e MUST NOT ser exibido por conta.
+    valores em reais.
+  - No detalhe de uma conta, pode ver o uso dessa conta, sem o conteúdo: último acesso,
+    quantidade de sessões ativas, quantidade de registros por funcionalidade (lançamentos
+    manuais e importados, importações, recorrências, dívidas, cartelas e depósitos, serviços,
+    lembretes, inscrições de push) e uma linha do tempo de eventos de uso com só o tipo da
+    ação e a data e hora. O detalhe MUST NOT trazer valores em reais, saldos, descrições,
+    nomes de categorias, de pessoas, de clientes ou de cartelas, textos de lembretes nem
+    os demais dados pessoais. Eventos de uso MUST guardar só usuário, tipo de ação e data
+    e hora; nunca o conteúdo da ação.
+  - Abrir o detalhe de uma conta é ação administrativa e MUST ser registrada.
+  - O usuário MUST ser informado, no cadastro e no perfil, de que o administrador vê o
+    uso da conta (sem valores nem conteúdo).
   - As ações administrativas permitidas são:
     - resetar senha: o sistema gera uma senha temporária aleatória, exibida uma única vez ao
       administrador, encerra as sessões do usuário e obriga a troca de senha no próximo
@@ -205,6 +223,18 @@ vazamento entre usuários o pior modo de falha possível do sistema.
 - A notificação MUST NOT conter valores em reais, descrições de lançamentos nem nomes de
   pessoas ou clientes: só contagens e texto genérico. Os detalhes ficam na página de
   lembretes, atrás do login.
+- Rotinas (P1, pedido explícito em 2026-10-02) mostram padrões de gastos e entradas de um
+  ciclo, com filtro por tipo e categoria:
+  - por dia da semana: total e participação de cada dia;
+  - ritmo do ciclo: quanto sai em cada fase do ciclo, a partir do início derivado;
+  - frequentes sem recorrência: categorias com muitos lançamentos no ciclo que não vieram
+    de uma recorrência;
+  - comparação com os ciclos anteriores: cada categoria contra a média de até 3 ciclos
+    anteriores; no ciclo aberto, os anteriores contam só até o mesmo dia do ciclo.
+  Rotinas MUST usar o mesmo filtro do saldo (`status = realizado` e
+  `conta_no_saldo = True`), MUST ser calculadas por funções puras do domínio, MUST NOT ser
+  armazenadas e MUST NOT gravar nada. Sem histórico suficiente, a rotina MUST dizer isso
+  em vez de inferir um padrão. Rotinas MUST NOT usar IA.
 - Camadas: `api/routes/` só valida e chama `services/`; `services/` lê e grava no banco e
   chama `domain/`; regra de negócio MUST NOT ficar em rotas nem em services.
 - Um único serviço (monólito). Filas, caches ou serviços extras MUST ser justificados no
@@ -260,4 +290,4 @@ isso atrasa o MVP.
 - Toda revisão MUST verificar conformidade com os princípios. Violações só são aceitas com
   justificativa registrada na seção "Complexity Tracking" do plano da feature.
 
-**Version**: 5.2.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-01
+**Version**: 6.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-02
