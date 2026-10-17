@@ -11,6 +11,7 @@ from app.api.routes import (
     cartelas,
     categorias,
     ciclos,
+    contas_compartilhadas,
     dividas,
     health,
     importacoes,
@@ -95,6 +96,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(importacoes.router)
     app.include_router(servicos.router)
     app.include_router(retiradas.router)
+    app.include_router(contas_compartilhadas.router)
     app.include_router(lembretes.router)
     app.include_router(push.router)
     app.include_router(admin.router)

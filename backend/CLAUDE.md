@@ -47,6 +47,10 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo**: abe
 | Administrador | Papel criado só no servidor; vê nome, e-mail, data de criação e situação das contas, contagens globais de uso e o uso de cada conta sem valores nem conteúdo; reseta senha, desativa e reativa contas |
 | Carteira | `pf` (a pessoa) ou `pj` (a empresa da pessoa), atributo de lançamentos e recorrências. PJ opcional para `prestador` e `clt_prestador` ("Tenho CNPJ"), com ciclo sempre pelo mês do calendário |
 | Retirada | Dinheiro da PJ para a PF: gera a saída "Retirada para PF" na PJ e a entrada "Pró-labore e lucros" na PF, presas à retirada (só mudam juntas) |
+| Conta compartilhada | Conta mensal (aluguel, água, luz) dividida entre usuários do app; o dono cadastra, convida por e-mail e só ele edita. O total e o número de pessoas (aceitas) sempre aparecem |
+| Participante | Dono ou usuário convidado que aceitou. Vê a conta, a própria cota e, dos demais, só nome e status |
+| Cobrança | Total de uma conta num mês (competência), dividido só entre os participantes aceitos na hora de gerá-la |
+| Cota | Parte de um participante numa cobrança. Vira um lançamento previsto no ciclo dele. Status derivado: pendente, informado (lançamento realizado) ou confirmado (dono confirmou) |
 | Evento de uso | Ação bem-sucedida de uma conta, guardada só com usuário, tipo e data e hora; o administrador vê no detalhe da conta, sem conteúdo. Retenção de 12 meses |
 
 ## Modelo de dados
@@ -66,6 +70,10 @@ Sistema web de controle financeiro pessoal organizado em torno do **ciclo**: abe
 | `inscricao_push` | usuario_id, endpoint (único), p256dh, auth, criado_em |
 | `evento_uso` | usuario_id, tipo (lista fechada), ocorrido_em: só isso, nunca o conteúdo da ação |
 | `envio_lembrete` | usuario_id, dia (único por usuário): garante no máximo um resumo por dia |
+| `conta_compartilhada` | dono_id, categoria_id, descricao, modo (`igual` / `percentual` / `fixo`), dia_vencimento, valor_fixo (opcional), ativa |
+| `participante_conta` | conta_id, usuario_id, email_convite, status (`pendente` / `aceito` / `recusado` / `removido` / `saiu`), categoria_id, valor (bps ou centavos), eh_dono, convidado_em |
+| `cobranca_mensal` | conta_id, competencia, valor_total |
+| `cota_cobranca` | cobranca_id, participante_id, valor, lancamento_id, confirmado_em |
 | `sessao`, `tentativa_login`, `acao_admin` | sessão em cookie, bloqueio de login e auditoria do administrador (inclui `ver_atividade`) |
 
 Todos os campos de valor são `int` em centavos. Não existe tabela de configuração de pagamento. A `forma_pagamento` fica na dívida, não no lançamento. Specs de cada feature em `specs/`.
@@ -83,6 +91,8 @@ Todos os campos de valor são `int` em centavos. Não existe tabela de configura
 - **Cartela:** N = maior inteiro com `base × N(N+1)/2 ≤ meta`. O resto vira uma casa com `is_ajuste = True`. A soma das casas é sempre igual à meta.
 - **Parcelas:** `valor_total // parcelas` em cada uma. O resto de centavos vai para a última.
 - **Lembretes:** contas a pagar = saídas previstas com `conta_no_saldo = True` e data ≤ hoje + 3 dias (inclui atrasadas); valores a receber = entradas previstas na mesma janela. Derivados, nunca armazenados. O resumo diário (≈ 8h, `America/Sao_Paulo`) sai por comando agendado, no máximo uma vez por dia, sem valores, descrições ou nomes.
+- **Conta compartilhada:** a cobrança divide o total só entre os participantes `aceito` (igual: resto de centavos na última cota; percentual: soma 10000 bps; fixo: soma igual ao total; senão 422). Só a cota do próprio usuário vira lançamento previsto, no ciclo dele, PF, quando ele lê o ciclo; esse lançamento não pode ser excluído nem ter valor, data, carteira, `conta_no_saldo` ou tipo alterados (409). O status da cota é derivado do lançamento; confirmar não escreve em lançamento.
+- **Isolamento (exceção):** conta compartilhada é visível ao dono e a participantes `aceito`; qualquer outro recebe 404. O convidado vê só nome do dono, descrição e data do convite.
 - **Depósito na cartela** gera um lançamento `saida` na categoria "Poupança" com `conta_no_saldo = False`: não sai do saldo nem conta como gasto.
 
 ## Estrutura

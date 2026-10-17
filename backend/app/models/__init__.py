@@ -17,6 +17,12 @@ class Base(DeclarativeBase):
 from app.models.acao_admin import AcaoAdmin  # noqa: E402
 from app.models.cartela import Cartela, Casa  # noqa: E402
 from app.models.categoria import Categoria  # noqa: E402
+from app.models.conta_compartilhada import (  # noqa: E402
+    CobrancaMensal,
+    ContaCompartilhada,
+    CotaCobranca,
+    ParticipanteConta,
+)
 from app.models.divida import Divida  # noqa: E402
 from app.models.evento_uso import EventoUso  # noqa: E402
 from app.models.lancamento import Lancamento  # noqa: E402
@@ -34,12 +40,16 @@ __all__ = [
     "Cartela",
     "Casa",
     "Categoria",
+    "CobrancaMensal",
+    "ContaCompartilhada",
+    "CotaCobranca",
     "Divida",
     "EnvioLembrete",
     "EventoUso",
     "InscricaoPush",
     "Lancamento",
     "Lembrete",
+    "ParticipanteConta",
     "Recorrencia",
     "Retirada",
     "Servico",

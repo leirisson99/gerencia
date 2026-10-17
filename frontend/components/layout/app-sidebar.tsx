@@ -16,6 +16,7 @@ import {
   TagsIcon,
   UploadIcon,
   UserIcon,
+  UsersIcon,
   type LucideIcon,
 } from "lucide-react"
 
@@ -43,6 +44,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useSair } from "@/features/auth/use-sair"
+import { useCarteira } from "@/features/carteira/contexto"
 import { useTipoRenda } from "@/features/tipo-renda/contexto"
 import type { TipoRenda, Usuario } from "@/lib/api/types"
 import { temServicos } from "@/lib/tipo-renda"
@@ -53,6 +55,8 @@ type Item = {
   icone: LucideIcon
   /** Só aparece para esses tipos de renda. */
   visivel?: (tipo: TipoRenda) => boolean
+  /** Existe só na carteira PF: some quando a PJ está aberta. */
+  soPf?: boolean
 }
 type Grupo = { titulo: string; itens: Item[] }
 
@@ -75,6 +79,7 @@ const GRUPOS: Grupo[] = [
       { titulo: "Recorrências", href: "/recorrencias", icone: RepeatIcon },
       { titulo: "Serviços", href: "/servicos", icone: BriefcaseIcon, visivel: temServicos },
       { titulo: "Dívidas", href: "/dividas", icone: HandCoinsIcon },
+      { titulo: "Contas compartilhadas", href: "/contas-compartilhadas", icone: UsersIcon, soPf: true },
       { titulo: "Cartelas", href: "/cartelas", icone: PiggyBankIcon },
     ],
   },
@@ -93,6 +98,7 @@ export function AppSidebar({ usuario }: { usuario: Pick<Usuario, "nome" | "email
   const pathname = usePathname()
   const { isMobile, setOpenMobile } = useSidebar()
   const tipoRenda = useTipoRenda()
+  const { carteira } = useCarteira()
 
   return (
     <Sidebar collapsible="icon">
@@ -113,7 +119,7 @@ export function AppSidebar({ usuario }: { usuario: Pick<Usuario, "nome" | "email
             <SidebarGroupLabel>{grupo.titulo}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {grupo.itens.filter((item) => item.visivel?.(tipoRenda) ?? true).map((item) => {
+                {grupo.itens.filter((item) => (item.visivel?.(tipoRenda) ?? true) && !(item.soPf && carteira === "pj")).map((item) => {
                   const ativo = itemAtivo(item.href, pathname)
                   return (
                     <SidebarMenuItem key={item.href}>

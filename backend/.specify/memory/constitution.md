@@ -1,26 +1,33 @@
 <!--
 Sync Impact Report
-- Version change: 6.0.0 → 7.0.0 (MAJOR: carteiras PF e PJ; o ciclo passa a depender da
-  carteira, além do tipo de renda. Feature 019, item P1 pedido explicitamente pelo usuário
-  em 2026-10-03)
+- Version change: 8.0.0 → 8.1.0 (MINOR: esclarecimentos da clarificação da feature 020, em
+  2026-10-16: o convidado vê o nome do dono; o lançamento da cota fica protegido; a cobrança
+  divide só entre os aceitos)
 - Modified principles:
-  - I. Integridade Financeira: retirada da PJ para a PF gera dois lançamentos ligados, numa
-    transação, editados e excluídos só juntos; saldo e gasto são sempre de uma carteira
-  - II. Ciclo Derivado do Tipo de Renda e da Carteira: carteira PJ opcional para
-    `prestador` e `clt_prestador`, com ciclo sempre pelo mês do calendário e sem exigir
-    salário; a carteira PF segue as regras de hoje
-  - V. Contas de Usuário e Isolamento de Dados: retiradas entram na lista de dados
-    financeiros do usuário
-  - VI. Escopo P0 e Simplicidade: carteira PJ, recorrências por carteira e retirada (fase 1);
-    sem cálculo de imposto nem visão consolidada
+  - I. Integridade Financeira: lançamento previsto da cota não pode ser excluído nem ter valor
+    ou data alterados; o titular só realiza e desfaz a realização; a cobrança divide só entre
+    participantes aceitos
+  - V. Contas de Usuário e Isolamento de Dados: o convite mostra ao convidado, ainda sem
+    aceite, o nome do dono, o título da conta e a data, sem valores nem e-mail
 - Added sections: nenhuma
 - Removed sections: nenhuma
-- Templates: nenhuma alteração
-- Follow-up TODOs:
-  - CLAUDE.md: glossário (Carteira, Retirada), modelo de dados e regras de cálculo
-  - Spec 016-rotinas
-  - Spec 019-carteira-pj
+- Follow-up TODOs: plan, research, contrato e tasks da spec 020 ajustados à clarificação
 - Histórico:
+  - 7.0.0 → 8.0.0 (MAJOR: contas compartilhadas entre usuários; primeira exceção ao
+    isolamento por usuário do princípio V. Feature 020, item P1 pedido explicitamente pelo
+    usuário em 2026-10-16):
+    - I: cota de conta compartilhada; soma das cotas igual ao total; só a cota do próprio
+      usuário vira lançamento
+    - V: acesso só para o dono e participantes que aceitaram (404 para o resto); nome visível
+      aos demais participantes; 4 tabelas novas na lista de dados do usuário; administrador
+      sem ver valores, nomes ou e-mails do módulo
+    - VI: contas compartilhadas (fase 1), só na carteira PF
+  - 6.0.0 → 7.0.0 (MAJOR: carteiras PF e PJ; o ciclo passa a depender da carteira, além do
+    tipo de renda. Feature 019, item P1 pedido explicitamente pelo usuário em 2026-10-03):
+    - I: retirada da PJ para a PF gera dois lançamentos ligados; saldo e gasto por carteira
+    - II: carteira PJ opcional, ciclo sempre pelo mês do calendário
+    - V: retiradas entram na lista de dados do usuário
+    - VI: carteira PJ, recorrências por carteira e retirada (fase 1)
   - 5.3.0 → 6.0.0: o administrador vê o uso de cada conta, sem conteúdo (feature 018)
   - 5.2.0 → 5.3.0: módulo de rotinas, feature 016, item P1 pedido explicitamente pelo
     usuário em 2026-10-02. "Sem IA no MVP" continua valendo: o agente de insights (017)
@@ -73,8 +80,17 @@ defeito crítico.
   mesmo valor e data: uma saída na carteira PJ, na categoria de sistema "Retirada para PF",
   e uma entrada na carteira PF, na categoria de sistema "Pró-labore e lucros". Os dois MUST
   ser editados e excluídos só pela retirada, juntos.
+- Conta compartilhada: a soma das cotas de uma cobrança MUST ser igual ao total dela; o
+  resto de centavos vai para a última cota (ou para o dono, no modo de valor fixo). Só a cota
+  do próprio usuário MUST virar lançamento no saldo dele, previsto, no próprio `usuario_id` e
+  criado quando ele mesmo lê o ciclo. A cobrança MUST dividir o total só entre os participantes
+  que aceitaram até a hora de gerá-la. Esse lançamento MUST NOT ser excluído nem ter valor ou
+  data alterados (409); o titular só o realiza, desfaz a realização ou muda categoria e
+  descrição. O total da conta e as cotas dos outros MUST NOT entrar
+  em lançamento, saldo nem gasto por categoria de ninguém. Informar ou confirmar o pagamento
+  de uma cota MUST NOT alterar lançamento nem saldo.
 - Operações que gravam mais de um registro financeiro (ex.: gerar parcelas, depositar em
-  casa, registrar retirada) MUST ocorrer numa única transação.
+  casa, registrar retirada, gerar cobrança com suas cotas) MUST ocorrer numa única transação.
 
 **Rationale**: centavos inteiros eliminam erro de arredondamento; contagem dupla e somas
 que não fecham tornam o saldo inútil para decidir.
@@ -172,11 +188,24 @@ O sistema roda na web e é multiusuário: qualquer pessoa pode se cadastrar.
   devolvidas pela API.
 - Todo endpoint, exceto saúde (health), cadastro e login, MUST exigir usuário autenticado.
 - Todo dado financeiro (configuração, categorias, lançamentos, recorrências, dívidas,
-  cartelas, casas, serviços a receber, retiradas), assim como lembretes e inscrições de push, MUST
+  cartelas, casas, serviços a receber, retiradas, contas compartilhadas, participantes,
+  cobranças e cotas), assim como lembretes e inscrições de push, MUST
   pertencer a um usuário, e toda consulta MUST ser filtrada pelo usuário autenticado. Acessar dado de outro usuário MUST retornar 404, e isso MUST ter
   teste.
+- Exceção única: conta compartilhada. Uma conta pertence ao dono, e participantes que
+  aceitaram o convite podem vê-la. O acesso MUST passar por um único ponto no código (dono ou
+  participante com status `aceito`); qualquer outro usuário, inclusive convidado que ainda
+  não aceitou, recusou, saiu ou foi removido, MUST receber 404, com teste; o convidado só vê,
+  na lista de convites, o nome do dono, o título da conta e a data, sem valores nem e-mail.
+  O participante vê
+  o total, o número de pessoas, a própria cota e, dos demais, só o nome e o status; MUST NOT
+  ver e-mail nem valor de cota alheia. Só o dono altera a conta. O convite MUST responder do
+  mesmo jeito exista conta para o e-mail ou não e expira em 30 dias. Uma conta tem no máximo
+  20 participantes.
 - Dados pessoais do cadastro (nome, e-mail, telefone, etc.) MUST ser visíveis só ao próprio
-  usuário, com a única exceção do papel de administrador descrita abaixo.
+  usuário, com as únicas exceções do papel de administrador descrita abaixo e do nome do
+  usuário para os demais participantes de uma conta compartilhada aceita, e do nome do dono
+  para quem recebeu o convite.
 - Segredos (credenciais de banco, chaves de token, chaves VAPID de push) MUST vir de variáveis de ambiente e
   MUST NOT ser versionados.
 - Logs MUST NOT conter senhas, tokens, dados pessoais ou valores e descrições de
@@ -197,9 +226,10 @@ O sistema roda na web e é multiusuário: qualquer pessoa pode se cadastrar.
   - No detalhe de uma conta, pode ver o uso dessa conta, sem o conteúdo: último acesso,
     quantidade de sessões ativas, quantidade de registros por funcionalidade (lançamentos
     manuais e importados, importações, recorrências, dívidas, cartelas e depósitos, serviços,
-    lembretes, inscrições de push) e uma linha do tempo de eventos de uso com só o tipo da
+    lembretes, inscrições de push, contas compartilhadas e participações aceitas) e uma linha do tempo de eventos de uso com só o tipo da
     ação e a data e hora. O detalhe MUST NOT trazer valores em reais, saldos, descrições,
-    nomes de categorias, de pessoas, de clientes ou de cartelas, textos de lembretes nem
+    nomes de categorias, de pessoas, de clientes, de participantes ou de cartelas, e-mails de
+    convite, descrições de contas compartilhadas, textos de lembretes nem
     os demais dados pessoais. Eventos de uso MUST guardar só usuário, tipo de ação e data
     e hora; nunca o conteúdo da ação.
   - Abrir o detalhe de uma conta é ação administrativa e MUST ser registrada.
@@ -234,6 +264,13 @@ vazamento entre usuários o pior modo de falha possível do sistema.
   recorrências, ciclo e saldo por carteira e retirada da PJ para a PF. Dívidas, cartelas,
   serviços e importação continuam só na PF até nova decisão. O sistema MUST NOT calcular
   impostos (DAS, IR, INSS): imposto é um gasto lançado ou recorrente como qualquer outro.
+- Contas compartilhadas (P1, pedido explícito em 2026-10-16), fase 1: o dono cadastra uma
+  conta mensal (aluguel, água, luz) dividida entre usuários do app, convidados por e-mail com
+  aceite; modos de divisão igual, percentual e valor fixo; o total e o número de pessoas
+  aparecem sempre; cobrança mensal gerada de forma idempotente; cada participante recebe um
+  lançamento previsto só da própria cota; o titular marca "paguei" e o dono confirma.
+  Existe só na carteira PF. Fora do escopo: pagamento real, push de convite, participantes
+  que não são usuários, edição de cobrança já gerada e visão consolidada.
 - Lembretes têm três origens:
   - contas a pagar: saídas previstas com `conta_no_saldo = True` e data até hoje + 3 dias,
     incluindo as atrasadas;
@@ -315,4 +352,4 @@ isso atrasa o MVP.
 - Toda revisão MUST verificar conformidade com os princípios. Violações só são aceitas com
   justificativa registrada na seção "Complexity Tracking" do plano da feature.
 
-**Version**: 7.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-03
+**Version**: 8.1.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-10-16
