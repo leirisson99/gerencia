@@ -296,6 +296,33 @@ export type ContaDono = {
   participantes: ParticipanteDono[]
 }
 
+/** Convite pendente do e-mail do usuário: sem valores nem e-mail de ninguém. */
+export type Convite = {
+  id: number
+  descricao_conta: string
+  nome_do_dono: string
+  /** Instante ISO */
+  convidado_em: string
+}
+
+/** Dos demais participantes, um participante vê só o nome e o status. */
+export type OutroParticipante = { nome: string; status: StatusCota }
+
+export type ContaParticipante = {
+  papel: "participante"
+  id: number
+  descricao: string
+  dia_vencimento: number
+  ativa: boolean
+  valor_total: number | null
+  qtd_pessoas: number
+  qtd_convidados_pendentes: number
+  minha_cota: MinhaCota | null
+  outros: OutroParticipante[]
+}
+
+export type ContaCompartilhada = ContaDono | ContaParticipante
+
 export type UsuarioAdmin = {
   id: number
   nome: string

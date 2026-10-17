@@ -115,24 +115,24 @@ ou recusa; antes disso a conta responde 404.
 **Independent Test**: Bia aceita o convite e passa a ver a conta; um terceiro e Bia antes do
 aceite recebem 404 na conta.
 
-- [ ] T016 [P] [US2] Em `tests/api/test_contas_compartilhadas.py` e `tests/api/test_isolamento.py`:
+- [X] T016 [P] [US2] Em `tests/api/test_contas_compartilhadas.py` e `tests/api/test_isolamento.py`:
   convite pendente, recusado, removido, expirado (30 dias com `RelogioFixo`) e participante
   `saiu` → 404 na conta; `GET /convites` mostra `descricao_conta`, `nome_do_dono` e data, sem
   valor nem e-mail; participante aceito tentando `PATCH`, convidar ou cobrar → 403
   `somente_dono`; `GET /{id}` do participante traz `outros` só com nome e status; resposta de
   `POST /{id}/participantes` idêntica para e-mail com e sem conta; cadastro de um e-mail
   convidado vincula o convite pendente.
-- [ ] T017 [US2] Em `app/services/conta_compartilhada.py`: `convites_do_usuario` (por e-mail do
+- [X] T017 [US2] Em `app/services/conta_compartilhada.py`: `convites_do_usuario` (por e-mail do
   usuário, só não expirados), `aceitar` (define `usuario_id` e `categoria_id`, valida a
   categoria, 409 `convite_expirado` após 30 dias, registra `convite_aceito`), `recusar`
   (`convite_recusado`), `sair`, `visao_do_participante`.
-- [ ] T018 [US2] Em `app/services/auth.py` (`cadastrar`, linha ~43): ao criar o usuário, vincular
+- [X] T018 [US2] Em `app/services/auth.py` (`cadastrar`, linha ~43): ao criar o usuário, vincular
   `participante_conta.usuario_id` aos convites pendentes e não expirados do e-mail. Sem mudar o
   comportamento de cadastro quando não há convite.
-- [ ] T019 [US2] Rotas `GET /convites`, `POST /convites/{id}/aceitar`, `POST .../recusar` (todas
+- [X] T019 [US2] Rotas `GET /convites`, `POST /convites/{id}/aceitar`, `POST .../recusar` (todas
   declaradas **antes** das rotas com `{id}`) e `POST /{id}/sair` em
   `app/api/routes/contas_compartilhadas.py`.
-- [ ] T020 [P] [US2] Frontend: `../frontend/features/contas-compartilhadas/convites.tsx` (lista de
+- [X] T020 [P] [US2] Frontend: `../frontend/features/contas-compartilhadas/convites.tsx` (lista de
   convites pendentes no topo da página, com nome do dono e descrição, e escolha de categoria ao
   aceitar) e a visão do participante em `[id]/page.tsx` (total, pessoas, minha cota e `outros` só
   com nome e status).

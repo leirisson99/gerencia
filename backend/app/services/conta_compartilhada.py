@@ -6,11 +6,13 @@ Todo acesso passa por `conta_visivel` ou `conta_do_dono`.
 
 from datetime import date, datetime
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session, aliased
 
 from app.domain.conta_compartilhada import (
     MAX_PARTICIPANTES,
+    PRAZO_CONVITE,
     TOTAL_BPS,
     convite_expirado,
     status_da_cota,
@@ -27,12 +29,16 @@ from app.models import (
 )
 from app.models.conta_compartilhada import ACEITO, PENDENTE, RECUSADO, REMOVIDO, SAIU
 from app.schemas.conta_compartilhada import (
+    AceiteIn,
     ContaDonoOut,
     ContaIn,
+    ContaParticipanteOut,
     ContaPatch,
     ContaResumoOut,
     ConviteIn,
+    ConviteOut,
     MinhaCotaOut,
+    OutroParticipanteOut,
     ParticipanteDonoOut,
     ParticipantePatch,
 )
@@ -191,13 +197,55 @@ def _visao_do_dono(
     )
 
 
-def detalhe_da_conta(
+def _visao_do_participante(
+    db: Session,
+    conta: ContaCompartilhada,
+    participacao: ParticipanteConta,
+    hoje: date,
+    agora: datetime,
+) -> ContaParticipanteOut:
+    """O que um participante vê: total, pessoas, a própria cota e, dos demais, só nome e status."""
+    participantes = _participantes(db, conta.id)
+    cobranca = _cobranca_do_mes(db, conta.id, _competencia(hoje))
+    cotas = _cotas_da_cobranca(db, cobranca)
+    nomes = _nome_dos_usuarios(db, participantes)
+    aceitos, pendentes = _contagens(participantes, agora)
+    outros = []
+    for p in participantes:
+        if p.id == participacao.id or p.status != ACEITO or p.usuario_id is None:
+            continue
+        achado = cotas.get(p.id)
+        status = status_da_cota(
+            achado[1] if achado else None, achado[0].confirmado_em if achado else None
+        )
+        outros.append(OutroParticipanteOut(nome=nomes[p.usuario_id], status=status))
+    return ContaParticipanteOut(
+        id=conta.id,
+        descricao=conta.descricao,
+        dia_vencimento=conta.dia_vencimento,
+        ativa=conta.ativa,
+        valor_total=cobranca.valor_total if cobranca else None,
+        qtd_pessoas=aceitos,
+        qtd_convidados_pendentes=pendentes,
+        minha_cota=_minha_cota(participacao, cotas),
+        outros=outros,
+    )
+
+
+def _visao_do_dono_de(
     db: Session, conta_id: int, usuario_id: int, hoje: date, agora: datetime
 ) -> ContaDonoOut:
     conta, participacao = conta_visivel(db, conta_id, usuario_id)
-    # A visão do participante entra na US2; até lá só o dono é aceito numa conta.
-    assert participacao.eh_dono, "participante aceito só existe depois do aceite de convite"
     return _visao_do_dono(db, conta, participacao, hoje, agora)
+
+
+def detalhe_da_conta(
+    db: Session, conta_id: int, usuario_id: int, hoje: date, agora: datetime
+) -> ContaDonoOut | ContaParticipanteOut:
+    conta, participacao = conta_visivel(db, conta_id, usuario_id)
+    if participacao.eh_dono:
+        return _visao_do_dono(db, conta, participacao, hoje, agora)
+    return _visao_do_participante(db, conta, participacao, hoje, agora)
 
 
 def listar_contas(
@@ -314,7 +362,7 @@ def editar_conta(
         dono = _participante_do_dono(db, conta.id)
         dono.categoria_id = categoria.id
     db.commit()
-    return detalhe_da_conta(db, conta.id, usuario_id, hoje, agora)
+    return _visao_do_dono_de(db, conta.id, usuario_id, hoje, agora)
 
 
 def _participante_do_dono(db: Session, conta_id: int) -> ParticipanteConta:
@@ -379,7 +427,7 @@ def convidar(
         elif dados.valor is not None:
             existente.valor = dados.valor
     db.commit()
-    return detalhe_da_conta(db, conta.id, usuario_id, hoje, agora)
+    return _visao_do_dono_de(db, conta.id, usuario_id, hoje, agora)
 
 
 def _participante_da_conta(db: Session, conta_id: int, participante_id: int) -> ParticipanteConta:
@@ -409,7 +457,7 @@ def editar_valor_participante(
         raise ErroApi(404, "nao_encontrado", "Participante não encontrado.")
     participante.valor = dados.valor
     db.commit()
-    return detalhe_da_conta(db, conta.id, usuario_id, hoje, agora)
+    return _visao_do_dono_de(db, conta.id, usuario_id, hoje, agora)
 
 
 def remover_participante(
@@ -422,4 +470,104 @@ def remover_participante(
         raise ErroApi(409, "dono_nao_removivel", "O dono não pode ser removido da conta.")
     participante.status = REMOVIDO
     db.commit()
-    return detalhe_da_conta(db, conta.id, usuario_id, hoje, agora)
+    return _visao_do_dono_de(db, conta.id, usuario_id, hoje, agora)
+
+
+# --- convites (quem foi convidado) ---------------------------------------------------------
+
+
+def vincular_convites(db: Session, usuario_id: int, email: str, agora: datetime) -> None:
+    """No cadastro, os convites pendentes e ainda válidos daquele e-mail passam a ser do novo
+    usuário. O e-mail do convite continua guardado."""
+    db.execute(
+        update(ParticipanteConta)
+        .where(
+            ParticipanteConta.email_convite == email,
+            ParticipanteConta.status == PENDENTE,
+            ParticipanteConta.usuario_id.is_(None),
+            ParticipanteConta.convidado_em >= agora - PRAZO_CONVITE,
+        )
+        .values(usuario_id=usuario_id)
+    )
+
+
+def convites_do_usuario(db: Session, usuario_id: int, agora: datetime) -> list[ConviteOut]:
+    """Convites pendentes e não expirados do e-mail do usuário. Sem valores nem e-mails."""
+    usuario = db.get(Usuario, usuario_id)
+    assert usuario is not None
+    dono = aliased(Usuario)
+    linhas = db.execute(
+        select(ParticipanteConta, ContaCompartilhada.descricao, dono.nome)
+        .join(ContaCompartilhada, ContaCompartilhada.id == ParticipanteConta.conta_id)
+        .join(dono, dono.id == ContaCompartilhada.dono_id)
+        .where(
+            ParticipanteConta.email_convite == usuario.email,
+            ParticipanteConta.status == PENDENTE,
+        )
+        .order_by(ParticipanteConta.id)
+    )
+    return [
+        ConviteOut(
+            id=p.id, descricao_conta=descricao, nome_do_dono=nome, convidado_em=p.convidado_em
+        )
+        for p, descricao, nome in linhas
+        if not convite_expirado(p.convidado_em, agora)
+    ]
+
+
+def _convite_do_usuario(db: Session, usuario_id: int, convite_id: int) -> ParticipanteConta:
+    """O convite pendente feito para o e-mail do usuário; 404 para qualquer outro caso."""
+    usuario = db.get(Usuario, usuario_id)
+    assert usuario is not None
+    convite = db.scalar(
+        select(ParticipanteConta).where(
+            ParticipanteConta.id == convite_id,
+            ParticipanteConta.email_convite == usuario.email,
+            ParticipanteConta.status == PENDENTE,
+        )
+    )
+    if convite is None:
+        raise ErroApi(404, "nao_encontrado", "Convite não encontrado.")
+    return convite
+
+
+def aceitar_convite(
+    db: Session,
+    usuario_id: int,
+    convite_id: int,
+    dados: AceiteIn,
+    hoje: date,
+    agora: datetime,
+) -> ContaParticipanteOut:
+    convite = _convite_do_usuario(db, usuario_id, convite_id)
+    if convite_expirado(convite.convidado_em, agora):
+        raise ErroApi(409, "convite_expirado", "Este convite expirou. Peça um novo ao dono.")
+    categoria = _categoria_de_saida(db, usuario_id, dados.categoria_id)
+    convite.usuario_id = usuario_id
+    convite.categoria_id = categoria.id
+    convite.status = ACEITO
+    registrar(db, usuario_id, "convite_aceito")
+    try:
+        db.commit()
+    except IntegrityError:
+        # A mesma pessoa já consta na conta (por outro e-mail): não entra duas vezes.
+        db.rollback()
+        raise ErroApi(409, "ja_participa", "Você já participa desta conta.") from None
+    conta, participacao = conta_visivel(db, convite.conta_id, usuario_id)
+    return _visao_do_participante(db, conta, participacao, hoje, agora)
+
+
+def recusar_convite(db: Session, usuario_id: int, convite_id: int) -> None:
+    convite = _convite_do_usuario(db, usuario_id, convite_id)
+    convite.status = RECUSADO
+    registrar(db, usuario_id, "convite_recusado")
+    db.commit()
+
+
+def sair_da_conta(db: Session, usuario_id: int, conta_id: int) -> None:
+    """O participante sai. As cobranças já geradas continuam valendo para ele."""
+    _, participacao = conta_visivel(db, conta_id, usuario_id)
+    if participacao.eh_dono:
+        raise ErroApi(409, "dono_nao_removivel", "O dono não pode sair da própria conta.")
+    participacao.status = SAIU
+    db.commit()

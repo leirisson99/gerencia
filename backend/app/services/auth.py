@@ -12,6 +12,7 @@ from app.models import Sessao, TentativaLogin, Usuario
 from app.models.usuario import PAPEL_ADMIN, PAPEL_USUARIO
 from app.schemas.usuario import CadastroIn
 from app.services.categoria import criar_categorias_iniciais
+from app.services.conta_compartilhada import vincular_convites
 from app.services.evento_uso import registrar
 from app.services.senha import HASH_FICTICIO, hash_senha, precisa_rehash, verificar_senha
 from app.services.sessao import criar_sessao, encerrar_outras_sessoes, encerrar_sessao
@@ -64,6 +65,7 @@ def cadastrar(db: Session, dados: CadastroIn, agora: datetime, hoje: date) -> tu
         raise ErroApi(409, "email_ja_cadastrado", "Este e-mail já está cadastrado.") from None
 
     criar_categorias_iniciais(db, usuario.id)
+    vincular_convites(db, usuario.id, usuario.email, agora)
     token = criar_sessao(db, usuario, agora)
     registrar(db, usuario.id, "conta_criada")
     db.commit()

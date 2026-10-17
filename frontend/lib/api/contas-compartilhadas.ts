@@ -3,6 +3,7 @@ import type {
   ContaCompartilhadaIn,
   ContaCompartilhadaPatch,
   ContaDono,
+  ContaParticipante,
   ConviteIn,
 } from "./types"
 
@@ -39,4 +40,21 @@ export function removerParticipante(contaId: number, participanteId: number) {
   return requisitar<ContaDono>(`${BASE}/${contaId}/participantes/${participanteId}`, {
     metodo: "DELETE",
   })
+}
+
+/** O convidado escolhe a categoria em que a sua parte vai cair e passa a ver a conta. */
+export function aceitarConvite(conviteId: number, categoriaId: number) {
+  return requisitar<ContaParticipante>(`${BASE}/convites/${conviteId}/aceitar`, {
+    metodo: "POST",
+    corpo: { categoria_id: categoriaId },
+  })
+}
+
+export function recusarConvite(conviteId: number) {
+  return requisitar<void>(`${BASE}/convites/${conviteId}/recusar`, { metodo: "POST" })
+}
+
+/** O participante sai. As cobranças já geradas continuam valendo para ele. */
+export function sairDaConta(contaId: number) {
+  return requisitar<void>(`${BASE}/${contaId}/sair`, { metodo: "POST" })
 }
