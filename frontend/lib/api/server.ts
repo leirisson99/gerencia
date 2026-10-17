@@ -8,6 +8,8 @@ import type {
   Cartela,
   Categoria,
   Ciclo,
+  ContaDono,
+  ContaResumo,
   DetalheConta,
   Divida,
   Lancamento,
@@ -117,6 +119,20 @@ export function listarDividas() {
 export async function obterDivida(id: number): Promise<Divida | null> {
   try {
     return await buscar<Divida>(`/dividas/${id}`)
+  } catch (erro) {
+    if (erro instanceof ApiError && erro.status === 404) return null
+    throw erro
+  }
+}
+
+export function listarContasCompartilhadas() {
+  return buscar<ContaResumo[]>("/contas-compartilhadas")
+}
+
+/** Devolve `null` se a conta não existe ou o usuário não participa dela (a API responde 404). */
+export async function obterContaCompartilhada(id: number): Promise<ContaDono | null> {
+  try {
+    return await buscar<ContaDono>(`/contas-compartilhadas/${id}`)
   } catch (erro) {
     if (erro instanceof ApiError && erro.status === 404) return null
     throw erro

@@ -46,6 +46,11 @@ TipoEvento = Literal[
     "retirada_feita",
     "retirada_editada",
     "retirada_excluida",
+    "conta_compartilhada_criada",
+    "convite_aceito",
+    "convite_recusado",
+    "cobranca_gerada",
+    "cota_confirmada",
 ]
 TIPOS_EVENTO: tuple[str, ...] = get_args(TipoEvento)
 

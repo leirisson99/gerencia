@@ -219,6 +219,83 @@ export type Divida = DividaIn & {
   lancamentos: Lancamento[]
 }
 
+// --- Contas compartilhadas (espelha backend/app/schemas/conta_compartilhada.py) -----------------
+
+export type ModoDivisao = "igual" | "percentual" | "fixo"
+export type StatusCota = "pendente" | "informado" | "confirmado"
+export type StatusParticipante = "pendente" | "aceito" | "recusado" | "removido" | "saiu"
+
+export type ContaCompartilhadaIn = {
+  descricao: string
+  categoria_id: number
+  modo: ModoDivisao
+  dia_vencimento: number
+  /** Centavos; `null` quando o total muda todo mês (água, luz). */
+  valor_fixo: number | null
+}
+
+export type ContaCompartilhadaPatch = Partial<ContaCompartilhadaIn> & { ativa?: boolean }
+
+export type ConviteIn = {
+  email: string
+  /** Pontos-base no percentual (10000 = 100%) ou centavos no valor fixo. */
+  valor?: number | null
+}
+
+export type MinhaCota = {
+  id: number
+  /** Centavos */
+  valor: number
+  status: StatusCota
+  lancamento_id: number | null
+}
+
+export type ParticipanteDono = {
+  id: number
+  nome: string | null
+  email_convite: string | null
+  status: StatusParticipante
+  /** Convite pendente com mais de 30 dias. */
+  expirado: boolean
+  eh_dono: boolean
+  /** Pontos-base (percentual) ou centavos (fixo). */
+  valor: number | null
+  cota_id: number | null
+  cota: number | null
+  status_cota: StatusCota | null
+}
+
+export type ContaResumo = {
+  id: number
+  descricao: string
+  papel: "dono" | "participante"
+  ativa: boolean
+  dia_vencimento: number
+  valor_total: number | null
+  /** Só quem aceitou. */
+  qtd_pessoas: number
+  qtd_convidados_pendentes: number
+  minha_cota: MinhaCota | null
+  falta_informar_total: boolean
+}
+
+export type ContaDono = {
+  papel: "dono"
+  id: number
+  descricao: string
+  categoria_id: number
+  modo: ModoDivisao
+  dia_vencimento: number
+  valor_fixo: number | null
+  ativa: boolean
+  valor_total: number | null
+  qtd_pessoas: number
+  qtd_convidados_pendentes: number
+  falta_informar_total: boolean
+  minha_cota: MinhaCota | null
+  participantes: ParticipanteDono[]
+}
+
 export type UsuarioAdmin = {
   id: number
   nome: string
