@@ -148,12 +148,12 @@ protegido contra exclusão e alteração.
 um previsto de R$ 100 no próprio ciclo; só esses R$ 100 contam no saldo e no gasto por categoria
 quando realizado.
 
-- [ ] T021 [P] [US3] Em `tests/api/test_contas_compartilhadas.py`: `POST /{id}/cobrancas` gera
+- [X] T021 [P] [US3] Em `tests/api/test_contas_compartilhadas.py`: `POST /{id}/cobrancas` gera
   cotas que somam o total (6, 4 e 3 aceitos); 6 convidados e 3 aceitos divide por 3; segunda
   chamada na mesma competência → 409 `cobranca_ja_gerada`; quem aceita depois e quem sai não
   alteram a cobrança já gerada; percentual ≠ 100% ou fixos > total entre os aceitos → 422;
   conta variável sem cobrança do mês mostra `falta_informar_total` ao dono.
-- [ ] T022 [P] [US3] Em `tests/api/test_contas_compartilhadas.py`: conta com `valor_fixo` gera a
+- [X] T022 [P] [US3] Em `tests/api/test_contas_compartilhadas.py`: conta com `valor_fixo` gera a
   cobrança do mês a partir do dia de vencimento, na leitura de ciclo de **qualquer** participante
   aceito, sem duplicar nem gerar antes; o dono pode gerar antes pelo `POST /{id}/cobrancas`.
   Materialização: leitura de `GET /api/v1/ciclos/atual` cria 1 lançamento previsto da própria
@@ -162,12 +162,12 @@ quando realizado.
   lançamento até haver salário; quem saiu ou foi removido ainda recebe o lançamento de cobrança
   já gerada; leitura de um usuário nunca cria lançamento em outro; saldo e gasto por categoria
   só contam a cota própria depois de realizado.
-- [ ] T023 [P] [US3] Em `tests/api/test_lancamentos.py` (ou no arquivo de testes do módulo):
+- [X] T023 [P] [US3] Em `tests/api/test_lancamentos.py` (ou no arquivo de testes do módulo):
   `DELETE` e `PATCH` de `valor` ou `data` do lançamento de uma cota → 409
   `lancamento_de_cota`, e o mesmo para `carteira`, `conta_no_saldo` e `tipo`; `PATCH` de
   `status`, categoria e descrição → permitido; lançamento comum
   continua igual.
-- [ ] T024 [US3] Em `app/services/conta_compartilhada.py`: `gerar_cobranca` (trava a conta,
+- [X] T024 [US3] Em `app/services/conta_compartilhada.py`: `gerar_cobranca` (trava a conta,
   `ratear` entre participantes `aceito`, 422 com a diferença se percentual ≠ 10000 ou fixos ≠
   total, grava `cobranca_mensal` e `cota_cobranca`, registra `cobranca_gerada`);
   `garantir_cobrancas_fixas(db, usuario_id, hoje)` (contas com `valor_fixo` da competência
@@ -176,17 +176,17 @@ quando realizado.
   `materializar_cotas(db, usuario_id, hoje, agora)` idempotente, que considera as cotas do
   usuário independentemente do status atual do participante e cria o previsto só se a data
   cair num ciclo existente do usuário na carteira PF.
-- [ ] T025 [US3] Em `app/services/ciclo.py` e `app/api/routes/ciclos.py`: chamar
+- [X] T025 [US3] Em `app/services/ciclo.py` e `app/api/routes/ciclos.py`: chamar
   `garantir_cobrancas_fixas` e `materializar_cotas` antes de montar as leituras de ciclo (mesmo
   ponto de `garantir_previstos_do_mes`, `routes/ciclos.py` linhas 34 e 65). Sem nada pendente,
   nenhuma escrita nem mudança na resposta; as suítes de ciclo e lançamentos seguem verdes.
-- [ ] T026 [US3] Em `app/services/lancamento.py` (excluir em ~`:329`, editar valor e data):
+- [X] T026 [US3] Em `app/services/lancamento.py` (excluir em ~`:329`, editar valor e data):
   (inclui `carteira`, `conta_no_saldo` e `tipo`) consultar se existe
   `cota_cobranca.lancamento_id = :id` e, se existir, responder
   `ErroApi(409, "lancamento_de_cota", ...)`; sem coluna nova em `lancamento`. Faz T023 passar.
-- [ ] T027 [US3] Rota `POST /{id}/cobrancas` em `app/api/routes/contas_compartilhadas.py`
+- [X] T027 [US3] Rota `POST /{id}/cobrancas` em `app/api/routes/contas_compartilhadas.py`
   (`competencia`, `valor_total`; só o dono) e `falta_informar_total` no `GET /` e `GET /{id}`.
-- [ ] T028 [P] [US3] Frontend: `../frontend/features/contas-compartilhadas/dialog-cobranca.tsx`
+- [X] T028 [P] [US3] Frontend: `../frontend/features/contas-compartilhadas/dialog-cobranca.tsx`
   (informar o total do mês de água ou luz), aviso "falta informar o total de [mês]" para o dono
   e exibição de total, pessoas e minha cota por mês em `[id]/page.tsx`. Mostrar o lançamento da
   cota com valor e data travados em `features/lancamentos/*`.

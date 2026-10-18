@@ -174,6 +174,8 @@ def test_detalhe_traz_contagens_por_funcionalidade(
         "lembretes": 1,
         "aparelhos_push": 0,
         "retiradas": 0,
+        "contas_compartilhadas": 0,
+        "participacoes": 0,
     }
 
 

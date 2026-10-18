@@ -6,6 +6,7 @@ import { PencilIcon, UserPlusIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { ContaDono, ParticipanteDono } from "@/lib/api/types"
 import { formatarCentavos } from "@/lib/format"
+import { ConfirmarCota } from "./confirmar-cota"
 import { DialogConvite } from "./dialog-convite"
 import { DialogValor } from "./dialog-valor"
 import { RemoverParticipante } from "./remover-participante"
@@ -59,6 +60,7 @@ export function ListaParticipantes({ conta }: { conta: ContaDono }) {
               </div>
               <div className="flex items-center gap-2">
                 {parte && <span className="valor text-sm">{parte}</span>}
+                {!p.eh_dono && <ConfirmarCota participante={p} />}
                 {conta.modo !== "igual" && (
                   <Button
                     variant="ghost"

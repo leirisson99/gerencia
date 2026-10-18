@@ -31,6 +31,13 @@ export function VisaoParticipante({ conta }: { conta: ContaParticipante }) {
         </Bloco>
       </div>
 
+      {conta.minha_cota && (
+        <p className="mt-4 text-sm text-muted-foreground">
+          Sua parte aparece nos lançamentos como um previsto. Marque como pago quando pagar, e o
+          dono confirma o recebimento.
+        </p>
+      )}
+
       <section aria-labelledby="participantes-titulo" className="mt-12">
         <h2 id="participantes-titulo" className="mb-3 text-sm font-medium text-muted-foreground">
           Quem divide

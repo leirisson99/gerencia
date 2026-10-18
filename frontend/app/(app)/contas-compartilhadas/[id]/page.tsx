@@ -5,6 +5,7 @@ import { ArrowLeftIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Bloco, Indicador } from "@/features/dashboard/bloco"
+import { GerarCobranca } from "@/features/contas-compartilhadas/gerar-cobranca"
 import { ListaParticipantes } from "@/features/contas-compartilhadas/lista-participantes"
 import { VisaoParticipante } from "@/features/contas-compartilhadas/visao-participante"
 import { MODOS, rotuloPendentes, rotuloPessoas } from "@/features/contas-compartilhadas/rotulos"
@@ -47,7 +48,7 @@ export default async function ContaCompartilhadaPage({
       ) : (
         <>
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <Bloco titulo="Total do mês">
+            <Bloco titulo="Total do mês" acao={<GerarCobranca conta={conta} />}>
               <Indicador
                 valor={conta.valor_total === null ? "—" : formatarCentavos(conta.valor_total)}
                 legenda={

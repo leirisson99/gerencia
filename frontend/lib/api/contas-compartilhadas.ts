@@ -1,5 +1,6 @@
 import { requisitar } from "./client"
 import type {
+  CobrancaIn,
   ContaCompartilhadaIn,
   ContaCompartilhadaPatch,
   ContaDono,
@@ -57,4 +58,18 @@ export function recusarConvite(conviteId: number) {
 /** O participante sai. As cobranças já geradas continuam valendo para ele. */
 export function sairDaConta(contaId: number) {
   return requisitar<void>(`${BASE}/${contaId}/sair`, { metodo: "POST" })
+}
+
+/** O dono fecha o mês: o total é dividido só entre quem aceitou até agora. */
+export function gerarCobranca(contaId: number, dados: CobrancaIn) {
+  return requisitar<ContaDono>(`${BASE}/${contaId}/cobrancas`, { metodo: "POST", corpo: dados })
+}
+
+/** O dono confirma que recebeu. Só marca a cota: não mexe no lançamento de ninguém. */
+export function confirmarCota(cotaId: number) {
+  return requisitar<ContaDono>(`${BASE}/cotas/${cotaId}/confirmar`, { metodo: "POST" })
+}
+
+export function desfazerConfirmacao(cotaId: number) {
+  return requisitar<ContaDono>(`${BASE}/cotas/${cotaId}/desfazer-confirmacao`, { metodo: "POST" })
 }

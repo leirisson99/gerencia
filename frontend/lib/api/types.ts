@@ -103,6 +103,8 @@ export type Lancamento = {
   servico_id: number | null
   /** Lado de uma retirada da PJ para a PF: muda só pela retirada. */
   retirada_id: number | null
+  /** Sua parte de uma conta compartilhada: valor e data travados; não pode ser excluída. */
+  cota_id: number | null
   criado_em: string
 }
 
@@ -236,6 +238,13 @@ export type ContaCompartilhadaIn = {
 
 export type ContaCompartilhadaPatch = Partial<ContaCompartilhadaIn> & { ativa?: boolean }
 
+export type CobrancaIn = {
+  /** Qualquer dia do mês, ISO `YYYY-MM-DD`; vale o mês. */
+  competencia: string
+  /** Centavos. Obrigatório em conta sem valor fixo. */
+  valor_total?: number | null
+}
+
 export type ConviteIn = {
   email: string
   /** Pontos-base no percentual (10000 = 100%) ou centavos no valor fixo. */
@@ -336,7 +345,13 @@ export type SenhaTemporaria = { senha_temporaria: string }
 export type SituacaoConta = "ativos" | "desativados"
 
 /** Espelha app/schemas/admin.py: só contagens globais, nunca valores nem usuários. */
-export type Funcionalidade = "recorrencias" | "dividas" | "cartelas" | "servicos" | "importacao"
+export type Funcionalidade =
+  | "recorrencias"
+  | "dividas"
+  | "cartelas"
+  | "servicos"
+  | "importacao"
+  | "contas_compartilhadas"
 
 export type ResumoAdmin = {
   contas: { total: number; ativas: number; desativadas: number }
@@ -569,6 +584,11 @@ export type TipoEvento =
   | "retirada_feita"
   | "retirada_editada"
   | "retirada_excluida"
+  | "conta_compartilhada_criada"
+  | "convite_aceito"
+  | "convite_recusado"
+  | "cobranca_gerada"
+  | "cota_confirmada"
 
 /** Quantos registros a conta tem em cada funcionalidade; nunca valores. */
 export type ContagensConta = {
@@ -586,6 +606,10 @@ export type ContagensConta = {
   lembretes: number
   aparelhos_push: number
   retiradas: number
+  /** Contas compartilhadas que a conta criou, como dona. */
+  contas_compartilhadas: number
+  /** Participações aceitas em contas de outras pessoas. */
+  participacoes: number
 }
 
 export type AcaoAdmin = {

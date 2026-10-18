@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.deps import AutenticadoDep, Db, RelogioDep
 from app.schemas.erro import ErroOut
 from app.schemas.lembrete import LembreteLivreIn, LembreteLivreOut, LembreteLivrePatch, LembretesOut
+from app.services.conta_compartilhada import preparar_leitura_do_ciclo
 from app.services.lembrete import (
     criar_livre,
     editar_livre,
@@ -23,6 +24,7 @@ ERROS: dict[int | str, dict[str, object]] = {
 @router.get("", responses={401: {"model": ErroOut}})
 def listar(auth: AutenticadoDep, db: Db, relogio: RelogioDep) -> LembretesOut:
     """Contas a pagar, valores a receber e lembretes livres atrasados e até hoje + 3 dias."""
+    preparar_leitura_do_ciclo(db, auth.usuario.id, relogio.hoje_sp(), relogio.agora_utc())
     return listar_lembretes(db, auth.usuario.id, relogio.hoje_sp())
 
 

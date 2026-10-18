@@ -187,6 +187,7 @@ def test_uso_das_funcionalidades_conta_contas_distintas(
         {"funcionalidade": "cartelas", "contas": 1},
         {"funcionalidade": "servicos", "contas": 1},
         {"funcionalidade": "importacao", "contas": 1},
+        {"funcionalidade": "contas_compartilhadas", "contas": 0},
     ]
 
 
@@ -214,5 +215,5 @@ def test_resumo_vazio_traz_os_blocos_novos_zerados(cliente_admin: TestClient) ->
 
     assert corpo["engajamento"] == {"ativas_7_dias": 0, "ativas_30_dias": 0, "com_lancamento": 0}
     assert corpo["por_tipo_renda"] == {"clt": 0, "prestador": 0, "clt_prestador": 0}
-    assert [u["contas"] for u in corpo["uso_funcionalidades"]] == [0, 0, 0, 0, 0]
+    assert [u["contas"] for u in corpo["uso_funcionalidades"]] == [0, 0, 0, 0, 0, 0]
     assert all(c["quantidade"] == 0 for c in corpo["cadastros_por_mes"])
