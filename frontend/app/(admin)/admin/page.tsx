@@ -19,6 +19,7 @@ const FUNCIONALIDADES: Record<Funcionalidade, string> = {
   cartelas: "Cartelas de poupança",
   servicos: "Serviços a receber",
   importacao: "Importação de extrato",
+  contas_compartilhadas: "Contas compartilhadas",
 }
 
 const numero = new Intl.NumberFormat("pt-BR")

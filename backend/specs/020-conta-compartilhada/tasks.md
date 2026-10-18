@@ -115,24 +115,24 @@ ou recusa; antes disso a conta responde 404.
 **Independent Test**: Bia aceita o convite e passa a ver a conta; um terceiro e Bia antes do
 aceite recebem 404 na conta.
 
-- [ ] T016 [P] [US2] Em `tests/api/test_contas_compartilhadas.py` e `tests/api/test_isolamento.py`:
+- [X] T016 [P] [US2] Em `tests/api/test_contas_compartilhadas.py` e `tests/api/test_isolamento.py`:
   convite pendente, recusado, removido, expirado (30 dias com `RelogioFixo`) e participante
   `saiu` → 404 na conta; `GET /convites` mostra `descricao_conta`, `nome_do_dono` e data, sem
   valor nem e-mail; participante aceito tentando `PATCH`, convidar ou cobrar → 403
   `somente_dono`; `GET /{id}` do participante traz `outros` só com nome e status; resposta de
   `POST /{id}/participantes` idêntica para e-mail com e sem conta; cadastro de um e-mail
   convidado vincula o convite pendente.
-- [ ] T017 [US2] Em `app/services/conta_compartilhada.py`: `convites_do_usuario` (por e-mail do
+- [X] T017 [US2] Em `app/services/conta_compartilhada.py`: `convites_do_usuario` (por e-mail do
   usuário, só não expirados), `aceitar` (define `usuario_id` e `categoria_id`, valida a
   categoria, 409 `convite_expirado` após 30 dias, registra `convite_aceito`), `recusar`
   (`convite_recusado`), `sair`, `visao_do_participante`.
-- [ ] T018 [US2] Em `app/services/auth.py` (`cadastrar`, linha ~43): ao criar o usuário, vincular
+- [X] T018 [US2] Em `app/services/auth.py` (`cadastrar`, linha ~43): ao criar o usuário, vincular
   `participante_conta.usuario_id` aos convites pendentes e não expirados do e-mail. Sem mudar o
   comportamento de cadastro quando não há convite.
-- [ ] T019 [US2] Rotas `GET /convites`, `POST /convites/{id}/aceitar`, `POST .../recusar` (todas
+- [X] T019 [US2] Rotas `GET /convites`, `POST /convites/{id}/aceitar`, `POST .../recusar` (todas
   declaradas **antes** das rotas com `{id}`) e `POST /{id}/sair` em
   `app/api/routes/contas_compartilhadas.py`.
-- [ ] T020 [P] [US2] Frontend: `../frontend/features/contas-compartilhadas/convites.tsx` (lista de
+- [X] T020 [P] [US2] Frontend: `../frontend/features/contas-compartilhadas/convites.tsx` (lista de
   convites pendentes no topo da página, com nome do dono e descrição, e escolha de categoria ao
   aceitar) e a visão do participante em `[id]/page.tsx` (total, pessoas, minha cota e `outros` só
   com nome e status).
@@ -148,12 +148,12 @@ protegido contra exclusão e alteração.
 um previsto de R$ 100 no próprio ciclo; só esses R$ 100 contam no saldo e no gasto por categoria
 quando realizado.
 
-- [ ] T021 [P] [US3] Em `tests/api/test_contas_compartilhadas.py`: `POST /{id}/cobrancas` gera
+- [X] T021 [P] [US3] Em `tests/api/test_contas_compartilhadas.py`: `POST /{id}/cobrancas` gera
   cotas que somam o total (6, 4 e 3 aceitos); 6 convidados e 3 aceitos divide por 3; segunda
   chamada na mesma competência → 409 `cobranca_ja_gerada`; quem aceita depois e quem sai não
   alteram a cobrança já gerada; percentual ≠ 100% ou fixos > total entre os aceitos → 422;
   conta variável sem cobrança do mês mostra `falta_informar_total` ao dono.
-- [ ] T022 [P] [US3] Em `tests/api/test_contas_compartilhadas.py`: conta com `valor_fixo` gera a
+- [X] T022 [P] [US3] Em `tests/api/test_contas_compartilhadas.py`: conta com `valor_fixo` gera a
   cobrança do mês a partir do dia de vencimento, na leitura de ciclo de **qualquer** participante
   aceito, sem duplicar nem gerar antes; o dono pode gerar antes pelo `POST /{id}/cobrancas`.
   Materialização: leitura de `GET /api/v1/ciclos/atual` cria 1 lançamento previsto da própria
@@ -162,12 +162,12 @@ quando realizado.
   lançamento até haver salário; quem saiu ou foi removido ainda recebe o lançamento de cobrança
   já gerada; leitura de um usuário nunca cria lançamento em outro; saldo e gasto por categoria
   só contam a cota própria depois de realizado.
-- [ ] T023 [P] [US3] Em `tests/api/test_lancamentos.py` (ou no arquivo de testes do módulo):
+- [X] T023 [P] [US3] Em `tests/api/test_lancamentos.py` (ou no arquivo de testes do módulo):
   `DELETE` e `PATCH` de `valor` ou `data` do lançamento de uma cota → 409
   `lancamento_de_cota`, e o mesmo para `carteira`, `conta_no_saldo` e `tipo`; `PATCH` de
   `status`, categoria e descrição → permitido; lançamento comum
   continua igual.
-- [ ] T024 [US3] Em `app/services/conta_compartilhada.py`: `gerar_cobranca` (trava a conta,
+- [X] T024 [US3] Em `app/services/conta_compartilhada.py`: `gerar_cobranca` (trava a conta,
   `ratear` entre participantes `aceito`, 422 com a diferença se percentual ≠ 10000 ou fixos ≠
   total, grava `cobranca_mensal` e `cota_cobranca`, registra `cobranca_gerada`);
   `garantir_cobrancas_fixas(db, usuario_id, hoje)` (contas com `valor_fixo` da competência
@@ -176,17 +176,17 @@ quando realizado.
   `materializar_cotas(db, usuario_id, hoje, agora)` idempotente, que considera as cotas do
   usuário independentemente do status atual do participante e cria o previsto só se a data
   cair num ciclo existente do usuário na carteira PF.
-- [ ] T025 [US3] Em `app/services/ciclo.py` e `app/api/routes/ciclos.py`: chamar
+- [X] T025 [US3] Em `app/services/ciclo.py` e `app/api/routes/ciclos.py`: chamar
   `garantir_cobrancas_fixas` e `materializar_cotas` antes de montar as leituras de ciclo (mesmo
   ponto de `garantir_previstos_do_mes`, `routes/ciclos.py` linhas 34 e 65). Sem nada pendente,
   nenhuma escrita nem mudança na resposta; as suítes de ciclo e lançamentos seguem verdes.
-- [ ] T026 [US3] Em `app/services/lancamento.py` (excluir em ~`:329`, editar valor e data):
+- [X] T026 [US3] Em `app/services/lancamento.py` (excluir em ~`:329`, editar valor e data):
   (inclui `carteira`, `conta_no_saldo` e `tipo`) consultar se existe
   `cota_cobranca.lancamento_id = :id` e, se existir, responder
   `ErroApi(409, "lancamento_de_cota", ...)`; sem coluna nova em `lancamento`. Faz T023 passar.
-- [ ] T027 [US3] Rota `POST /{id}/cobrancas` em `app/api/routes/contas_compartilhadas.py`
+- [X] T027 [US3] Rota `POST /{id}/cobrancas` em `app/api/routes/contas_compartilhadas.py`
   (`competencia`, `valor_total`; só o dono) e `falta_informar_total` no `GET /` e `GET /{id}`.
-- [ ] T028 [P] [US3] Frontend: `../frontend/features/contas-compartilhadas/dialog-cobranca.tsx`
+- [X] T028 [P] [US3] Frontend: `../frontend/features/contas-compartilhadas/dialog-cobranca.tsx`
   (informar o total do mês de água ou luz), aviso "falta informar o total de [mês]" para o dono
   e exibição de total, pessoas e minha cota por mês em `[id]/page.tsx`. Mostrar o lançamento da
   cota com valor e data travados em `features/lancamentos/*`.
@@ -201,18 +201,18 @@ confirma sem tocar no saldo de ninguém.
 **Independent Test**: Bia realiza o lançamento (cota "informado"); Ana confirma ("confirmado");
 Bia volta o lançamento para previsto (cota "pendente", confirmação invalidada).
 
-- [ ] T029 [P] [US4] Em `tests/api/test_contas_compartilhadas.py`: status derivado da cota
+- [X] T029 [P] [US4] Em `tests/api/test_contas_compartilhadas.py`: status derivado da cota
   (`pendente` com previsto, `informado` com realizado, `confirmado` com `confirmado_em` e
   realizado); `POST /cotas/{id}/confirmar` do dono em cota informada; participante tentando
   confirmar → 403 `somente_dono`; confirmar sem lançamento realizado → 409 `cota_nao_informada`;
   `POST .../desfazer-confirmacao`; cancelar (lançamento volta a previsto) leva a `pendente`;
   confirmar e desfazer não alteram nenhum lançamento; confirmar cota de outra conta → 404.
-- [ ] T030 [US4] Em `app/services/conta_compartilhada.py`: `confirmar_cota` e
+- [X] T030 [US4] Em `app/services/conta_compartilhada.py`: `confirmar_cota` e
   `desfazer_confirmacao` (só gravam `confirmado_em`; registra `cota_confirmada`) e o cálculo do
   status derivado nas visões do dono e do participante (usa `status_da_cota`).
-- [ ] T031 [US4] Rotas `POST /cotas/{cota_id}/confirmar` e `POST /cotas/{cota_id}/desfazer-confirmacao`
+- [X] T031 [US4] Rotas `POST /cotas/{cota_id}/confirmar` e `POST /cotas/{cota_id}/desfazer-confirmacao`
   em `app/api/routes/contas_compartilhadas.py` (antes das rotas com `{id}`).
-- [ ] T032 [P] [US4] Frontend: botão "Confirmar" (dono) e status por pessoa em
+- [X] T032 [P] [US4] Frontend: botão "Confirmar" (dono) e status por pessoa em
   `../frontend/features/contas-compartilhadas/`; "Paguei" e "Cancelar" no lançamento da cota
   chamam a rota de lançamento existente.
 
@@ -220,15 +220,15 @@ Bia volta o lançamento para previsto (cota "pendente", confirmação invalidada
 
 ## Phase 7: Polish & cross-cutting
 
-- [ ] T033 [P] Em `app/services/admin.py` (`:194-205` e `:267-283`): contar contas
+- [X] T033 [P] Em `app/services/admin.py` (`:194-205` e `:267-283`): contar contas
   compartilhadas e participações aceitas por usuário e no global, sem nomes, e-mails ou valores;
   teste em `tests/api/test_admin.py` conferindo que o payload não traz nenhum desses campos.
-- [ ] T034 [P] Em `tests/api/test_isolamento.py`: um usuário sem relação com a conta recebe 404 em
+- [X] T034 [P] Em `tests/api/test_isolamento.py`: um usuário sem relação com a conta recebe 404 em
   todas as rotas do módulo; `GET /{id}` do participante não contém e-mail nem valor de terceiros.
-- [ ] T035 Regressão: `uv run pytest` completo, `uv run ruff check .`, `uv run ruff format
+- [X] T035 Regressão: `uv run pytest` completo, `uv run ruff check .`, `uv run ruff format
   --check .`; revisar o OpenAPI gerado (princípio IV); no frontend `npm run lint`, `npm run
   build` e `npx tsc --noEmit`.
-- [ ] T036 Roteiro manual de `quickstart.md` com dois usuários; marcar o status da spec como
+- [X] T036 Roteiro manual de `quickstart.md` com dois usuários; marcar o status da spec como
   Implementada.
 
 ---

@@ -86,6 +86,7 @@ class LancamentoOut(BaseModel):
     cartela_id: int | None
     servico_id: int | None
     retirada_id: int | None  # lado de uma retirada: muda só pela retirada (feature 019)
+    cota_id: int | None  # parte de uma conta compartilhada: valor e data travados (feature 020)
     importado: bool  # veio de extrato (feature 011)
     criado_em: datetime
 

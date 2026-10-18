@@ -1,12 +1,16 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 
 from app.api.deps import AutenticadoDep, Db, RelogioDep
 from app.schemas.conta_compartilhada import (
+    AceiteIn,
+    CobrancaIn,
     ContaDonoOut,
     ContaIn,
+    ContaParticipanteOut,
     ContaPatch,
     ContaResumoOut,
     ConviteIn,
+    ConviteOut,
     ParticipantePatch,
 )
 from app.schemas.erro import ErroOut
@@ -33,8 +37,49 @@ def criar(dados: ContaIn, auth: AutenticadoDep, db: Db, relogio: RelogioDep) -> 
     return servico.criar_conta(db, auth.usuario.id, dados, relogio.hoje_sp(), relogio.agora_utc())
 
 
+@router.get("/convites")
+def listar_convites(auth: AutenticadoDep, db: Db, relogio: RelogioDep) -> list[ConviteOut]:
+    return servico.convites_do_usuario(db, auth.usuario.id, relogio.agora_utc())
+
+
+@router.post(
+    "/convites/{convite_id}/aceitar",
+    responses={404: {"model": ErroOut}, 409: {"model": ErroOut}, 422: {"model": ErroOut}},
+)
+def aceitar_convite(
+    convite_id: int, dados: AceiteIn, auth: AutenticadoDep, db: Db, relogio: RelogioDep
+) -> ContaParticipanteOut:
+    return servico.aceitar_convite(
+        db, auth.usuario.id, convite_id, dados, relogio.hoje_sp(), relogio.agora_utc()
+    )
+
+
+@router.post("/convites/{convite_id}/recusar", status_code=204, responses={404: {"model": ErroOut}})
+def recusar_convite(convite_id: int, auth: AutenticadoDep, db: Db) -> Response:
+    servico.recusar_convite(db, auth.usuario.id, convite_id)
+    return Response(status_code=204)
+
+
+@router.post("/cotas/{cota_id}/confirmar", responses=_ERROS)
+def confirmar_cota(cota_id: int, auth: AutenticadoDep, db: Db, relogio: RelogioDep) -> ContaDonoOut:
+    return servico.confirmar_cota(
+        db, auth.usuario.id, cota_id, relogio.hoje_sp(), relogio.agora_utc()
+    )
+
+
+@router.post("/cotas/{cota_id}/desfazer-confirmacao", responses=_ERROS)
+def desfazer_confirmacao(
+    cota_id: int, auth: AutenticadoDep, db: Db, relogio: RelogioDep
+) -> ContaDonoOut:
+    return servico.desfazer_confirmacao(
+        db, auth.usuario.id, cota_id, relogio.hoje_sp(), relogio.agora_utc()
+    )
+
+
 @router.get("/{conta_id}", responses=_ERROS)
-def obter(conta_id: int, auth: AutenticadoDep, db: Db, relogio: RelogioDep) -> ContaDonoOut:
+def obter(
+    conta_id: int, auth: AutenticadoDep, db: Db, relogio: RelogioDep
+) -> ContaDonoOut | ContaParticipanteOut:
     return servico.detalhe_da_conta(
         db, conta_id, auth.usuario.id, relogio.hoje_sp(), relogio.agora_utc()
     )
@@ -54,6 +99,19 @@ def convidar(
     conta_id: int, dados: ConviteIn, auth: AutenticadoDep, db: Db, relogio: RelogioDep
 ) -> ContaDonoOut:
     return servico.convidar(
+        db, auth.usuario.id, conta_id, dados, relogio.hoje_sp(), relogio.agora_utc()
+    )
+
+
+@router.post(
+    "/{conta_id}/cobrancas",
+    status_code=201,
+    responses={**_ERROS, 422: {"model": ErroOut}},
+)
+def gerar_cobranca(
+    conta_id: int, dados: CobrancaIn, auth: AutenticadoDep, db: Db, relogio: RelogioDep
+) -> ContaDonoOut:
+    return servico.gerar_cobranca(
         db, auth.usuario.id, conta_id, dados, relogio.hoje_sp(), relogio.agora_utc()
     )
 
@@ -85,3 +143,9 @@ def remover(
     return servico.remover_participante(
         db, auth.usuario.id, conta_id, participante_id, relogio.hoje_sp(), relogio.agora_utc()
     )
+
+
+@router.post("/{conta_id}/sair", status_code=204, responses=_ERROS)
+def sair(conta_id: int, auth: AutenticadoDep, db: Db) -> Response:
+    servico.sair_da_conta(db, auth.usuario.id, conta_id)
+    return Response(status_code=204)

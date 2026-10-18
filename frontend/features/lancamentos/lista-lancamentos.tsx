@@ -74,6 +74,7 @@ export function ListaLancamentos({
             l.cartela_id != null && "cartela",
             l.servico_id != null && "serviço",
             l.retirada_id != null && "retirada",
+            l.cota_id != null && "conta compartilhada",
             // Nos lembretes as duas carteiras aparecem juntas: marca a que não está aberta.
             l.carteira !== carteira && l.carteira.toUpperCase(),
             previsto && "previsto",
@@ -211,6 +212,15 @@ export function ListaLancamentos({
               Para remover este depósito,{" "}
               <Link href={`/cartelas/${editando.cartela_id}`} className="underline underline-offset-4">
                 desmarque a casa na cartela
+              </Link>
+              .
+            </p>
+          ) : editando.cota_id != null ? (
+            <p className="text-sm text-muted-foreground">
+              Esta é a sua parte de uma conta compartilhada: não pode ser excluída nem ter o valor
+              mudado. Marque como paga ou desfaça, quando quiser.{" "}
+              <Link href="/contas-compartilhadas" className="underline underline-offset-4">
+                Ver contas compartilhadas
               </Link>
               .
             </p>

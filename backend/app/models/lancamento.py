@@ -21,6 +21,7 @@ from app.domain.usuario import ciclo_pelo_mes
 from app.models import Base
 from app.models.cartela import Casa
 from app.models.categoria import Categoria
+from app.models.conta_compartilhada import CotaCobranca
 from app.models.retirada import Retirada
 from app.models.servico import Servico
 from app.models.usuario import Usuario
@@ -103,6 +104,15 @@ class Lancamento(Base):
         select(Retirada.id)
         .where((Retirada.lancamento_pj_id == id) | (Retirada.lancamento_pf_id == id))
         .correlate_except(Retirada)
+        .scalar_subquery()
+    )
+
+    # Cota de conta compartilhada que gerou este previsto (feature 020), ou None: valor, data,
+    # carteira e tipo ficam travados.
+    cota_id: Mapped[int | None] = column_property(
+        select(CotaCobranca.id)
+        .where(CotaCobranca.lancamento_id == id)
+        .correlate_except(CotaCobranca)
         .scalar_subquery()
     )
 

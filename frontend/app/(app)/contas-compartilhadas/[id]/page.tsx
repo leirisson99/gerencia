@@ -5,7 +5,9 @@ import { ArrowLeftIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Bloco, Indicador } from "@/features/dashboard/bloco"
+import { GerarCobranca } from "@/features/contas-compartilhadas/gerar-cobranca"
 import { ListaParticipantes } from "@/features/contas-compartilhadas/lista-participantes"
+import { VisaoParticipante } from "@/features/contas-compartilhadas/visao-participante"
 import { MODOS, rotuloPendentes, rotuloPessoas } from "@/features/contas-compartilhadas/rotulos"
 import { obterContaCompartilhada } from "@/lib/api/server"
 import { formatarCentavos } from "@/lib/format"
@@ -37,37 +39,43 @@ export default async function ContaCompartilhadaPage({
         {conta.descricao}
       </h1>
       <p className="mt-2 text-muted-foreground">
-        {MODOS[conta.modo]} · vence todo dia {conta.dia_vencimento}
+        {conta.papel === "dono" ? `${MODOS[conta.modo]} · ` : ""}vence todo dia {conta.dia_vencimento}
         {!conta.ativa && " · desativada"}
       </p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        <Bloco titulo="Total do mês">
-          <Indicador
-            valor={conta.valor_total === null ? "—" : formatarCentavos(conta.valor_total)}
-            legenda={
-              conta.valor_total !== null
-                ? undefined
-                : conta.falta_informar_total
-                  ? "Falta informar o total deste mês."
-                  : conta.valor_fixo !== null
-                    ? `Valor fixo de ${formatarCentavos(conta.valor_fixo)}`
-                    : undefined
-            }
-          />
-        </Bloco>
-        <Bloco titulo="Pessoas">
-          <Indicador valor={rotuloPessoas(conta.qtd_pessoas)} legenda={pendentes ?? undefined} />
-        </Bloco>
-        <Bloco titulo="Sua parte">
-          <Indicador
-            valor={conta.minha_cota ? formatarCentavos(conta.minha_cota.valor) : "—"}
-            legenda={conta.minha_cota ? undefined : "Aparece quando a cobrança do mês é gerada."}
-          />
-        </Bloco>
-      </div>
+      {conta.papel === "participante" ? (
+        <VisaoParticipante conta={conta} />
+      ) : (
+        <>
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <Bloco titulo="Total do mês" acao={<GerarCobranca conta={conta} />}>
+              <Indicador
+                valor={conta.valor_total === null ? "—" : formatarCentavos(conta.valor_total)}
+                legenda={
+                  conta.valor_total !== null
+                    ? undefined
+                    : conta.falta_informar_total
+                      ? "Falta informar o total deste mês."
+                      : conta.valor_fixo !== null
+                        ? `Valor fixo de ${formatarCentavos(conta.valor_fixo)}`
+                        : undefined
+                }
+              />
+            </Bloco>
+            <Bloco titulo="Pessoas">
+              <Indicador valor={rotuloPessoas(conta.qtd_pessoas)} legenda={pendentes ?? undefined} />
+            </Bloco>
+            <Bloco titulo="Sua parte">
+              <Indicador
+                valor={conta.minha_cota ? formatarCentavos(conta.minha_cota.valor) : "—"}
+                legenda={conta.minha_cota ? undefined : "Aparece quando a cobrança do mês é gerada."}
+              />
+            </Bloco>
+          </div>
 
-      <ListaParticipantes conta={conta} />
+          <ListaParticipantes conta={conta} />
+        </>
+      )}
     </section>
   )
 }

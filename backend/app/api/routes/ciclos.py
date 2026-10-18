@@ -15,10 +15,19 @@ from app.services.ciclo import (
     obter_ciclo_da_data,
     sugestao_salario,
 )
+from app.services.conta_compartilhada import preparar_leitura_do_ciclo
 from app.services.recorrencia import garantir_previstos_do_mes
 from app.services.resumo import resumo_do_ciclo
 
 router = APIRouter(prefix="/api/v1", tags=["ciclos"])
+
+
+def _preparar(db: Db, usuario_id: int, relogio: RelogioDep, carteira: Carteira) -> None:
+    """Contas compartilhadas existem só na PF: antes de ler o ciclo, gera as cobranças fixas
+    vencidas e cria os previstos das cotas do usuário (não escreve nada se não houver)."""
+    if carteira == "pf":
+        preparar_leitura_do_ciclo(db, usuario_id, relogio.hoje_sp(), relogio.agora_utc())
+
 
 SEM_CICLO: dict[int | str, dict[str, object]] = {
     404: {"model": ErroOut},
@@ -32,6 +41,7 @@ def atual(auth: AutenticadoDep, db: Db, relogio: RelogioDep, carteira: Carteira 
     exigir_carteira(db, auth.usuario.id, carteira)
     hoje = relogio.hoje_sp()
     garantir_previstos_do_mes(db, auth.usuario.id, hoje, relogio.agora_utc(), carteira)
+    _preparar(db, auth.usuario.id, relogio, carteira)
     return CicloOut.model_validate(obter_ciclo_atual(db, auth.usuario.id, hoje, carteira))
 
 
@@ -40,6 +50,7 @@ def da_data(
     data: date, auth: AutenticadoDep, db: Db, relogio: RelogioDep, carteira: Carteira = "pf"
 ) -> CicloOut:
     exigir_carteira(db, auth.usuario.id, carteira)
+    _preparar(db, auth.usuario.id, relogio, carteira)
     return CicloOut.model_validate(
         obter_ciclo_da_data(db, auth.usuario.id, data, relogio.hoje_sp(), carteira)
     )
@@ -50,6 +61,7 @@ def lancamentos(
     data: date, auth: AutenticadoDep, db: Db, relogio: RelogioDep, carteira: Carteira = "pf"
 ) -> list[LancamentoOut]:
     exigir_carteira(db, auth.usuario.id, carteira)
+    _preparar(db, auth.usuario.id, relogio, carteira)
     return [
         LancamentoOut.model_validate(lanc)
         for lanc in lancamentos_do_ciclo(db, auth.usuario.id, data, relogio.hoje_sp(), carteira)
@@ -63,6 +75,7 @@ def resumo(
     exigir_carteira(db, auth.usuario.id, carteira)
     hoje = relogio.hoje_sp()
     garantir_previstos_do_mes(db, auth.usuario.id, hoje, relogio.agora_utc(), carteira)
+    _preparar(db, auth.usuario.id, relogio, carteira)
     return resumo_do_ciclo(db, auth.usuario.id, data, hoje, carteira)
 
 

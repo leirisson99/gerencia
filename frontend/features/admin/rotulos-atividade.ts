@@ -34,6 +34,11 @@ export const ROTULOS_EVENTO: Record<TipoEvento, string> = {
   retirada_feita: "Fez retirada da PJ",
   retirada_editada: "Editou retirada",
   retirada_excluida: "Excluiu retirada",
+  conta_compartilhada_criada: "Criou conta compartilhada",
+  convite_aceito: "Aceitou convite de conta",
+  convite_recusado: "Recusou convite de conta",
+  cobranca_gerada: "Gerou cobrança de conta",
+  cota_confirmada: "Confirmou pagamento de cota",
 }
 
 export const ROTULOS_ACAO_ADMIN: Record<AcaoAdmin["acao"], string> = {
@@ -57,4 +62,6 @@ export const ROTULOS_CONTAGEM: [keyof ContagensConta, string][] = [
   ["lembretes", "Lembretes"],
   ["aparelhos_push", "Aparelhos com notificação"],
   ["retiradas", "Retiradas da PJ"],
+  ["contas_compartilhadas", "Contas compartilhadas criadas"],
+  ["participacoes", "Participações em contas"],
 ]

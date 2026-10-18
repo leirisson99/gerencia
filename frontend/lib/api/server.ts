@@ -8,8 +8,9 @@ import type {
   Cartela,
   Categoria,
   Ciclo,
-  ContaDono,
+  ContaCompartilhada,
   ContaResumo,
+  Convite,
   DetalheConta,
   Divida,
   Lancamento,
@@ -129,10 +130,15 @@ export function listarContasCompartilhadas() {
   return buscar<ContaResumo[]>("/contas-compartilhadas")
 }
 
+/** Convites pendentes e ainda válidos feitos para o e-mail do usuário. */
+export function listarConvitesCompartilhados() {
+  return buscar<Convite[]>("/contas-compartilhadas/convites")
+}
+
 /** Devolve `null` se a conta não existe ou o usuário não participa dela (a API responde 404). */
-export async function obterContaCompartilhada(id: number): Promise<ContaDono | null> {
+export async function obterContaCompartilhada(id: number): Promise<ContaCompartilhada | null> {
   try {
-    return await buscar<ContaDono>(`/contas-compartilhadas/${id}`)
+    return await buscar<ContaCompartilhada>(`/contas-compartilhadas/${id}`)
   } catch (erro) {
     if (erro instanceof ApiError && erro.status === 404) return null
     throw erro

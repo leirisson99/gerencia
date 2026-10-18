@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-16
 
-**Status**: Draft (clarificada em 2026-10-16)
+**Status**: Implementada (2026-10-17); roteiro do quickstart validado por HTTP (37 verificações)
 
 **Input**: "módulo de dívida compartilhada: uma pessoa cadastra aluguel, água, luz com outras
 pessoas para dividir uma parcela de cada valor; pagamento de um valor total". Decisões do

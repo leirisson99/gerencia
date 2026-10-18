@@ -76,6 +76,9 @@ export function FormLancamento({
   // Como na API, a trava só vale enquanto o tipo de renda dá acesso a serviços.
   const tipoRenda = useTipoRenda()
   const eServico = lancamento?.servico_id != null && temServicos(tipoRenda)
+  // Parte de uma conta compartilhada: valor e data vêm da cobrança (a API recusa com 409).
+  // Status, categoria e descrição seguem livres.
+  const eCota = lancamento?.cota_id != null
   // Lançamento novo vai para a carteira aberta; ao editar, fica na dele.
   const { carteira: carteiraAberta } = useCarteira()
   const carteira = lancamento?.carteira ?? carteiraAberta
@@ -137,11 +140,13 @@ export function FormLancamento({
       const { categoria_id, ...semCategoria } = dados
       const mudancas = eServico
         ? { descricao: dados.descricao }
-        : eDeposito
-          ? { data: dados.data, descricao: dados.descricao }
-          : eParcela
-            ? semCategoria
-            : { ...semCategoria, categoria_id }
+        : eCota
+          ? { categoria_id, descricao: dados.descricao, status: dados.status }
+          : eDeposito
+            ? { data: dados.data, descricao: dados.descricao }
+            : eParcela
+              ? semCategoria
+              : { ...semCategoria, categoria_id }
       aoConcluir(await editarLancamento(lancamento.id, mudancas))
     } catch (erro) {
       setErroGeral(
@@ -162,14 +167,16 @@ export function FormLancamento({
           render={({ field }) => (
             <CampoValor
               label="Valor"
-              autoFocus={!eDeposito && !eServico}
-              disabled={eDeposito || eServico}
+              autoFocus={!eDeposito && !eServico && !eCota}
+              disabled={eDeposito || eServico || eCota}
               descricao={
                 eDeposito
                   ? "Depósito da cartela. Para mudar o valor, desmarque a casa na cartela."
                   : eServico
                     ? "Entrada de um serviço. Valor, data e recebimento mudam pelo serviço."
-                    : undefined
+                    : eCota
+                      ? "Sua parte de uma conta compartilhada. O valor vem da cobrança do dono."
+                      : undefined
               }
               erro={errors.valor?.message}
               name={field.name}
@@ -214,8 +221,14 @@ export function FormLancamento({
           label="Data"
           type="date"
           max={escolheuSalario ? hoje : undefined}
-          readOnly={eServico}
-          descricao={escolheuSalario ? "O salário abre um ciclo nesta data." : undefined}
+          readOnly={eServico || eCota}
+          descricao={
+            escolheuSalario
+              ? "O salário abre um ciclo nesta data."
+              : eCota
+                ? "A data é o vencimento da conta."
+                : undefined
+          }
           erro={errors.data?.message}
           {...form.register("data")}
         />

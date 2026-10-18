@@ -1,13 +1,13 @@
 from datetime import date, datetime
 
-from sqlalchemy import exists, func, not_, select
+from sqlalchemy import exists, func, not_, select, update
 from sqlalchemy.orm import Session
 
 from app.domain.ciclo import ProblemaCobertura, ciclo_atual, ciclo_mensal, verificar_cobertura
 from app.domain.usuario import CARTEIRA_PADRAO, ciclo_pelo_mes, tem_servicos
 from app.erros import MENSAGEM_VALIDACAO, ErroApi
-from app.models import Casa, Categoria, Lancamento, Retirada
-from app.models.lancamento import STATUS_REALIZADO
+from app.models import Casa, Categoria, CotaCobranca, Lancamento, Retirada
+from app.models.lancamento import STATUS_PREVISTO, STATUS_REALIZADO
 from app.schemas.lancamento import AvisoLimiteOut, LancamentoIn, LancamentoPatch
 from app.services.categoria import obter_categoria_ativa
 from app.services.ciclo import (
@@ -135,6 +135,20 @@ def _e_lado_de_retirada(db: Session, lancamento_id: int) -> bool:
     )
 
 
+def _e_de_cota(db: Session, lancamento_id: int) -> bool:
+    """Previsto criado pela cota de uma conta compartilhada (constituição 8.1.0, princípio I)."""
+    return db.scalar(select(exists().where(CotaCobranca.lancamento_id == lancamento_id))) or False
+
+
+def _erro_de_cota() -> ErroApi:
+    return ErroApi(
+        409,
+        "lancamento_de_cota",
+        "Este lançamento é a sua parte de uma conta compartilhada: "
+        "só dá para realizá-lo, desfazer, ou mudar a categoria e a descrição.",
+    )
+
+
 def _erro_lado_de_retirada() -> ErroApi:
     return ErroApi(
         409, "lancamento_de_retirada", "Este lançamento é de uma retirada: altere pela retirada."
@@ -208,6 +222,23 @@ def criar_lancamento(
     return lancamento, aviso
 
 
+def _recusar_mudanca_da_cota(
+    db: Session, usuario_id: int, lancamento: Lancamento, dados: LancamentoPatch
+) -> None:
+    """A cota deve bater com o que os outros participantes esperam: valor, data, carteira e tipo
+    ficam travados. Status, categoria (de saída) e descrição seguem livres."""
+    if dados.valor is not None and dados.valor != lancamento.valor:
+        raise _erro_de_cota()
+    if dados.data is not None and dados.data != lancamento.data:
+        raise _erro_de_cota()
+    if dados.carteira is not None and dados.carteira != lancamento.carteira:
+        raise _erro_de_cota()
+    if dados.categoria_id is not None and dados.categoria_id != lancamento.categoria_id:
+        categoria = obter_categoria_ativa(db, usuario_id, dados.categoria_id)
+        if categoria.tipo != lancamento.tipo:
+            raise _erro_de_cota()
+
+
 def editar_lancamento(
     db: Session,
     usuario_id: int,
@@ -224,6 +255,9 @@ def editar_lancamento(
         return lancamento, None
     if _e_lado_de_retirada(db, lancamento.id):
         raise _erro_lado_de_retirada()
+    de_cota = _e_de_cota(db, lancamento.id)
+    if de_cota:
+        _recusar_mudanca_da_cota(db, usuario_id, lancamento, dados)
     carteira = dados.carteira if dados.carteira is not None else lancamento.carteira
     if carteira != lancamento.carteira:
         exigir_carteira(db, usuario_id, carteira)
@@ -310,6 +344,13 @@ def editar_lancamento(
     if "descricao" in enviados:
         lancamento.descricao = dados.descricao
     lancamento.atualizado_em = agora
+    if de_cota and status == STATUS_PREVISTO:
+        # O titular cancelou o "paguei": a confirmação do dono deixa de valer.
+        db.execute(
+            update(CotaCobranca)
+            .where(CotaCobranca.lancamento_id == lancamento.id)
+            .values(confirmado_em=None)
+        )
     db.flush()
     aviso = avaliar_aviso(
         categoria, usado_antes, usado_no_ciclo(db, usuario_id, categoria, data, hoje, carteira)
@@ -332,6 +373,8 @@ def excluir_lancamento(db: Session, usuario_id: int, lancamento_id: int) -> None
         raise ErroApi(409, "deposito_de_cartela", "Desmarque o depósito na cartela para removê-lo.")
     if _e_lado_de_retirada(db, lancamento.id):
         raise _erro_lado_de_retirada()
+    if _e_de_cota(db, lancamento.id):
+        raise _erro_de_cota()
     if lancamento.carteira == CARTEIRA_PADRAO and _problema_depois_da_mudanca(
         db, usuario_id, lancamento.id, None
     ):

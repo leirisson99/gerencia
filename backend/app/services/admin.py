@@ -12,11 +12,14 @@ from app.models import (
     AcaoAdmin,
     Cartela,
     Casa,
+    ContaCompartilhada,
+    CotaCobranca,
     Divida,
     EventoUso,
     InscricaoPush,
     Lancamento,
     Lembrete,
+    ParticipanteConta,
     Recorrencia,
     Retirada,
     Servico,
@@ -191,13 +194,14 @@ def _contas(coluna_usuario: Any, *filtros: Any) -> Any:
 
 def _uso_funcionalidades(db: Session) -> list[UsoFuncionalidadeOut]:
     """Contas distintas que usam cada funcionalidade, numa consulta só."""
-    recorrencias, dividas, cartelas, servicos, importacao = db.execute(
+    recorrencias, dividas, cartelas, servicos, importacao, compartilhadas = db.execute(
         select(
             _contas(Recorrencia.usuario_id),
             _contas(Divida.usuario_id),
             _contas(Cartela.usuario_id),
             _contas(Servico.usuario_id),
             _contas(Lancamento.usuario_id, Lancamento.id_externo.is_not(None)),
+            _contas(ParticipanteConta.usuario_id, ParticipanteConta.status == "aceito"),
         )
     ).one()
     return [
@@ -206,6 +210,7 @@ def _uso_funcionalidades(db: Session) -> list[UsoFuncionalidadeOut]:
         UsoFuncionalidadeOut(funcionalidade="cartelas", contas=cartelas),
         UsoFuncionalidadeOut(funcionalidade="servicos", contas=servicos),
         UsoFuncionalidadeOut(funcionalidade="importacao", contas=importacao),
+        UsoFuncionalidadeOut(funcionalidade="contas_compartilhadas", contas=compartilhadas),
     ]
 
 
@@ -330,6 +335,9 @@ def _contagens(db: Session, usuario_id: int) -> ContagensContaOut:
         Lancamento.id.in_(select(Servico.lancamento_id)),
         Lancamento.id.in_(select(Retirada.lancamento_pj_id)),
         Lancamento.id.in_(select(Retirada.lancamento_pf_id)),
+        Lancamento.id.in_(
+            select(CotaCobranca.lancamento_id).where(CotaCobranca.lancamento_id.is_not(None))
+        ),
     )
     linha = db.execute(
         select(
@@ -353,6 +361,13 @@ def _contagens(db: Session, usuario_id: int) -> ContagensContaOut:
             contar(Lembrete, Lembrete.usuario_id == usuario_id),
             contar(InscricaoPush, InscricaoPush.usuario_id == usuario_id),
             contar(Retirada, Retirada.usuario_id == usuario_id),
+            contar(ContaCompartilhada, ContaCompartilhada.dono_id == usuario_id),
+            contar(
+                ParticipanteConta,
+                ParticipanteConta.usuario_id == usuario_id,
+                ParticipanteConta.status == "aceito",
+                ~ParticipanteConta.eh_dono,
+            ),
         )
     ).one()
     return ContagensContaOut(**dict(zip(ContagensContaOut.model_fields, linha, strict=True)))

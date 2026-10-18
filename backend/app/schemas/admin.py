@@ -79,7 +79,9 @@ class EngajamentoOut(BaseModel):
     com_lancamento: int
 
 
-Funcionalidade = Literal["recorrencias", "dividas", "cartelas", "servicos", "importacao"]
+Funcionalidade = Literal[
+    "recorrencias", "dividas", "cartelas", "servicos", "importacao", "contas_compartilhadas"
+]
 
 
 class UsoFuncionalidadeOut(BaseModel):
@@ -121,6 +123,8 @@ class ContagensContaOut(BaseModel):
     lembretes: int
     aparelhos_push: int
     retiradas: int  # da PJ para a PF (feature 019)
+    contas_compartilhadas: int  # que ela criou, como dona (feature 020)
+    participacoes: int  # em contas de outras pessoas, já aceitas (feature 020)
 
 
 class AcaoAdminOut(BaseModel):

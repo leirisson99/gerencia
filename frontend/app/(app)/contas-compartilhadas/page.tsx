@@ -2,8 +2,13 @@ import type { Metadata } from "next"
 
 import { PageHeader } from "@/components/layout/page-header"
 import { CartaoConta } from "@/features/contas-compartilhadas/cartao-conta"
+import { ListaConvites } from "@/features/contas-compartilhadas/convites"
 import { NovaConta } from "@/features/contas-compartilhadas/nova-conta"
-import { listarCategorias, listarContasCompartilhadas } from "@/lib/api/server"
+import {
+  listarCategorias,
+  listarContasCompartilhadas,
+  listarConvitesCompartilhados,
+} from "@/lib/api/server"
 import { obterCarteira } from "@/lib/carteira"
 
 export const metadata: Metadata = { title: "Contas compartilhadas" }
@@ -21,7 +26,11 @@ export default async function ContasCompartilhadasPage() {
     )
   }
 
-  const [contas, categorias] = await Promise.all([listarContasCompartilhadas(), listarCategorias()])
+  const [contas, categorias, convites] = await Promise.all([
+    listarContasCompartilhadas(),
+    listarCategorias(),
+    listarConvitesCompartilhados(),
+  ])
 
   return (
     <>
@@ -32,6 +41,8 @@ export default async function ContasCompartilhadasPage() {
         />
         <NovaConta categorias={categorias} />
       </div>
+
+      <ListaConvites convites={convites} categorias={categorias} />
 
       {contas.length === 0 ? (
         <p className="border-t py-8 text-muted-foreground">
