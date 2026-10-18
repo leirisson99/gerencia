@@ -201,18 +201,18 @@ confirma sem tocar no saldo de ninguém.
 **Independent Test**: Bia realiza o lançamento (cota "informado"); Ana confirma ("confirmado");
 Bia volta o lançamento para previsto (cota "pendente", confirmação invalidada).
 
-- [ ] T029 [P] [US4] Em `tests/api/test_contas_compartilhadas.py`: status derivado da cota
+- [X] T029 [P] [US4] Em `tests/api/test_contas_compartilhadas.py`: status derivado da cota
   (`pendente` com previsto, `informado` com realizado, `confirmado` com `confirmado_em` e
   realizado); `POST /cotas/{id}/confirmar` do dono em cota informada; participante tentando
   confirmar → 403 `somente_dono`; confirmar sem lançamento realizado → 409 `cota_nao_informada`;
   `POST .../desfazer-confirmacao`; cancelar (lançamento volta a previsto) leva a `pendente`;
   confirmar e desfazer não alteram nenhum lançamento; confirmar cota de outra conta → 404.
-- [ ] T030 [US4] Em `app/services/conta_compartilhada.py`: `confirmar_cota` e
+- [X] T030 [US4] Em `app/services/conta_compartilhada.py`: `confirmar_cota` e
   `desfazer_confirmacao` (só gravam `confirmado_em`; registra `cota_confirmada`) e o cálculo do
   status derivado nas visões do dono e do participante (usa `status_da_cota`).
-- [ ] T031 [US4] Rotas `POST /cotas/{cota_id}/confirmar` e `POST /cotas/{cota_id}/desfazer-confirmacao`
+- [X] T031 [US4] Rotas `POST /cotas/{cota_id}/confirmar` e `POST /cotas/{cota_id}/desfazer-confirmacao`
   em `app/api/routes/contas_compartilhadas.py` (antes das rotas com `{id}`).
-- [ ] T032 [P] [US4] Frontend: botão "Confirmar" (dono) e status por pessoa em
+- [X] T032 [P] [US4] Frontend: botão "Confirmar" (dono) e status por pessoa em
   `../frontend/features/contas-compartilhadas/`; "Paguei" e "Cancelar" no lançamento da cota
   chamam a rota de lançamento existente.
 
@@ -220,15 +220,15 @@ Bia volta o lançamento para previsto (cota "pendente", confirmação invalidada
 
 ## Phase 7: Polish & cross-cutting
 
-- [ ] T033 [P] Em `app/services/admin.py` (`:194-205` e `:267-283`): contar contas
+- [X] T033 [P] Em `app/services/admin.py` (`:194-205` e `:267-283`): contar contas
   compartilhadas e participações aceitas por usuário e no global, sem nomes, e-mails ou valores;
   teste em `tests/api/test_admin.py` conferindo que o payload não traz nenhum desses campos.
-- [ ] T034 [P] Em `tests/api/test_isolamento.py`: um usuário sem relação com a conta recebe 404 em
+- [X] T034 [P] Em `tests/api/test_isolamento.py`: um usuário sem relação com a conta recebe 404 em
   todas as rotas do módulo; `GET /{id}` do participante não contém e-mail nem valor de terceiros.
-- [ ] T035 Regressão: `uv run pytest` completo, `uv run ruff check .`, `uv run ruff format
+- [X] T035 Regressão: `uv run pytest` completo, `uv run ruff check .`, `uv run ruff format
   --check .`; revisar o OpenAPI gerado (princípio IV); no frontend `npm run lint`, `npm run
   build` e `npx tsc --noEmit`.
-- [ ] T036 Roteiro manual de `quickstart.md` com dois usuários; marcar o status da spec como
+- [X] T036 Roteiro manual de `quickstart.md` com dois usuários; marcar o status da spec como
   Implementada.
 
 ---
